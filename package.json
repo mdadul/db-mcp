@@ -1,0 +1,40 @@
+{
+  "name": "db-mcp",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^26.1.1",
+    "drizzle-kit": "^0.31.10",
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.0.11",
+    "@hono/zod-validator": "^0.9.0",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "drizzle-orm": "^0.45.2",
+    "better-sqlite3": "^12.2.0",
+    "hono": "^4.12.32",
+    "mysql2": "^3.23.1",
+    "postgres": "^3.4.9",
+    "zod": "^4.4.3"
+  },
+  "scripts": {
+    "start": "node --env-file=.env src/index.ts",
+    "dev": "node --env-file=.env --watch src/index.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio",
+    "type-check": "tsc --noEmit",
+    "test": "node --test src/**/*.test.ts",
+    "build:client": "cd client && bun install && bun run build",
+    "dev:client": "cd client && bun run dev"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "workspaces": [
+    "client"
+  ]
+}
