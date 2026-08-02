@@ -30,6 +30,13 @@ export async function getDatabaseSchema(databaseId: string, filter?: string): Pr
           `SELECT name AS table_name, type AS table_type FROM sqlite_master WHERE type='table' ORDER BY name`
         );
         break;
+      case "redshift":
+        tables = await executor.query<TableRow>(
+          `SELECT schema || '.' || "table" AS table_name, 'BASE TABLE' AS table_type
+           FROM SVV_TABLE_INFO
+           ORDER BY schema, "table"`
+        );
+        break;
       case "mysql":
         tables = await executor.query<TableRow>(
           `SELECT table_name, table_type 

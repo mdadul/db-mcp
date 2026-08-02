@@ -70,6 +70,34 @@ export async function getTableSchema(
         }));
         break;
       }
+      case "redshift": {
+        // Redshift uses PG_TABLE_DEF for columns; sort/dist keys from SVV_TABLE_INFO
+        const [redshiftCols, redshiftMeta] = await Promise.all([
+          executor.query<any>(
+            `SELECT columnname AS column_name, type AS data_type,
+                    CASE notnull WHEN true THEN 'NO' ELSE 'YES' END AS is_nullable,
+                    NULL AS column_default, NULL AS character_maximum_length
+             FROM PG_TABLE_DEF
+             WHERE tablename = $1
+             ORDER BY columnnum`,
+            [tableName]
+          ),
+          executor.query<any>(
+            `SELECT sortkey1, sortkey1_enc, diststyle, distkey FROM SVV_TABLE_INFO WHERE "table" = $1`,
+            [tableName]
+          ),
+        ]);
+        columns = redshiftCols;
+        const meta = redshiftMeta[0] ?? {};
+        // Surface sort key and dist key in the indexes field
+        if (meta.sortkey1) {
+          indexes.push({ index_name: `sort_key:${meta.sortkey1}`, column_name: meta.sortkey1, is_unique: false, is_primary: false });
+        }
+        if (meta.distkey) {
+          indexes.push({ index_name: `dist_key:${meta.distkey}`, column_name: meta.distkey, is_unique: false, is_primary: false });
+        }
+        break;
+      }
       case "mysql":
         [columns, indexes, foreignKeys] = await Promise.all([
           executor.query<ColumnRow>(

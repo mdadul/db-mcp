@@ -41,12 +41,24 @@ export const CreateDatabaseSchema = z.discriminatedUnion("type", [
     serviceName: z.string().optional(),
     environment: z.string().optional(),
   }),
+  z.object({
+    name: z.string().min(1).max(255),
+    type: z.literal("redshift"),
+    host: z.string().min(1),
+    port: z.number().int().min(1).max(65535).default(5439),
+    databaseName: z.string().min(1),
+    username: z.string().min(1),
+    password: z.string().min(1),
+    ssl: z.boolean().default(true), // always required for Redshift
+    serviceName: z.string().optional(),
+    environment: z.string().optional(),
+  }),
 ]);
 
 // Update schema: accept any partial subset of the create fields
 export const UpdateDatabaseSchema = z.object({
   name: z.string().min(1).max(255).optional(),
-  type: z.enum(["postgresql", "mysql", "sqlite"]).optional(),
+  type: z.enum(["postgresql", "mysql", "sqlite", "redshift"]).optional(),
   host: z.string().optional(),
   port: z.number().int().min(0).max(65535).optional(),
   databaseName: z.string().min(1).optional(),
