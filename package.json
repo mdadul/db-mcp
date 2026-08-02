@@ -21,8 +21,9 @@
     "zod": "^4.4.3"
   },
   "scripts": {
-    "start": "node --env-file=.env src/index.ts",
-    "dev": "node --env-file=.env --watch src/index.ts",
+    "setup": "sh scripts/setup.sh",
+    "start": "sh scripts/setup.sh && node --env-file=.env src/index.ts",
+    "dev": "sh scripts/setup.sh && node --env-file=.env --watch src/index.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",

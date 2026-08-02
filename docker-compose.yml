@@ -1,0 +1,11 @@
+services:
+  db-mcp:
+    image: mdadul/db-mcp:latest
+    # build: .  # uncomment to build from source instead
+    ports:
+      - "4080:4080"
+    volumes:
+      # Persist the SQLite control-plane DB and generated .env across restarts.
+      - ./data:/data
+      - ./.env:/app/.env
+    restart: unless-stopped

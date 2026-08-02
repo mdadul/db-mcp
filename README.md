@@ -23,36 +23,39 @@ Instead of copy-pasting query results between your DB client and your AI tool, t
 
 ## Quick Start
 
-### 1. Install and run
+### Option A — Docker (recommended, no local install needed)
 
 ```bash
-# Prerequisites: Bun (https://bun.sh)
 git clone https://github.com/mdadul/db-mcp
 cd db-mcp
 
-bun install
-bun run dev
+# Generate .env with secure random keys, then start
+sh scripts/setup.sh
+docker compose up
 ```
 
-Open **http://localhost:4080** — the web UI is ready.
+`docker compose` pulls the pre-built image from Docker Hub — no build step required.  
+The `MCP_TOKEN` is printed by `setup.sh` — copy it before you close the terminal.
 
-### 2. Add a database
+---
 
-Click **Add Your First Database** and fill in:
-- Host, port, database name
-- A read-only database user and password (recommended — the gateway enforces read-only at the query level regardless, but defense in depth is good)
-
-Hit **Test Connection** to confirm it works.
-
-### 3. Get your MCP token
-
-The gateway generates a token in `.env` on first run:
+### Option B — Native (requires [Bun](https://bun.sh))
 
 ```bash
-grep MCP_TOKEN .env
+git clone https://github.com/mdadul/db-mcp
+cd db-mcp
+bun install
+bun run dev   # generates .env automatically, then starts the server
 ```
 
-### 4. Connect your AI tool
+Open **http://localhost:4080**.  
+Your `MCP_TOKEN` is in `.env`.
+
+---
+
+
+
+## Connect your AI tool
 
 #### Claude Code (CLI)
 
