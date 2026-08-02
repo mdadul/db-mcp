@@ -4,6 +4,10 @@ Give Claude Code, Cursor, Windsurf, or any MCP-compatible AI tool **read-only ac
 
 Self-hosted. Everything runs locally. Your passwords never leave your machine.
 
+
+https://github.com/user-attachments/assets/f768ff6f-3c9e-4583-9179-c7022d3b7487
+
+
 ### Supported databases
 
 | | Database | Notes |
