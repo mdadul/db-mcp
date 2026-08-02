@@ -4,7 +4,8 @@ WORKDIR /app/client
 COPY client/package.json client/bun.lock ./
 RUN bun install
 COPY client/ ./
-RUN bun run build
+# Skip tsc — @server path aliases don't resolve without the server source tree
+RUN bunx vite build
 
 # ── Stage 2: Runtime ──────────────────────────────────────────────────────────
 # better-sqlite3 needs build tools for its native addon.
