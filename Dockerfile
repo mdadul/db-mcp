@@ -4,16 +4,15 @@ WORKDIR /app/client
 COPY client/package.json client/bun.lock ./
 RUN bun install
 COPY client/ ./
-# Skip tsc — @server path aliases don't resolve without the server source tree
 RUN bunx vite build
 
 # ── Stage 2: Runtime ──────────────────────────────────────────────────────────
-# better-sqlite3 needs build tools for its native addon.
 FROM oven/bun:1 AS runtime
 RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-COPY package.json bun.lock* ./
+COPY package.json ./
+RUN mkdir -p client && echo '{"name":"db-mcp-client","private":true}' > client/package.json
 RUN bun install --production
 
 COPY src/ ./src/
