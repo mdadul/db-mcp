@@ -8,6 +8,48 @@ export type {
   QueryLogItem,
 } from "@server/api/routes/databases/types.ts";
 
+// ---------------------------------------------------------------------------
+// Engine registry — add new engines here to extend the picker and form logic.
+// The `type` must match the backend DbConfig.type union.
+// ---------------------------------------------------------------------------
+export type DbEngineType = "postgresql" | "mysql" | "sqlite";
+
+export interface DbEngineConfig {
+  type: DbEngineType;
+  label: string;
+  badge: string;       // shown in the picker card (port or "File")
+  hint: string;        // examples shown below the label
+  defaultPort: number; // 0 = file-based, no port
+  requiresNetwork: boolean; // false = SQLite-style file path only
+}
+
+export const DB_ENGINES: DbEngineConfig[] = [
+  {
+    type: "postgresql",
+    label: "PostgreSQL",
+    badge: "5432",
+    hint: "Supabase, Neon, AWS RDS, CockroachDB",
+    defaultPort: 5432,
+    requiresNetwork: true,
+  },
+  {
+    type: "mysql",
+    label: "MySQL",
+    badge: "3306",
+    hint: "PlanetScale, AWS RDS, MariaDB",
+    defaultPort: 3306,
+    requiresNetwork: true,
+  },
+  {
+    type: "sqlite",
+    label: "SQLite",
+    badge: "File",
+    hint: "Local file, Turso, libSQL",
+    defaultPort: 0,
+    requiresNetwork: false,
+  },
+];
+
 export interface DatabaseTestResultState {
   id: string;
   success: boolean;

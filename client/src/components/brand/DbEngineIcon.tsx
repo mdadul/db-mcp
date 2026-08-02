@@ -9,9 +9,7 @@ export interface DbEngineIconProps {
 const DB_ICONS = {
   postgresql: { src: "/postgre.png", label: "PostgreSQL" },
   mysql: { src: "/mysql.png", label: "MySQL" },
-  // Add more databases here:
-  // mongodb: { src: "/mongodb.png", label: "MongoDB" },
-  // redis: { src: "/redis.png", label: "Redis" },
+  sqlite: { src: "/sqlite.webp", label: "SQLite" },
 } as const;
 
 export function DbEngineIcon({ type, className = "w-4 h-4" }: DbEngineIconProps) {

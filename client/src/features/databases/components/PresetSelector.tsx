@@ -1,5 +1,5 @@
 import type { ParsedConnectionFields } from "./ConnectionStringParser";
-import { DbEngineIcon } from "@/components/ui/DbEngineIcon";
+import { DbEngineIcon } from "@/components/brand/DbEngineIcon";
 import { Badge } from "@/components/ui/Badge";
 import { Sparkles } from "@/components/ui/Icons";
 

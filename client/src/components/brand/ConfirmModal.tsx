@@ -1,6 +1,6 @@
-import { AlertTriangle, HelpCircle } from "./Icons";
-import { Button } from "./Button";
-import { Dialog, DialogContent, DialogFooter, DialogTitle, DialogDescription } from "./Dialog";
+import { AlertTriangle, HelpCircle } from "@/components/ui/Icons";
+import { Button } from "@/components/ui/Button";
+import { Dialog, DialogContent, DialogFooter, DialogTitle, DialogDescription } from "@/components/ui/Dialog";
 
 export interface ConfirmModalProps {
   isOpen: boolean;

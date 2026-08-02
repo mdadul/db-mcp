@@ -4,24 +4,58 @@ import { z } from "zod";
 // Input schemas
 // ---------------------------------------------------------------------------
 
-export const CreateDatabaseSchema = z.object({
-  name: z.string().min(1).max(255),
-  type: z.enum(["postgresql", "mysql"]),
-  host: z.string().min(1),
-  port: z.number().int().min(1).max(65535).default(5432),
-  databaseName: z.string().min(1),
-  username: z.string().min(1),
-  password: z.string().min(1),
-  ssl: z.boolean().default(false),
+export const CreateDatabaseSchema = z.discriminatedUnion("type", [
+  z.object({
+    name: z.string().min(1).max(255),
+    type: z.literal("postgresql"),
+    host: z.string().min(1),
+    port: z.number().int().min(1).max(65535).default(5432),
+    databaseName: z.string().min(1),
+    username: z.string().min(1),
+    password: z.string().min(1),
+    ssl: z.boolean().default(false),
+    serviceName: z.string().optional(),
+    environment: z.string().optional(),
+  }),
+  z.object({
+    name: z.string().min(1).max(255),
+    type: z.literal("mysql"),
+    host: z.string().min(1),
+    port: z.number().int().min(1).max(65535).default(3306),
+    databaseName: z.string().min(1),
+    username: z.string().min(1),
+    password: z.string().min(1),
+    ssl: z.boolean().default(false),
+    serviceName: z.string().optional(),
+    environment: z.string().optional(),
+  }),
+  z.object({
+    name: z.string().min(1).max(255),
+    type: z.literal("sqlite"),
+    databaseName: z.string().min(1), // file path or :memory:
+    host: z.string().default(""),
+    port: z.number().default(0),
+    username: z.string().default(""),
+    password: z.string().default(""),
+    ssl: z.boolean().default(false),
+    serviceName: z.string().optional(),
+    environment: z.string().optional(),
+  }),
+]);
+
+// Update schema: accept any partial subset of the create fields
+export const UpdateDatabaseSchema = z.object({
+  name: z.string().min(1).max(255).optional(),
+  type: z.enum(["postgresql", "mysql", "sqlite"]).optional(),
+  host: z.string().optional(),
+  port: z.number().int().min(0).max(65535).optional(),
+  databaseName: z.string().min(1).optional(),
+  username: z.string().optional(),
+  password: z.string().min(1).optional(),
+  ssl: z.boolean().optional(),
   serviceName: z.string().optional(),
   environment: z.string().optional(),
 });
-
-export const UpdateDatabaseSchema = CreateDatabaseSchema.omit({
-  password: true,
-})
-  .partial()
-  .extend({ password: z.string().min(1).optional() });
 
 export const SetStatusSchema = z.object({
   status: z.enum(["enabled", "disabled"]),
