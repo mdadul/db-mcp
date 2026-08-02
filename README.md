@@ -4,6 +4,15 @@ Give Claude Code, Cursor, Windsurf, or any MCP-compatible AI tool **read-only ac
 
 Self-hosted. Everything runs locally. Your passwords never leave your machine.
 
+### Supported databases
+
+| | Database | Notes |
+|---|---|---|
+| <img src="client/public/postgre.png" width="20" height="20"> | **PostgreSQL** | All versions |
+| <img src="client/public/mysql.png" width="20" height="20"> | **MySQL** | MySQL 5.7+ / MariaDB |
+| <img src="client/public/sqlite.webp" width="20" height="20"> | **SQLite** | Local file, no server needed |
+| <img src="client/public/redshift.png" width="20" height="20"> | **Amazon Redshift** | SSL required, Redshift-specific catalog queries |
+
 ---
 
 ## What it does
