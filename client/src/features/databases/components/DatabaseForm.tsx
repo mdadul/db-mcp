@@ -278,12 +278,20 @@ export function DatabaseForm() {
                   <label htmlFor="ssl" className="text-sm font-semibold text-foreground cursor-pointer flex items-center gap-2">
                     <span>Require SSL Connection</span>
                     {form.ssl && (
-                      <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-500/30">Encrypted</Badge>
+                      <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
+                        {currentEngine.sslRequired ? "Required by engine" : "Encrypted"}
+                      </Badge>
                     )}
                   </label>
-                  <p className="text-xs text-muted-foreground">Off for local / Docker. Required for Supabase, Neon, AWS RDS, PlanetScale.</p>
+                  <p className="text-xs text-muted-foreground">
+                    {currentEngine.sslRequired
+                      ? `SSL is always required for ${currentEngine.label}.`
+                      : "Off for local / Docker. Required for Supabase, Neon, AWS RDS, PlanetScale."}
+                  </p>
                 </div>
-                <Switch id="ssl" checked={Boolean(form.ssl)} onCheckedChange={(checked) => handleChange("ssl", checked)} />
+                <Switch id="ssl" checked={Boolean(form.ssl)}
+                  disabled={currentEngine.sslRequired}
+                  onCheckedChange={(checked) => handleChange("ssl", checked)} />
               </div>
             </div>
           </Card>

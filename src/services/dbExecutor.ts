@@ -5,7 +5,7 @@ import { decrypt } from "./credentials.ts";
 import type { EncryptedPayload } from "./credentials.ts";
 
 export interface DbConfig {
-  type: "postgresql" | "mysql" | "sqlite";
+  type: "postgresql" | "mysql" | "sqlite" | "redshift";
   host: string;
   port: number;
   databaseName: string;
@@ -15,7 +15,7 @@ export interface DbConfig {
 }
 
 export interface DbExecutor {
-  type: "postgresql" | "mysql" | "sqlite";
+  type: "postgresql" | "mysql" | "sqlite" | "redshift";
   query<T = Record<string, unknown>>(sqlString: string, params?: unknown[]): Promise<T[]>;
   close(): Promise<void>;
 }
@@ -78,6 +78,7 @@ export async function createExecutor(config: DbConfig): Promise<DbExecutor> {
       };
     }
 
+    case "redshift":
     case "postgresql":
     default: {
       const payload: EncryptedPayload = JSON.parse(config.encryptedCredentials);
@@ -88,13 +89,16 @@ export async function createExecutor(config: DbConfig): Promise<DbExecutor> {
         database: config.databaseName,
         username: config.username,
         password,
-        ssl: config.ssl ? "require" : false,
+        // Redshift always requires SSL; PostgreSQL respects the user toggle
+        ssl: config.type === "redshift" ? "require" : (config.ssl ? "require" : false),
+        // Redshift lacks pg_type.typarray — skip the driver's type introspection query
+        fetch_types: config.type !== "redshift",
         max: 3,
         connect_timeout: 10,
         idle_timeout: 60,
       });
       return {
-        type: "postgresql",
+        type: config.type as "postgresql" | "redshift",
         async query<T = Record<string, unknown>>(sqlString: string, params?: unknown[]): Promise<T[]> {
           try {
             if (params && params.length > 0) {

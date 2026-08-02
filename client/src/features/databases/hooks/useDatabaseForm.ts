@@ -48,7 +48,7 @@ export function useDatabaseForm() {
       .then((db) => {
         setForm({
           name: db.name,
-          type: db.type as "postgresql" | "mysql" | "sqlite",
+          type: db.type as "postgresql" | "mysql" | "sqlite" | "redshift",
           host: db.host,
           port: db.port,
           databaseName: db.databaseName,
@@ -76,7 +76,7 @@ export function useDatabaseForm() {
     }
   }
 
-  function handleEngineChange(newType: "postgresql" | "mysql" | "sqlite") {
+  function handleEngineChange(newType: "postgresql" | "mysql" | "sqlite" | "redshift") {
     const engine = DB_ENGINES.find((e) => e.type === newType)!;
     const knownPorts = DB_ENGINES.map((e) => e.defaultPort);
     setForm((prev) => ({
@@ -86,7 +86,8 @@ export function useDatabaseForm() {
       port: knownPorts.includes(Number(prev.port) ?? 0) ? engine.defaultPort : prev.port,
       username: engine.requiresNetwork ? prev.username : "",
       password: engine.requiresNetwork ? prev.password : "",
-      ssl: engine.requiresNetwork ? prev.ssl : false,
+      // sslRequired engines always get ssl:true regardless of previous toggle value
+      ssl: engine.sslRequired ? true : (engine.requiresNetwork ? prev.ssl : false),
     }));
   }
 

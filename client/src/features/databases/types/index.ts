@@ -12,7 +12,7 @@ export type {
 // Engine registry — add new engines here to extend the picker and form logic.
 // The `type` must match the backend DbConfig.type union.
 // ---------------------------------------------------------------------------
-export type DbEngineType = "postgresql" | "mysql" | "sqlite";
+export type DbEngineType = "postgresql" | "mysql" | "sqlite" | "redshift";
 
 export interface DbEngineConfig {
   type: DbEngineType;
@@ -21,6 +21,7 @@ export interface DbEngineConfig {
   hint: string;        // examples shown below the label
   defaultPort: number; // 0 = file-based, no port
   requiresNetwork: boolean; // false = SQLite-style file path only
+  sslRequired: boolean;    // true = SSL forced regardless of toggle
 }
 
 export const DB_ENGINES: DbEngineConfig[] = [
@@ -31,6 +32,7 @@ export const DB_ENGINES: DbEngineConfig[] = [
     hint: "Supabase, Neon, AWS RDS, CockroachDB",
     defaultPort: 5432,
     requiresNetwork: true,
+    sslRequired: false,
   },
   {
     type: "mysql",
@@ -39,6 +41,7 @@ export const DB_ENGINES: DbEngineConfig[] = [
     hint: "PlanetScale, AWS RDS, MariaDB",
     defaultPort: 3306,
     requiresNetwork: true,
+    sslRequired: false,
   },
   {
     type: "sqlite",
@@ -47,6 +50,16 @@ export const DB_ENGINES: DbEngineConfig[] = [
     hint: "Local file, Turso, libSQL",
     defaultPort: 0,
     requiresNetwork: false,
+    sslRequired: false,
+  },
+  {
+    type: "redshift",
+    label: "Amazon Redshift",
+    badge: "5439",
+    hint: "AWS data warehouse",
+    defaultPort: 5439,
+    requiresNetwork: true,
+    sslRequired: true,
   },
 ];
 
