@@ -4,17 +4,23 @@ WORKDIR /app/client
 COPY client/package.json client/bun.lock ./
 RUN bun install
 COPY client/ ./
+# Skip tsc — @server path aliases don't resolve without the server source tree
 RUN bunx vite build
 
-# ── Stage 2: Runtime ──────────────────────────────────────────────────────────
-FROM oven/bun:1 AS runtime
-RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
-
+# ── Stage 2: Install server production deps (compiles better-sqlite3) ─────────
+# Isolating apt+bun here keeps the runtime stage lean and these layers cached.
+FROM oven/bun:1 AS server-deps
+RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
-COPY package.json ./
-RUN mkdir -p client && echo '{"name":"db-mcp-client","private":true}' > client/package.json
+COPY package.json bun.lock* ./
+# Real client/package.json so the workspace resolves without a stub mismatch
+COPY client/package.json ./client/package.json
 RUN bun install --production
 
+# ── Stage 3: Runtime (lean — no build tools needed) ───────────────────────────
+FROM oven/bun:1 AS runtime
+WORKDIR /app
+COPY --from=server-deps /app/node_modules ./node_modules
 COPY src/ ./src/
 COPY scripts/ ./scripts/
 COPY --from=client-builder /app/client/dist ./client/dist
