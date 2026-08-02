@@ -18,7 +18,9 @@ COPY client/package.json ./client/package.json
 RUN bun install --production
 
 # ── Stage 3: Runtime (lean — no build tools needed) ───────────────────────────
-FROM oven/bun:1 AS runtime
+# Node 24 is used here because better-sqlite3 uses Node native addons (napi)
+# which are not supported by Bun's runtime on Linux.
+FROM node:24-slim AS runtime
 WORKDIR /app
 COPY --from=server-deps /app/node_modules ./node_modules
 COPY src/ ./src/
@@ -34,4 +36,4 @@ ENV PORT=4080
 EXPOSE 4080
 
 # Run setup (generates .env if missing) then start the server.
-CMD ["sh", "-c", "sh scripts/setup.sh && bun run src/index.ts"]
+CMD ["sh", "-c", "sh scripts/setup.sh && node --env-file=.env src/index.ts"]
