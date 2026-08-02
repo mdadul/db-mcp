@@ -1,7 +1,7 @@
 services:
   db-mcp:
-    image: mdadul/db-mcp:latest
-    # build: .
+    # image: mdadul/db-mcp:latest
+    build: .
     ports:
       - "4080:4080"
     volumes:
