@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Switch } from "@/components/ui/Switch";
+import { DbEngineIcon } from "@/components/brand/DbEngineIcon";
 import { Checkbox } from "@/components/ui/Checkbox";
 import {
   Table,
@@ -191,11 +192,7 @@ export function DatabaseTable({
                 <TableCell>
                   <div className="font-semibold text-foreground flex items-center gap-1.5">
                     <span>{db.name}</span>
-                    <img
-                      src={db.type === "mysql" ? "/mysql.png" : "/postgre.png"}
-                      alt={db.type}
-                      className="w-4 h-4 object-contain"
-                    />
+                    <DbEngineIcon type={db.type} className="w-4 h-4 object-contain" />
                   </div>
                   <div className="text-muted-foreground text-[11px] font-mono capitalize mt-0.5">
                     {db.type}{db.serviceName && ` · ${db.serviceName}`}

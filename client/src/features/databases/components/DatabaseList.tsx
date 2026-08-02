@@ -6,7 +6,7 @@ import { Spinner } from "@/components/ui/Spinner";
 import { Alert } from "@/components/ui/Alert";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PageLayout } from "@/components/layout/PageLayout";
-import { ConfirmModal } from "@/components/ui/ConfirmModal";
+import { ConfirmModal } from "@/components/brand/ConfirmModal";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/Toast";

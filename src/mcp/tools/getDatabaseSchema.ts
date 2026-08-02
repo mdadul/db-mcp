@@ -24,22 +24,29 @@ export async function getDatabaseSchema(databaseId: string, filter?: string): Pr
   let tables: TableRow[] = [];
 
   try {
-    if (conn.type === "mysql") {
-      tables = await executor.query<TableRow>(
-        `SELECT table_name, table_type 
-         FROM information_schema.tables 
-         WHERE table_schema = ? 
-         ORDER BY table_name`,
-        [conn.databaseName]
-      );
-    } else {
-      // Default PostgreSQL
-      tables = await executor.query<TableRow>(
-        `SELECT table_name, table_type
-         FROM information_schema.tables
-         WHERE table_schema = 'public'
-         ORDER BY table_name`
-      );
+    switch (conn.type) {
+      case "sqlite":
+        tables = await executor.query<TableRow>(
+          `SELECT name AS table_name, type AS table_type FROM sqlite_master WHERE type='table' ORDER BY name`
+        );
+        break;
+      case "mysql":
+        tables = await executor.query<TableRow>(
+          `SELECT table_name, table_type 
+           FROM information_schema.tables 
+           WHERE table_schema = ? 
+           ORDER BY table_name`,
+          [conn.databaseName]
+        );
+        break;
+      case "postgresql":
+      default:
+        tables = await executor.query<TableRow>(
+          `SELECT table_name, table_type
+           FROM information_schema.tables
+           WHERE table_schema = 'public'
+           ORDER BY table_name`
+        );
     }
   } catch (err: unknown) {
     const rawMsg = err instanceof Error ? err.message : String(err);
