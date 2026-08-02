@@ -1,7 +1,7 @@
 services:
   db-mcp:
     image: mdadul/db-mcp:latest
-    # build: .  # uncomment to build from source instead
+    # build: .
     ports:
       - "4080:4080"
     volumes:
@@ -9,3 +9,5 @@ services:
       - ./data:/data
       - ./.env:/app/.env
     restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

@@ -8,14 +8,13 @@ COPY client/ ./
 RUN bunx vite build
 
 # ── Stage 2: Install server production deps (compiles better-sqlite3) ─────────
-# Isolating apt+bun here keeps the runtime stage lean and these layers cached.
-FROM oven/bun:1 AS server-deps
+# Same base as runtime so the compiled .node addon's GLIBC matches.
+FROM node:24-slim AS server-deps
 RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY package.json bun.lock* ./
-# Real client/package.json so the workspace resolves without a stub mismatch
 COPY client/package.json ./client/package.json
-RUN bun install --production
+RUN npm install --omit=dev --ignore-scripts=false
 
 # ── Stage 3: Runtime (lean — no build tools needed) ───────────────────────────
 # Node 24 is used here because better-sqlite3 uses Node native addons (napi)
