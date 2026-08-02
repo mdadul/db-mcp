@@ -2,7 +2,7 @@
 FROM oven/bun:1-alpine AS client-builder
 WORKDIR /app/client
 COPY client/package.json client/bun.lock ./
-RUN bun install --frozen-lockfile
+RUN bun install
 COPY client/ ./
 RUN bun run build
 
@@ -13,7 +13,7 @@ RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt
 
 WORKDIR /app
 COPY package.json bun.lock* ./
-RUN bun install --production --frozen-lockfile
+RUN bun install --production
 
 COPY src/ ./src/
 COPY scripts/ ./scripts/
