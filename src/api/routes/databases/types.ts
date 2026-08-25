@@ -1,6 +1,13 @@
 import { z } from "zod";
 
 // ---------------------------------------------------------------------------
+// Engine type — single source of truth, shared by server and client
+// ---------------------------------------------------------------------------
+
+export const DB_ENGINE_TYPES = ["postgresql", "mysql", "sqlite", "redshift", "mongodb"] as const;
+export type DbEngineType = (typeof DB_ENGINE_TYPES)[number];
+
+// ---------------------------------------------------------------------------
 // Input schemas
 // ---------------------------------------------------------------------------
 
@@ -53,12 +60,24 @@ export const CreateDatabaseSchema = z.discriminatedUnion("type", [
     serviceName: z.string().optional(),
     environment: z.string().optional(),
   }),
+  z.object({
+    name: z.string().min(1).max(255),
+    type: z.literal("mongodb"),
+    host: z.string().min(1),
+    port: z.number().int().min(1).max(65535).default(27017),
+    databaseName: z.string().min(1),
+    username: z.string().min(1),
+    password: z.string().min(1),
+    ssl: z.boolean().default(false),
+    serviceName: z.string().optional(),
+    environment: z.string().optional(),
+  }),
 ]);
 
 // Update schema: accept any partial subset of the create fields
 export const UpdateDatabaseSchema = z.object({
   name: z.string().min(1).max(255).optional(),
-  type: z.enum(["postgresql", "mysql", "sqlite", "redshift"]).optional(),
+  type: z.enum(DB_ENGINE_TYPES).optional(),
   host: z.string().optional(),
   port: z.number().int().min(0).max(65535).optional(),
   databaseName: z.string().min(1).optional(),

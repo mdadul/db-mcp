@@ -8,7 +8,7 @@ import {
   type BaseDatabaseFormData,
 } from "../schemas/databaseSchemas";
 import { DB_ENGINES } from "../types";
-import type { TestResult } from "../types";
+import type { TestResult, DbEngineType } from "../types";
 import type { ParsedConnectionFields } from "../components/ConnectionStringParser";
 
 export type DatabaseFormState = BaseDatabaseFormData & { password?: string };
@@ -48,7 +48,7 @@ export function useDatabaseForm() {
       .then((db) => {
         setForm({
           name: db.name,
-          type: db.type as "postgresql" | "mysql" | "sqlite" | "redshift",
+          type: db.type as DbEngineType,
           host: db.host,
           port: db.port,
           databaseName: db.databaseName,
@@ -76,7 +76,7 @@ export function useDatabaseForm() {
     }
   }
 
-  function handleEngineChange(newType: "postgresql" | "mysql" | "sqlite" | "redshift") {
+  function handleEngineChange(newType: DbEngineType) {
     const engine = DB_ENGINES.find((e) => e.type === newType)!;
     const knownPorts = DB_ENGINES.map((e) => e.defaultPort);
     setForm((prev) => ({
@@ -173,9 +173,10 @@ export function useDatabaseForm() {
   }
 
   // Derived: connection URI preview (password masked)
-  const protocol = form.type === "mysql" ? "mysql" : "postgresql";
+  const protocol = form.type === "mysql" ? "mysql" : form.type === "mongodb" ? "mongodb" : "postgresql";
   const userPart = form.username ? `${form.username}${form.password ? ":••••••" : ""}@` : "";
-  const hostPort = `${form.host || "localhost"}:${form.port || (form.type === "mysql" ? 3306 : 5432)}`;
+  const defaultPort = form.type === "mysql" ? 3306 : form.type === "mongodb" ? 27017 : 5432;
+  const hostPort = `${form.host || "localhost"}:${form.port || defaultPort}`;
   const dbPath = form.databaseName ? `/${form.databaseName}` : "";
   const sslQuery = form.ssl ? "?ssl=true" : "";
   const generatedUri =

@@ -71,15 +71,14 @@ export async function getTableSchema(
         break;
       }
       case "redshift": {
-        // Redshift uses PG_TABLE_DEF for columns; sort/dist keys from SVV_TABLE_INFO
+        // PG_TABLE_DEF's CASE WHEN on the notnull column errors on Redshift; use information_schema instead.
+        // Sort/dist keys still come from SVV_TABLE_INFO, which has no such issue.
         const [redshiftCols, redshiftMeta] = await Promise.all([
-          executor.query<any>(
-            `SELECT columnname AS column_name, type AS data_type,
-                    CASE notnull WHEN true THEN 'NO' ELSE 'YES' END AS is_nullable,
-                    NULL AS column_default, NULL AS character_maximum_length
-             FROM PG_TABLE_DEF
-             WHERE tablename = $1
-             ORDER BY columnnum`,
+          executor.query<ColumnRow>(
+            `SELECT column_name, data_type, is_nullable, column_default, character_maximum_length
+             FROM information_schema.columns
+             WHERE table_name = $1
+             ORDER BY ordinal_position`,
             [tableName]
           ),
           executor.query<any>(
@@ -121,7 +120,40 @@ export async function getTableSchema(
           ),
         ]);
         break;
-      case "postgresql":
+      case "mongodb": {
+        // No fixed schema — infer field names/types from a sample of recent documents
+        const sample = await executor.query<Record<string, unknown>>(
+          JSON.stringify({ op: "sample", collection: tableName, limit: 50 })
+        );
+        const fieldTypes = new Map<string, Set<string>>();
+        for (const doc of sample) {
+          for (const [key, value] of Object.entries(doc)) {
+            const bsonType = value === null ? "null" : Array.isArray(value) ? "array" : typeof value === "object" ? "object" : typeof value;
+            if (!fieldTypes.has(key)) fieldTypes.set(key, new Set());
+            fieldTypes.get(key)!.add(bsonType);
+          }
+        }
+        columns = Array.from(fieldTypes.entries()).map(([column_name, types]) => ({
+          column_name,
+          data_type: Array.from(types).join(" | "),
+          is_nullable: types.has("null") ? "YES" : "UNKNOWN",
+          column_default: null,
+          character_maximum_length: null,
+        }));
+
+        const mongoIndexes = await executor.query<any>(
+          JSON.stringify({ op: "listIndexes", collection: tableName })
+        );
+        indexes = mongoIndexes.map((idx: any) => ({
+          index_name: idx.index_name,
+          column_name: idx.column_name,
+          is_unique: Boolean(idx.is_unique),
+          is_primary: Boolean(idx.is_primary),
+        }));
+        // MongoDB has no foreign key constraints
+        foreignKeys = [];
+        break;
+      }
       default:
         [columns, indexes, foreignKeys] = await Promise.all([
           executor.query<ColumnRow>(
@@ -160,11 +192,22 @@ export async function getTableSchema(
     return JSON.stringify({ error: cleanMsg, database: conn.name, table: tableName, columns: [], indexes: [], foreignKeys: [] });
   }
 
-  if (columns.length === 0) {
+  if (columns.length === 0 && conn.type !== "mongodb") {
     return JSON.stringify({ error: `Table "${tableName}" not found in database "${conn.name}".`, hint: "Call get_database_schema to list available table names." });
   }
 
   return JSON.stringify(
-    { database: conn.name, type: conn.type, table: tableName, columns, indexes, foreignKeys, hint: "Use execute_read_query to query this table." }
+    {
+      database: conn.name,
+      type: conn.type,
+      table: tableName,
+      columns,
+      indexes,
+      foreignKeys,
+      hint:
+        conn.type === "mongodb" && columns.length === 0
+          ? "This collection is empty (or the field sample was too small to infer any columns). Confirm the collection name via get_database_schema."
+          : "Use execute_read_query to query this table.",
+    }
   );
 }

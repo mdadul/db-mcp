@@ -46,6 +46,9 @@ export async function getDatabaseSchema(databaseId: string, filter?: string): Pr
           [conn.databaseName]
         );
         break;
+      case "mongodb":
+        tables = await executor.query<TableRow>(JSON.stringify({ op: "listCollections" }));
+        break;
       case "postgresql":
       default:
         tables = await executor.query<TableRow>(

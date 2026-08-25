@@ -6,13 +6,14 @@ export type {
   SetStatusInput,
   StructuredQueryResult,
   QueryLogItem,
+  DbEngineType,
 } from "@server/api/routes/databases/types.ts";
+export { DB_ENGINE_TYPES } from "@server/api/routes/databases/types.ts";
+import type { DbEngineType } from "@server/api/routes/databases/types.ts";
 
 // ---------------------------------------------------------------------------
 // Engine registry — add new engines here to extend the picker and form logic.
-// The `type` must match the backend DbConfig.type union.
 // ---------------------------------------------------------------------------
-export type DbEngineType = "postgresql" | "mysql" | "sqlite" | "redshift";
 
 export interface DbEngineConfig {
   type: DbEngineType;
@@ -60,6 +61,15 @@ export const DB_ENGINES: DbEngineConfig[] = [
     defaultPort: 5439,
     requiresNetwork: true,
     sslRequired: true,
+  },
+  {
+    type: "mongodb",
+    label: "MongoDB",
+    badge: "27017",
+    hint: "MongoDB Atlas, self-hosted, DocumentDB",
+    defaultPort: 27017,
+    requiresNetwork: true,
+    sslRequired: false,
   },
 ];
 

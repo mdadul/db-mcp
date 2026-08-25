@@ -1,10 +1,12 @@
 # ── Stage 1: Build the React client ──────────────────────────────────────────
 FROM oven/bun:1-alpine AS client-builder
+WORKDIR /app
+COPY package.json bun.lock ./
+COPY client/package.json ./client/package.json
+RUN bun install --ignore-scripts
+COPY client/ ./client/
+COPY src/ ./src/
 WORKDIR /app/client
-COPY client/package.json client/bun.lock ./
-RUN bun install
-COPY client/ ./
-# Skip tsc — @server path aliases don't resolve without the server source tree
 RUN bunx vite build
 
 # ── Stage 2: Install server production deps (compiles better-sqlite3) ─────────
