@@ -11,6 +11,7 @@ const DB_ICONS = {
   mysql: { src: "/mysql.png", label: "MySQL" },
   sqlite: { src: "/sqlite.webp", label: "SQLite" },
   redshift: { src: "/redshift.png", label: "Amazon Redshift" },
+  mongodb: { src: "/mongodb.svg", label: "MongoDB" },
 } as const;
 
 export function DbEngineIcon({ type, className = "w-4 h-4" }: DbEngineIconProps) {

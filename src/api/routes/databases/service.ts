@@ -22,6 +22,7 @@ import type {
   TestResult,
   StructuredQueryResult,
   QueryLogItem,
+  DbEngineType,
 } from "./types.ts";
 
 // ---------------------------------------------------------------------------
@@ -277,9 +278,9 @@ export async function executeQueryStructured(
     throw new BadRequestError(`Database "${row.name}" is disabled`);
   }
 
-  assertReadOnly(query);
+  assertReadOnly(query, row.type as DbEngineType);
 
-  const finalQuery = injectLimit(query, limit ?? MAX_ROWS);
+  const finalQuery = injectLimit(query, limit ?? MAX_ROWS, row.type as DbEngineType);
   const executor = await getExecutor(row.id, row as any);
 
   const start = Date.now();
@@ -372,13 +373,18 @@ export async function executeReadQuery(
   query: string,
   limit?: number
 ): Promise<string> {
+  const row = await findOrThrow(id);
+
   // Validate read-only before hitting the DB
   try {
-    assertReadOnly(query);
+    assertReadOnly(query, row.type as DbEngineType);
   } catch (err) {
     return JSON.stringify({
       error: err instanceof Error ? err.message : String(err),
-      hint: "Only SELECT, EXPLAIN, SHOW, and DESCRIBE statements are allowed. Write operations (INSERT, UPDATE, DELETE, DROP, etc.) are blocked.",
+      hint:
+        row.type === "mongodb"
+          ? 'MongoDB queries must be a JSON DSL: {"collection":"orders","filter":{},"projection":{},"sort":{},"limit":20}. Write/code-executing operators are blocked.'
+          : "Only SELECT, EXPLAIN, SHOW, and DESCRIBE statements are allowed. Write operations (INSERT, UPDATE, DELETE, DROP, etc.) are blocked.",
     });
   }
 
@@ -386,7 +392,10 @@ export async function executeReadQuery(
   if (!res.success) {
     return JSON.stringify({
       error: res.error,
-      hint: "Check your SQL syntax and column/table names. Use get_table_schema to verify the schema.",
+      hint:
+        row.type === "mongodb"
+          ? "Check your collection name and filter syntax. Use get_table_schema to see inferred fields and indexes."
+          : "Check your SQL syntax and column/table names. Use get_table_schema to verify the schema.",
     });
   }
   const effectiveLimit = limit ?? MAX_ROWS;

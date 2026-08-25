@@ -1,8 +1,9 @@
 import { z } from "zod";
+import { DB_ENGINE_TYPES } from "@server/api/routes/databases/types.ts";
 
 const baseDatabaseFormObject = z.object({
   name: z.string().trim().min(1, "Name is required").max(255, "Name is too long"),
-  type: z.enum(["postgresql", "mysql", "sqlite", "redshift"]),
+  type: z.enum(DB_ENGINE_TYPES),
   host: z.string().trim().optional().default(""),
   port: z
     .union([z.string(), z.number()])

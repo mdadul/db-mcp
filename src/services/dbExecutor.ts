@@ -1,11 +1,13 @@
 import postgres from "postgres";
 import mysql from "mysql2/promise";
 import BetterSqlite3 from "better-sqlite3";
+import { MongoClient } from "mongodb";
 import { decrypt } from "./credentials.ts";
 import type { EncryptedPayload } from "./credentials.ts";
+import type { DbEngineType } from "../api/routes/databases/types.ts";
 
 export interface DbConfig {
-  type: "postgresql" | "mysql" | "sqlite" | "redshift";
+  type: DbEngineType;
   host: string;
   port: number;
   databaseName: string;
@@ -15,7 +17,7 @@ export interface DbConfig {
 }
 
 export interface DbExecutor {
-  type: "postgresql" | "mysql" | "sqlite" | "redshift";
+  type: DbEngineType;
   query<T = Record<string, unknown>>(sqlString: string, params?: unknown[]): Promise<T[]>;
   close(): Promise<void>;
 }
@@ -58,6 +60,7 @@ export async function createExecutor(config: DbConfig): Promise<DbExecutor> {
         connectTimeout: 10000,
         enableKeepAlive: true,
         keepAliveInitialDelay: 0,
+        idleTimeout: 60000,
       });
       return {
         type: "mysql",
@@ -74,6 +77,84 @@ export async function createExecutor(config: DbConfig): Promise<DbExecutor> {
         },
         async close(): Promise<void> {
           await pool.end();
+        },
+      };
+    }
+
+    case "mongodb": {
+      const payload: EncryptedPayload = JSON.parse(config.encryptedCredentials);
+      const password = await decrypt(payload);
+      const auth = config.username ? `${encodeURIComponent(config.username)}:${encodeURIComponent(password)}@` : "";
+      const uri = `mongodb://${auth}${config.host}:${config.port}/${config.databaseName}${config.ssl ? "?tls=true" : ""}`;
+      const client = new MongoClient(uri, { connectTimeoutMS: 10000, serverSelectionTimeoutMS: 10000 });
+      await client.connect();
+      const mongoDb = client.db(config.databaseName);
+
+      return {
+        type: "mongodb",
+        // sqlString is a JSON DSL. Public queries (via execute_read_query) are limited to
+        // {"collection","filter","projection","sort","limit"} by assertReadOnly in src/query/safety.ts.
+        // Internal schema-introspection tools additionally use {"op":"listCollections"|"listIndexes"|"sample"},
+        // which is never reachable from user-supplied queries since "op" is not an allowed DSL key.
+        async query<T = Record<string, unknown>>(sqlString: string): Promise<T[]> {
+          try {
+            // testConnection() reuses the generic "SELECT 1" probe across all engines
+            if (sqlString.trim().toUpperCase() === "SELECT 1") {
+              await mongoDb.command({ ping: 1 });
+              return [{ "?column?": 1 } as unknown as T];
+            }
+
+            const dsl = JSON.parse(sqlString) as {
+              op?: "listCollections" | "listIndexes" | "sample";
+              collection?: string;
+              filter?: Record<string, unknown>;
+              projection?: Record<string, unknown>;
+              sort?: Record<string, unknown>;
+              limit?: number;
+            };
+
+            if (dsl.op === "listCollections") {
+              const collections = await mongoDb.listCollections({}, { nameOnly: true }).toArray();
+              return collections.map((c) => ({ table_name: c.name, table_type: "collection" })) as unknown as T[];
+            }
+
+            if (dsl.op === "listIndexes") {
+              const indexes = await mongoDb.collection(dsl.collection!).indexes();
+              return indexes.map((idx) => ({
+                index_name: idx.name,
+                column_name: Object.keys(idx.key).join(", "),
+                is_unique: Boolean(idx.unique),
+                is_primary: idx.name === "_id_",
+              })) as unknown as T[];
+            }
+
+            if (dsl.op === "sample") {
+              const docs = await mongoDb
+                .collection(dsl.collection!)
+                .find({})
+                .sort({ _id: -1 })
+                .limit(dsl.limit ?? 50)
+                .toArray();
+              return docs.map((doc) => JSON.parse(JSON.stringify(doc))) as T[];
+            }
+
+            const cursor = mongoDb
+              .collection(dsl.collection!)
+              .find(dsl.filter ?? {}, { projection: dsl.projection })
+              .limit(dsl.limit ?? 100);
+            if (dsl.sort) cursor.sort(dsl.sort as [string, 1 | -1][] | Record<string, 1 | -1>);
+
+            const docs = await cursor.toArray();
+            // Stringify ObjectId/Date so results serialise safely as JSON
+            return docs.map((doc) => JSON.parse(JSON.stringify(doc))) as T[];
+          } catch (err: any) {
+            const msg = err?.message ?? String(err);
+            console.error(`[DB] MongoDB error`);
+            throw new Error(msg);
+          }
+        },
+        async close(): Promise<void> {
+          await client.close();
         },
       };
     }
