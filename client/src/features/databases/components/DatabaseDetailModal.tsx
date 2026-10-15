@@ -316,9 +316,9 @@ export function DatabaseDetailModal({
   if (!isOpen || !database) return null;
 
   const isMysql = database.type === "mysql";
-  const connectionUri = `${isMysql ? "mysql" : "postgresql"}://${database.username}:<password>@${database.host}:${database.port}/${database.databaseName}${database.ssl ? "?ssl=true" : ""}`;
+  const connectionUri = `${isMysql ? "mysql" : "postgresql"}://${database.username}:<password>@${database.host}:${database.port}${database.databaseName ? `/${database.databaseName}` : ""}${database.ssl ? "?ssl=true" : ""}`;
   const mainCliCmd = isMysql
-    ? `mysql -h ${database.host} -P ${database.port} -u ${database.username} -p ${database.databaseName}`
+    ? `mysql -h ${database.host} -P ${database.port} -u ${database.username} -p${database.databaseName ? ` ${database.databaseName}` : ""}`
     : `psql "${connectionUri}"`;
 
   const generateAgentConfig = () => {
@@ -398,45 +398,72 @@ export function DatabaseDetailModal({
         }`}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-background backdrop-blur">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/30 flex items-center justify-center text-primary shrink-0 shadow-sm">
-              <Database className="w-5 h-5" />
+        <div className="relative border-b border-[#EEEEEE] bg-white">
+          <div className="flex items-center justify-between px-6 py-5">
+            <div className="flex items-center gap-3.5 min-w-0">
+              <div className="w-10 h-10 rounded-[10px] bg-[#E5E5E5] flex items-center justify-center text-[#0A0A0A] shrink-0">
+                <Database className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <h2 className="text-lg font-medium text-[#0A0A0A] truncate tracking-tight">{database.name}</h2>
+                <p className="text-xs text-[#737373] font-mono truncate mt-0.5">
+                  {database.databaseName
+                    ? `${database.host}:${database.port}/${database.databaseName}`
+                    : `${database.host}:${database.port}`}
+                </p>
+              </div>
             </div>
-            <div className="min-w-0">
-              <h2 className="text-base font-bold text-foreground truncate">{database.name}</h2>
-              <p className="text-xs text-muted-foreground truncate mt-0.5">
-                {database.host}:{database.port}/{database.databaseName}
-              </p>
+
+            <div className="flex items-center gap-2">
+              <Badge
+                variant={database.status === "enabled" ? "accent" : "default"}
+                className="text-xs"
+              >
+                <span className={`mr-1 inline-block h-1.5 w-1.5 rounded-full ${database.status === "enabled" ? "bg-[#22C55E]" : "bg-[#999999]"}`} />
+                {database.status}
+              </Badge>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleTestConnection}
+                disabled={testingConnection}
+                className="h-8 text-xs font-normal"
+              >
+                <RefreshCw className="w-3 h-3" />
+                {testingConnection ? "Testing..." : "Test"}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onClose}
+                className="h-8 w-8 text-[#737373] hover:text-[#0A0A0A]"
+              >
+                <X className="w-4 h-4" />
+              </Button>
             </div>
           </div>
+        </div>
 
-          <div className="flex items-center gap-2">
-            <Badge
-              variant={database.status === "enabled" ? "secondary" : "outline"}
-              className={database.status === "enabled" ? "bg-primary/10 text-primary border-primary/30" : "bg-muted text-muted-foreground border-border"}
-            >
-              <span className={`inline-block h-1.5 w-1.5 rounded-full ${database.status === "enabled" ? "bg-primary/10 animate-pulse" : "bg-muted"}`} />
-              {database.status}
-            </Badge>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleTestConnection}
-              disabled={testingConnection}
-              className="text-xs"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              {testingConnection ? "Testing..." : "Test"}
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              className="text-muted-foreground hover:text-muted-foreground"
-            >
-              <X className="w-5 h-5" />
-            </Button>
+        {/* Tabs navigation */}
+        <div className="sticky top-0 z-20 border-b border-[#EEEEEE] bg-white px-6 py-0">
+          <div className="flex items-stretch gap-1">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as TabType)}
+                className={`relative flex items-center gap-2 px-4 py-3 text-xs font-normal transition-colors cursor-pointer ${
+                  activeTab === tab.id
+                    ? "text-[#0A0A0A] font-medium"
+                    : "text-[#737373] hover:text-[#0A0A0A]"
+                }`}
+              >
+                <tab.icon className="w-3.5 h-3.5" />
+                {tab.label}
+                {activeTab === tab.id && (
+                  <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#0A0A0A]" />
+                )}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -446,19 +473,8 @@ export function DatabaseDetailModal({
           onValueChange={(val) => setActiveTab(val as TabType)}
           className="flex flex-col flex-1 overflow-hidden"
         >
-        <div className="sticky top-0 z-20 border-b border-border bg-background px-6 py-3 backdrop-blur">
-          <TabsList className="w-full">
-            {tabs.map((tab) => (
-              <TabsTrigger key={tab.id} value={tab.id} className="flex-1">
-                <tab.icon className="w-3.5 h-3.5" />
-                {tab.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </div>
-
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-5">
           <TabsContent value="overview">
             <div className="space-y-4">
               <Card className="p-4 border-primary/30">

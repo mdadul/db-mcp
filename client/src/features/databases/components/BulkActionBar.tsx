@@ -20,17 +20,17 @@ export function BulkActionBar({
   if (selectedIds.length === 0) return null;
 
   return (
-    <div className="bg-muted text-foreground rounded-xl p-3.5 shadow-xl flex items-center justify-between gap-4 mb-4 animate-in fade-in slide-in-from-top-2 border border-border">
+    <div className="bg-white text-[#0A0A0A] rounded-[14px] p-4 shadow-[0_4px_16px_rgba(0,0,0,0.06)] flex flex-wrap items-center justify-between gap-4 mb-4 border border-[#EEEEEE]">
       <div className="flex items-center gap-3">
-        <span className="w-6 h-6 rounded-full bg-primary/10 text-primary font-bold text-xs flex items-center justify-center">
+        <span className="w-6 h-6 rounded-full bg-[#E5E5E5] text-[#0A0A0A] font-medium text-xs flex items-center justify-center">
           {selectedIds.length}
         </span>
-        <span className="text-xs font-semibold text-muted-foreground">
-          Connection{selectedIds.length > 1 ? "s" : ""} selected
+        <span className="text-xs text-[#4D4D4D]">
+          {selectedIds.length} connection{selectedIds.length > 1 ? "s" : ""} selected
         </span>
         <button
           onClick={onClearSelection}
-          className="text-xs text-muted-foreground hover:text-foreground underline font-medium"
+          className="text-xs text-[#737373] hover:text-[#0A0A0A] underline cursor-pointer"
         >
           Deselect all
         </button>
@@ -38,21 +38,21 @@ export function BulkActionBar({
 
       <div className="flex items-center gap-2">
         <Button
-          variant="secondary"
+          variant="outline"
           size="sm"
           disabled={isLoading}
           onClick={onBulkEnable}
-          className="text-xs bg-muted border-border text-primary hover:bg-muted"
+          className="text-xs"
         >
           Enable Selected
         </Button>
 
         <Button
-          variant="secondary"
+          variant="outline"
           size="sm"
           disabled={isLoading}
           onClick={onBulkDisable}
-          className="text-xs bg-muted border-border text-destructive hover:bg-muted"
+          className="text-xs text-[#737373]"
         >
           Disable Selected
         </Button>

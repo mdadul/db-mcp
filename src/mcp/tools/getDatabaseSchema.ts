@@ -38,16 +38,25 @@ export async function getDatabaseSchema(databaseId: string, filter?: string): Pr
         );
         break;
       case "mysql":
-        tables = await executor.query<TableRow>(
-          `SELECT table_name, table_type 
-           FROM information_schema.tables 
-           WHERE table_schema = ? 
-           ORDER BY table_name`,
-          [conn.databaseName]
-        );
+        tables = conn.databaseName
+          ? await executor.query<TableRow>(
+              `SELECT table_name, table_type 
+               FROM information_schema.tables 
+               WHERE table_schema = ? 
+               ORDER BY table_name`,
+              [conn.databaseName]
+            )
+          : await executor.query<TableRow>(
+              `SELECT CONCAT(table_schema, '.', table_name) AS table_name, table_type
+               FROM information_schema.tables
+               WHERE table_schema NOT IN ('information_schema', 'mysql', 'performance_schema', 'sys')
+               ORDER BY table_schema, table_name`
+            );
         break;
       case "mongodb":
-        tables = await executor.query<TableRow>(JSON.stringify({ op: "listCollections" }));
+        tables = await executor.query<TableRow>(
+          JSON.stringify({ op: conn.databaseName ? "listCollections" : "listDatabases" })
+        );
         break;
       case "postgresql":
       default:

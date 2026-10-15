@@ -2,81 +2,89 @@ const FEATURES = [
   {
     title: "Credentials never leave your machine",
     description:
-      "Your database passwords are encrypted before being saved and never appear in logs, API responses, or error messages. Only the gateway process can decrypt them, and only at query time.",
+      "Your database passwords are encrypted before being saved and never appear in logs, API responses, or error messages. Only the local gateway process decrypts them at query time.",
     badge: "Security",
-    badgeVariant: "success",
+    accent: false,
   },
   {
-    title: "AI can't modify your data — ever",
+    title: "Mutations blocked at proxy level",
     description:
-      "Every query is validated as read-only before it hits the database. INSERT, UPDATE, DELETE, DROP, CREATE, ALTER, and TRUNCATE are blocked at the gateway, not just suggested by a prompt.",
+      "Every query is validated as read-only before it hits your database. INSERT, UPDATE, DELETE, DROP, CREATE, and ALTER statements are halted at the gateway.",
     badge: "Safety",
-    badgeVariant: "info",
+    accent: true,
   },
   {
-    title: "Results are always capped",
+    title: "Automatic result set row capping",
     description:
-      "Queries automatically get a row cap (default 100, max 1000) to protect against runaway queries flooding your AI's context window or exhausting memory.",
+      "Queries default to a 100-row cap to protect against runaway queries exhausting your machine's memory or bloating your AI model's context window.",
     badge: "Performance",
-    badgeVariant: "warning",
+    accent: false,
   },
   {
-    title: "Works with all major AI tools",
+    title: "Works with all major AI tooling",
     description:
-      "Exposes four standard MCP tools — list databases, list tables, inspect a table, run a query — that work out of the box with Claude Code, Cursor, Windsurf, and Claude.ai.",
-    badge: "MCP Ready",
-    badgeVariant: "info",
+      "Exposes standard MCP tools that plug seamlessly into Claude Code, Cursor, Windsurf, Claude Desktop, and custom MCP clients.",
+    badge: "Compatibility",
+    accent: false,
   },
   {
-    title: "AI sees schema, not secrets",
+    title: "AI sees schema, not raw secrets",
     description:
-      "Your AI tool connects through the MCP endpoint only. It never sees raw connection strings, passwords, or host credentials — just the query results you ask for.",
+      "Your assistant interfaces strictly through the MCP gateway. It never sees connection strings, passwords, or raw socket credentials.",
     badge: "Privacy",
-    badgeVariant: "success",
+    accent: true,
   },
   {
-    title: "Organize by environment and team",
+    title: "Environment and service tagging",
     description:
-      "Tag each connection with an environment (prod, staging, dev) and a service name so your AI always has context about which database it's talking to.",
+      "Categorize connections by environment (prod, staging, dev) and service name so your assistant always retains accurate contextual scope.",
     badge: "Organization",
-    badgeVariant: "neutral",
+    accent: false,
   },
 ];
 
 export function FeatureGrid() {
   return (
-    <div className="mb-12">
-      <div className="text-center max-w-2xl mx-auto mb-8">
-        <h2 className="text-2xl font-bold text-foreground tracking-tight">
-          Built to keep AI in its lane
+    <section className="mb-20 sm:mb-28">
+      <div className="max-w-2xl mb-12">
+        <span className="text-xs text-[#737373] uppercase tracking-wider block mb-2 font-normal">
+          Architecture
+        </span>
+        <h2 className="text-3xl sm:text-4xl font-medium text-[#0A0A0A] tracking-tight leading-tight">
+          Built to keep AI assistants in their lane
         </h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Read access for your AI. Full control for you.
+        <p className="text-base text-[#4D4D4D] mt-3 leading-relaxed">
+          Read-only exploration for models. Complete operational control for engineers.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {FEATURES.map((f) => (
           <div
             key={f.title}
-            className="bg-background rounded-2xl p-6 border border-border shadow-sm flex flex-col justify-between"
+            className="group rounded-[14px] bg-white p-7 border border-[#EEEEEE] shadow-[0_1px_3px_rgba(0,0,0,0.05),0_4px_16px_rgba(0,0,0,0.03)] hover:border-[#CCCCCC] transition-all duration-200 flex flex-col justify-between"
           >
             <div>
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/30">
+              <div className="mb-4">
+                <span className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-0.5 rounded-full ${
+                  f.accent
+                    ? "bg-[#22C55E]/10 text-[#15803D] border border-[#22C55E]/20"
+                    : "bg-[#EEEEEE] text-[#4D4D4D] border border-[#E5E5E5]"
+                }`}>
+                  {f.accent && <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E]" />}
                   {f.badge}
                 </span>
               </div>
-              <h3 className="text-base font-bold text-foreground mb-2">
+              <h3 className="text-base font-medium text-[#0A0A0A] mb-2.5 leading-snug">
                 {f.title}
               </h3>
-              <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+              <p className="text-sm text-[#4D4D4D] leading-relaxed">
                 {f.description}
               </p>
             </div>
           </div>
         ))}
       </div>
-    </div>
+    </section>
   );
 }

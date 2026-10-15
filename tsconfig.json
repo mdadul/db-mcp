@@ -10,6 +10,9 @@
     // Node module resolution
     "moduleResolution": "NodeNext",
     "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "resolveJsonModule": true,
+    "allowJs": true,
     "noEmit": true,
 
     // Best practices

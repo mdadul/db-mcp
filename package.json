@@ -1,8 +1,37 @@
 {
-  "name": "db-mcp",
-  "module": "index.ts",
+  "name": "@mdadul/db-mcp",
+  "version": "1.0.2",
   "type": "module",
-  "private": true,
+  "description": "Self-hosted read-only database gateway for MCP-compatible AI tools",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "database",
+    "postgres",
+    "mysql",
+    "sqlite",
+    "ai",
+    "llm"
+  ],
+  "license": "MIT",
+  "author": "mdadul",
+  "homepage": "https://github.com/mdadul/db-mcp#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mdadul/db-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mdadul/db-mcp/issues"
+  },
+  "bin": {
+    "db-mcp": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "client/dist",
+    "README.md",
+    "LICENSE"
+  ],
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^26.1.1",
@@ -23,8 +52,13 @@
   },
   "scripts": {
     "setup": "sh scripts/setup.sh",
-    "start": "sh scripts/setup.sh && node --env-file=.env src/index.ts",
+    "start": "node dist/cli.js",
     "dev": "sh scripts/setup.sh && node --env-file=.env --watch src/index.ts",
+    "build:server": "tsc -p tsconfig.build.json && rm -rf dist/db/migrations && cp -R src/db/migrations dist/db/migrations",
+    "build": "sh scripts/build-package.sh",
+    "ci": "npm run build",
+    "prepack": "sh scripts/build-package.sh",
+    "prepublishOnly": "npm run ci",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
@@ -34,9 +68,6 @@
     "dev:client": "cd client && bun run dev"
   },
   "engines": {
-    "node": ">=24.0.0"
-  },
-  "workspaces": [
-    "client"
-  ]
+    "node": ">=22.0.0"
+  }
 }

@@ -28,35 +28,36 @@ export function ConfirmModal({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md">
-        <div className="flex items-start gap-4">
+        <div className="flex items-start gap-3.5">
           <div
-            className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg shrink-0 ${
+            className={`w-9 h-9 rounded-[8px] flex items-center justify-center shrink-0 ${
               variant === "danger"
-                ? "bg-destructive/10 text-destructive border border-destructive/30"
-                : "bg-primary/10 text-primary border border-primary/30"
+                ? "bg-[#D64545]/10 text-[#D64545] border border-[#D64545]/20"
+                : "bg-[#E5E5E5] text-[#0A0A0A] border border-[#EEEEEE]"
             }`}
           >
             {variant === "danger" ? (
-              <AlertTriangle className="w-5 h-5 text-destructive" />
+              <AlertTriangle className="w-4 h-4 text-[#D64545]" />
             ) : (
-              <HelpCircle className="w-5 h-5 text-primary" />
+              <HelpCircle className="w-4 h-4 text-[#0A0A0A]" />
             )}
           </div>
           <div className="flex-1">
-            <DialogTitle className="text-base font-bold">{title}</DialogTitle>
-            <DialogDescription className="text-xs sm:text-sm mt-1">
+            <DialogTitle className="text-sm font-medium text-[#0A0A0A]">{title}</DialogTitle>
+            <DialogDescription className="text-xs text-[#737373] mt-1">
               {description}
             </DialogDescription>
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="mt-2">
           <Button
             type="button"
-            variant="secondary"
+            variant="outline"
             size="sm"
             onClick={onClose}
             disabled={isLoading}
+            className="border-[#EEEEEE] text-[#4D4D4D]"
           >
             {cancelLabel}
           </Button>

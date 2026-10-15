@@ -94,26 +94,26 @@ const PRESETS = [
 
 export function PresetSelector({ onSelectPreset, className = "" }: PresetSelectorProps) {
   return (
-    <div className={`space-y-2 ${className}`}>
+    <div className={`space-y-2.5 ${className}`}>
       <div className="flex items-center justify-between">
-        <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-          <Sparkles className="w-3 h-3 text-primary" />
+        <span className="text-xs text-[#737373] flex items-center gap-1.5">
+          <Sparkles className="w-3.5 h-3.5 text-[#22C55E]" />
           <span>Quick Presets</span>
         </span>
-        <span className="text-[11px] text-muted-foreground">Click to populate sample defaults</span>
+        <span className="text-xs text-[#999999]">Click to populate sample defaults</span>
       </div>
 
-      <div className="flex items-center gap-2 overflow-x-auto pb-1.5 scrollbar-thin">
+      <div className="flex items-center gap-2 overflow-x-auto pb-1">
         {PRESETS.map((p) => (
           <button
             key={p.name}
             type="button"
             onClick={() => onSelectPreset(p.fields)}
-            className="group inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium bg-card text-foreground border border-border/80 rounded-xl hover:border-primary/40 hover:bg-primary/5 transition-all shrink-0 shadow-2xs hover:shadow-xs active:scale-[0.98] cursor-pointer"
+            className="group inline-flex items-center gap-2 px-3 py-2 text-xs font-normal bg-white text-[#0A0A0A] border border-[#EEEEEE] rounded-[8px] hover:border-[#CCCCCC] hover:bg-[#FAFAFA] transition-colors shrink-0 shadow-[0_1px_2px_rgba(0,0,0,0.03)] cursor-pointer"
           >
-            <DbEngineIcon type={p.engine} className="w-4 h-4 shrink-0 transition-transform group-hover:scale-110" />
+            <DbEngineIcon type={p.engine} className="w-4 h-4 shrink-0" />
             <span>{p.name}</span>
-            <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-muted/50 text-muted-foreground group-hover:border-primary/30 group-hover:text-primary transition-colors">
+            <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-[#EEEEEE] text-[#737373]">
               {p.badge}
             </Badge>
           </button>
@@ -122,4 +122,3 @@ export function PresetSelector({ onSelectPreset, className = "" }: PresetSelecto
     </div>
   );
 }
-

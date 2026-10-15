@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/Button";
 
 interface ToolInfo {
   name: string;
@@ -12,7 +11,7 @@ const MCP_TOOLS: ToolInfo[] = [
   {
     name: "list_databases",
     description: "Returns all enabled database connections exposed via the control plane.",
-    parameters: "{ }",
+    parameters: `{ }`,
     sampleResponse: `{
   "databases": [
     {
@@ -92,30 +91,30 @@ export function McpToolExplorer() {
   const activeTool = MCP_TOOLS[activeIdx];
 
   return (
-    <div className="bg-background rounded-3xl p-6 sm:p-8 border border-border shadow-sm mb-12">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+    <section className="mb-20 sm:mb-28 rounded-[14px] bg-white p-7 sm:p-10 border border-[#EEEEEE] shadow-[0_1px_3px_rgba(0,0,0,0.05),0_4px_16px_rgba(0,0,0,0.03)]">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8 pb-6 border-b border-[#EEEEEE]">
         <div>
-          <span className="text-xs font-bold text-primary uppercase tracking-widest">
-            What your AI can do
+          <span className="text-xs text-[#737373] uppercase tracking-wider block mb-2 font-normal">
+            Tool Specification
           </span>
-          <h2 className="text-2xl font-bold text-foreground tracking-tight mt-1">
-            4 tools, zero risk
+          <h2 className="text-2xl sm:text-3xl font-medium text-[#0A0A0A] tracking-tight">
+            Four core MCP operations
           </h2>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-            Every AI tool call goes through one of these four read-only operations
+          <p className="text-sm text-[#4D4D4D] mt-1.5 leading-relaxed">
+            Every assistant action maps to one of these safe, read-only primitive handlers.
           </p>
         </div>
 
         {/* Tool selector buttons */}
-        <div className="flex items-center gap-1 bg-muted p-1 rounded-xl border border-border overflow-x-auto">
+        <div className="flex items-center gap-1.5 bg-[#F8F8F8] p-1.5 rounded-[10px] border border-[#EEEEEE] overflow-x-auto">
           {MCP_TOOLS.map((t, idx) => (
             <button
               key={t.name}
               onClick={() => setActiveIdx(idx)}
-              className={`px-3 py-1.5 text-xs font-mono font-semibold rounded-lg transition-all shrink-0 ${
+              className={`px-3 py-1.5 text-xs font-mono rounded-[8px] transition-colors shrink-0 cursor-pointer ${
                 activeIdx === idx
-                  ? "bg-background text-primary shadow-2xs"
-                  : "text-muted-foreground hover:text-muted-foreground"
+                  ? "bg-[#E5E5E5] text-[#0A0A0A] font-medium shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
+                  : "text-[#4D4D4D] hover:text-[#0A0A0A] hover:bg-white"
               }`}
             >
               {t.name}
@@ -125,23 +124,23 @@ export function McpToolExplorer() {
       </div>
 
       {/* Active tool view */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         {/* Description & Parameters */}
-        <div className="space-y-4">
-          <div className="p-4 rounded-2xl bg-primary/10 border border-primary/30">
-            <h3 className="text-base font-mono font-bold text-primary">
+        <div className="space-y-5">
+          <div className="p-5 rounded-[10px] bg-[#F8F8F8] border border-[#EEEEEE]">
+            <h3 className="text-sm font-mono font-semibold text-[#0A0A0A]">
               {activeTool.name}
             </h3>
-            <p className="text-xs sm:text-sm text-primary mt-1 leading-relaxed">
+            <p className="text-sm text-[#4D4D4D] mt-2 leading-relaxed">
               {activeTool.description}
             </p>
           </div>
 
           <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
-              Parameters JSON Schema
+            <p className="text-xs text-[#737373] uppercase tracking-wider mb-2 font-normal">
+              Parameters Schema
             </p>
-            <pre className="text-xs text-muted-foreground bg-muted p-4 rounded-xl border border-border font-mono overflow-x-auto">
+            <pre className="text-xs text-[#4D4D4D] bg-[#FAFAFA] p-4 rounded-[10px] border border-[#EEEEEE] font-mono overflow-x-auto">
               {activeTool.parameters}
             </pre>
           </div>
@@ -149,14 +148,14 @@ export function McpToolExplorer() {
 
         {/* Sample Output */}
         <div>
-          <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
-            Sample Response Payload
+          <p className="text-xs text-[#737373] uppercase tracking-wider mb-2 font-normal">
+            Sample Output Response
           </p>
-          <pre className="text-xs text-primary bg-muted p-4 rounded-xl border border-border font-mono overflow-x-auto h-[220px]">
+          <pre className="text-xs text-[#0A0A0A] bg-[#FAFAFA] p-4 rounded-[10px] border border-[#EEEEEE] font-mono overflow-x-auto h-[260px] leading-relaxed">
             {activeTool.sampleResponse}
           </pre>
         </div>
       </div>
-    </div>
+    </section>
   );
 }

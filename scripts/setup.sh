@@ -8,8 +8,9 @@ if [ -f "$ENV_FILE" ]; then
   exit 0
 fi
 
-ENCRYPTION_KEY=$(openssl rand -hex 32)
-MCP_TOKEN=$(openssl rand -base64 24 | tr '+/' '-_' | tr -d '=')
+# node is always present (the image runs on it); openssl is not in node:24-slim.
+ENCRYPTION_KEY=$(node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))")
+MCP_TOKEN=$(node -e "console.log(require('node:crypto').randomBytes(24).toString('base64url'))")
 
 mkdir -p ./data
 
@@ -21,8 +22,5 @@ MCP_TOKEN=$MCP_TOKEN
 PORT=4080
 EOF
 
-echo "✓ Generated .env with secure random keys"
-echo ""
-echo "  MCP_TOKEN: $MCP_TOKEN"
-echo ""
-echo "  Copy this token — you'll need it to connect your AI tool."
+echo "✓ Generated $ENV_FILE with secure random keys (MCP_TOKEN is stored there, not printed)."
+echo "  Read it with: grep MCP_TOKEN $ENV_FILE"

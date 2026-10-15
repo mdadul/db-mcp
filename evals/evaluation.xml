@@ -1,0 +1,42 @@
+<evaluation>
+  <qa_pair>
+    <question>Among customers who have at least one order with status 'refunded', which country has the most such customers? If two countries tie, answer with the alphabetically first one.</question>
+    <answer>Brazil</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>Across all orders with status 'delivered', which product has the largest total quantity sold? Give the product name. If two products tie, answer with the alphabetically first one.</question>
+    <answer>Item 08</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>How many distinct customers have a high-priority support ticket that is still open (no closing date)? Answer with a single integer.</question>
+    <answer>1</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>Which customer has the highest total spend across orders with status 'delivered'? Give the full name. If two customers tie, answer with the alphabetically first one.</question>
+    <answer>Mia Kim</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>What is the total value in cents of all orders placed in March 2024, excluding orders that were cancelled or refunded? Answer with a single integer.</question>
+    <answer>440212</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>Which product category appears in the most order line items across all orders? Give the category name. If two categories tie, answer with the alphabetically first one.</question>
+    <answer>Networking</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>How many distinct orders placed by customers located in Japan have a support ticket with the subject 'Damaged item'? Answer with a single integer.</question>
+    <answer>1</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>Among products that appear in at least one refunded order, which has the highest unit price? Give its SKU. If two products tie on price, answer with the alphabetically first SKU.</question>
+    <answer>SKU-109</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>Is there any support ticket whose order belongs to a different customer than the customer who opened the ticket? Answer Yes or No.</question>
+    <answer>No</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>Across all orders, what is the average number of line items per order? Give the answer with exactly two decimal places (for example, 2.50).</question>
+    <answer>2.00</answer>
+  </qa_pair>
+</evaluation>

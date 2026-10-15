@@ -1,7 +1,11 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "module": "ESNext",
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
@@ -13,9 +17,22 @@
     "noUnusedParameters": false,
     "skipLibCheck": true,
     "paths": {
-      "@/*": ["./src/*"],
-      "@server/*": ["../src/*"]
+      "@/*": [
+        "./src/*"
+      ],
+      "@server/*": [
+        "../src/*"
+      ],
+      "hono": [
+        "../node_modules/hono/dist/types/index.d.ts"
+      ],
+      "hono/client": [
+        "../node_modules/hono/dist/types/client/index.d.ts"
+      ]
     }
   },
-  "include": ["src", "vite.config.ts"]
+  "include": [
+    "src",
+    "vite.config.ts"
+  ]
 }
