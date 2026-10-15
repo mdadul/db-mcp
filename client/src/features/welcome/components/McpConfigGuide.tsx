@@ -37,7 +37,7 @@ ngrok http 4080
 # 3. In Claude.ai → Settings → Integrations → Add MCP Server:
 URL:     https://<tunnel-subdomain>.trycloudflare.com/mcp
 Header:  Authorization: Bearer <MCP_TOKEN>`,
-    note: "Claude.ai web enforces HTTPS (browser mixed-content policy). A local http:// URL will be rejected — you must expose the gateway via a tunnel first.",
+    note: "Claude.ai web enforces HTTPS. A local http:// URL will be rejected — expose the gateway via a tunnel first.",
   },
   http: {
     title: "Raw HTTP / Custom Client",
@@ -64,70 +64,75 @@ export function McpConfigGuide() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Fallback if clipboard API is not available
+      // Fallback
     }
   };
 
   return (
-    <div className="bg-muted rounded-3xl p-6 sm:p-8 text-foreground shadow-xl mb-12">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+    <section className="mb-20 sm:mb-28 rounded-[14px] bg-white p-7 sm:p-10 border border-[#EEEEEE] shadow-[0_1px_3px_rgba(0,0,0,0.05),0_4px_16px_rgba(0,0,0,0.03)]">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8 pb-6 border-b border-[#EEEEEE]">
         <div>
-          <h2 className="text-xl font-bold text-foreground tracking-tight">
+          <span className="text-xs text-[#737373] uppercase tracking-wider block mb-2 font-normal">
+            Integration
+          </span>
+          <h2 className="text-2xl sm:text-3xl font-medium text-[#0A0A0A] tracking-tight">
             Connect your AI tool in under a minute
           </h2>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-            Pick your environment and copy the snippet
+          <p className="text-sm text-[#4D4D4D] mt-1.5 leading-relaxed">
+            Select your developer environment and copy the configuration payload.
           </p>
         </div>
 
         {/* Tab buttons */}
-        <div className="flex items-center gap-1 bg-muted p-1 rounded-xl border border-border">
+        <div className="flex items-center gap-1.5 bg-[#F8F8F8] p-1.5 rounded-[10px] border border-[#EEEEEE] overflow-x-auto">
           {(["claude", "cursor", "web", "http"] as ToolType[]).map((tool) => (
             <button
               key={tool}
               onClick={() => setActiveTool(tool)}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+              className={`px-3.5 py-1.5 text-xs rounded-[8px] transition-colors shrink-0 cursor-pointer ${
                 activeTool === tool
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "bg-[#E5E5E5] text-[#0A0A0A] font-medium shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
+                  : "text-[#4D4D4D] hover:text-[#0A0A0A] hover:bg-white"
               }`}
             >
               {tool === "claude" ? "Claude Code"
                 : tool === "cursor" ? "Cursor / Desktop"
                 : tool === "web" ? "Claude.ai Web"
-                : "HTTP / Custom"}
+                : "HTTP API"}
             </button>
           ))}
         </div>
       </div>
 
       {/* Code Snippet Box */}
-      <div className="bg-muted rounded-2xl p-5 border border-border">
-        <div className="flex items-center justify-between mb-3 text-xs text-muted-foreground border-b border-border pb-2">
-          <span className="font-mono text-primary">{activeSnippet.filename}</span>
+      <div className="bg-[#141414] text-[#E5E5E5] rounded-[10px] p-5 border border-[#262626]">
+        <div className="flex items-center justify-between mb-3 text-xs text-[#888888] border-b border-[#262626] pb-3">
+          <span className="font-mono text-[#CCCCCC]">{activeSnippet.filename}</span>
           <Button
-            variant="ghost"
+            variant="secondary"
             size="sm"
             onClick={handleCopy}
+            className="h-7 text-xs px-3 bg-[#262626] border-[#333333] text-[#E5E5E5] hover:bg-[#333333] hover:text-white"
           >
-            {copied ? "Copied! ✓" : "Copy Snippet"}
+            {copied ? "Copied ✓" : "Copy Snippet"}
           </Button>
         </div>
 
-        <pre className="text-sm text-primary overflow-x-auto whitespace-pre-wrap break-all font-mono">
+        <pre className="text-xs text-[#E5E5E5] overflow-x-auto whitespace-pre-wrap break-all font-mono leading-relaxed">
           {activeSnippet.snippet}
         </pre>
       </div>
 
       {activeSnippet.note && (
-        <p className="text-xs text-destructive mt-3 leading-relaxed">
-          ⚠️ {activeSnippet.note}
+        <p className="text-xs text-[#D64545] mt-4 leading-relaxed flex items-center gap-1.5">
+          <span>Notice:</span>
+          <span>{activeSnippet.note}</span>
         </p>
       )}
 
-      <p className="text-xs text-muted-foreground mt-3 leading-relaxed">
-        💡 Replace <code className="text-primary font-mono">&lt;MCP_TOKEN&gt;</code> with the bearer token configured in your server environment variable (<code className="text-muted-foreground font-mono">MCP_TOKEN</code>).
+      <p className="text-xs text-[#737373] mt-4 leading-relaxed">
+        Tip: Replace <code className="text-[#0A0A0A] bg-[#EEEEEE] px-1.5 py-0.5 rounded font-mono">&lt;MCP_TOKEN&gt;</code> with the bearer token defined in your server environment (<code className="text-[#0A0A0A] bg-[#EEEEEE] px-1.5 py-0.5 rounded font-mono">MCP_TOKEN</code>).
       </p>
-    </div>
+    </section>
   );
 }

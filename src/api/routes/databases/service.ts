@@ -188,14 +188,14 @@ export async function testConnection(id: string): Promise<TestResult> {
   const row = await findOrThrow(id);
   const start = Date.now();
   try {
-    console.log(`[TEST] Starting connection test for database: ${row.name}`);
+    console.error(`[TEST] Starting connection test for database: ${row.name}`);
     const executor = await getExecutor(row.id, row as any);
-    console.log(`[TEST] Got executor for ${row.type}, attempting query...`);
+    console.error(`[TEST] Got executor for ${row.type}, attempting query...`);
     
     await executor.query("SELECT 1");
     
     const latencyMs = Date.now() - start;
-    console.log(`[TEST] Connection successful in ${latencyMs}ms`);
+    console.error(`[TEST] Connection successful in ${latencyMs}ms`);
     return { success: true, message: `Connection successful (${latencyMs}ms)`, latencyMs };
   } catch (err: any) {
     const latencyMs = Date.now() - start;

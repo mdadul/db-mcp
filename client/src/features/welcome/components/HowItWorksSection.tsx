@@ -3,43 +3,46 @@ import { Database, CheckCircle2, ClipboardPaste, Sparkles } from "@/components/u
 const STEPS = [
   {
     step: "01",
-    title: "Add your database",
+    title: "Add database connection",
     description:
-      "Enter your host, port, database name, and a read-only user's credentials. Your password is encrypted immediately — it's never stored or logged in plain text.",
+      "Enter your host, port, database name, and read-only credentials. Passwords are encrypted with AES-256 immediately upon saving.",
     icon: Database,
   },
   {
     step: "02",
-    title: "Verify it connects",
+    title: "Verify connection health",
     description:
-      "Hit Test Connection to confirm everything works. The gateway pings the database and reports back in seconds — no guessing.",
+      "Test connectivity directly from the control plane with a single click before wiring into your AI assistant.",
     icon: CheckCircle2,
   },
   {
     step: "03",
-    title: "Copy the config snippet",
+    title: "Copy the MCP config snippet",
     description:
-      "Pick your AI tool (Claude Code, Cursor, Windsurf, or Claude.ai Web) and copy the one-liner or JSON config. Done in under a minute.",
+      "Select your AI client — Claude Code, Cursor, Windsurf, or Claude Desktop — and paste the configuration into your local settings.",
     icon: ClipboardPaste,
   },
   {
     step: "04",
-    title: "Ask your AI anything about your DB",
+    title: "Explore schema and query",
     description:
-      "Your AI can now explore schemas, inspect tables, and run read-only queries. It can never insert, update, delete, or drop anything.",
+      "Your assistant discovers database tables, columns, indexes, and executes safe read-only queries with capped result sets.",
     icon: Sparkles,
   },
 ];
 
 export function HowItWorksSection() {
   return (
-    <div className="mb-12">
-      <div className="text-center max-w-2xl mx-auto mb-8">
-        <h2 className="text-2xl font-bold text-foreground tracking-tight">
-          Up and running in 4 steps
+    <section id="how-it-works" className="mb-20 sm:mb-28">
+      <div className="max-w-2xl mb-12">
+        <span className="text-xs text-[#737373] uppercase tracking-wider block mb-2 font-normal">
+          Workflow
+        </span>
+        <h2 className="text-3xl sm:text-4xl font-medium text-[#0A0A0A] tracking-tight leading-tight">
+          Up and running in four steps
         </h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          From zero to AI-powered database queries in under 5 minutes
+        <p className="text-base text-[#4D4D4D] mt-3 leading-relaxed">
+          From zero to AI-assisted database exploration in less than five minutes.
         </p>
       </div>
 
@@ -47,27 +50,27 @@ export function HowItWorksSection() {
         {STEPS.map((s) => (
           <div
             key={s.step}
-            className="bg-background rounded-2xl p-6 border border-border shadow-sm relative overflow-hidden flex items-start gap-4 hover:border-primary/30 transition-colors"
+            className="group rounded-[14px] bg-white p-7 border border-[#EEEEEE] shadow-[0_1px_3px_rgba(0,0,0,0.05),0_4px_16px_rgba(0,0,0,0.03)] hover:border-[#CCCCCC] transition-all duration-200 flex flex-col justify-between"
           >
-            <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-              <s.icon className="w-5 h-5" />
-            </div>
             <div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-xs font-bold text-primary uppercase tracking-widest">
-                  Step {s.step}
+              <div className="flex items-center justify-between mb-6">
+                <div className="w-11 h-11 rounded-[10px] bg-[#F8F8F8] border border-[#EEEEEE] text-[#0A0A0A] flex items-center justify-center transition-colors group-hover:bg-[#E5E5E5]">
+                  <s.icon className="w-5 h-5 text-[#4D4D4D]" />
+                </div>
+                <span className="text-xs font-mono text-[#737373] bg-[#F8F8F8] px-2.5 py-1 rounded-[6px] border border-[#EEEEEE]">
+                  {s.step}
                 </span>
               </div>
-              <h3 className="text-base font-bold text-foreground mb-1">
+              <h3 className="text-lg font-medium text-[#0A0A0A] mb-2 leading-snug">
                 {s.title}
               </h3>
-              <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+              <p className="text-sm text-[#4D4D4D] leading-relaxed">
                 {s.description}
               </p>
             </div>
           </div>
         ))}
       </div>
-    </div>
+    </section>
   );
 }

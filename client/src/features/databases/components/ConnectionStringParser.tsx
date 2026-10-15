@@ -115,19 +115,19 @@ export function ConnectionStringParser({ onParse, className = "" }: ConnectionSt
   };
 
   return (
-    <div className={`rounded-xl border border-primary/20 bg-linear-to-br from-primary/5 via-background to-accent/30 p-4 sm:p-5 shadow-xs ${className}`}>
+    <div className={`rounded-[14px] border border-[#EEEEEE] bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.05),0_4px_16px_rgba(0,0,0,0.03)] ${className}`}>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 shadow-xs">
-            <Zap className="w-5 h-5 text-primary" />
+          <div className="w-8 h-8 rounded-[8px] bg-[#F8F8F8] border border-[#EEEEEE] text-[#0A0A0A] flex items-center justify-center shrink-0">
+            <Zap className="w-4 h-4 text-[#4D4D4D]" />
           </div>
           <div>
-            <h4 className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-1.5">
+            <h4 className="text-xs font-medium text-[#0A0A0A] flex items-center gap-1.5">
               <span>Quick URI Import</span>
-              <Sparkles className="w-3.5 h-3.5 text-primary animate-pulse" />
+              <Sparkles className="w-3.5 h-3.5 text-[#22C55E]" />
             </h4>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Paste a database URI string to auto-fill form fields
+            <p className="text-xs text-[#737373] mt-0.5">
+              Paste a database connection string to automatically populate fields
             </p>
           </div>
         </div>
@@ -137,14 +137,14 @@ export function ConnectionStringParser({ onParse, className = "" }: ConnectionSt
           variant="outline"
           size="sm"
           onClick={handlePasteClipboard}
-          className="text-xs bg-background/80 hover:bg-background border-primary/30 text-primary self-start sm:self-auto gap-1.5 shadow-2xs"
+          className="text-xs border-[#EEEEEE] text-[#4D4D4D] self-start sm:self-auto gap-1.5"
         >
           <ClipboardPaste className="w-3.5 h-3.5" />
-          <span>Paste from Clipboard</span>
+          <span>Paste Clipboard</span>
         </Button>
       </div>
 
-      <div className="mt-3.5 space-y-3">
+      <div className="mt-4 space-y-3">
         <div className="flex gap-2">
           <div className="relative flex-1">
             <input
@@ -155,11 +155,11 @@ export function ConnectionStringParser({ onParse, className = "" }: ConnectionSt
                 setUri(e.target.value);
                 if (error) setError(null);
               }}
-              className="w-full px-3.5 py-2 text-xs font-mono border border-primary/30 rounded-lg bg-background/90 focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all placeholder:text-muted-foreground/60"
+              className="w-full px-3.5 py-2.5 text-xs font-mono border border-[#EEEEEE] rounded-[10px] bg-[#FAFAFA] text-[#0A0A0A] focus:outline-none focus:bg-white focus:border-[#CCCCCC] transition-colors placeholder:text-[#999999]"
             />
             {copiedSuccess && (
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-emerald-500 font-medium flex items-center gap-1">
-                <Check className="w-3.5 h-3.5" /> Parsed & Applied!
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#15803D] font-normal flex items-center gap-1">
+                <Check className="w-3.5 h-3.5 text-[#22C55E]" /> Parsed!
               </span>
             )}
           </div>
@@ -178,33 +178,28 @@ export function ConnectionStringParser({ onParse, className = "" }: ConnectionSt
 
         {/* Live Detected Preview Chips */}
         {detectedFields && (
-          <div className="flex flex-wrap items-center gap-1.5 pt-1 animate-in fade-in slide-in-from-top-1">
-            <span className="text-[11px] font-medium text-muted-foreground mr-1">Detected:</span>
-            <Badge variant="secondary" className="text-[10px] uppercase font-bold bg-primary/10 text-primary border-primary/20">
+          <div className="flex flex-wrap items-center gap-1.5 pt-1">
+            <span className="text-xs text-[#737373] mr-1">Detected:</span>
+            <Badge variant="secondary" className="text-xs uppercase">
               {detectedFields.type}
             </Badge>
             {detectedFields.host && (
-              <Badge variant="outline" className="text-[10px] font-mono bg-background">
+              <Badge variant="outline" className="text-xs font-mono border-[#EEEEEE]">
                 host: {detectedFields.host}
               </Badge>
             )}
             {detectedFields.port && (
-              <Badge variant="outline" className="text-[10px] font-mono bg-background">
+              <Badge variant="outline" className="text-xs font-mono border-[#EEEEEE]">
                 port: {detectedFields.port}
               </Badge>
             )}
             {detectedFields.databaseName && (
-              <Badge variant="outline" className="text-[10px] font-mono bg-background">
+              <Badge variant="outline" className="text-xs font-mono border-[#EEEEEE]">
                 db: {detectedFields.databaseName}
               </Badge>
             )}
-            {detectedFields.username && (
-              <Badge variant="outline" className="text-[10px] font-mono bg-background">
-                user: {detectedFields.username}
-              </Badge>
-            )}
             {detectedFields.ssl && (
-              <Badge variant="outline" className="text-[10px] font-mono bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
+              <Badge variant="accent" className="text-xs font-mono">
                 SSL Required
               </Badge>
             )}
@@ -212,7 +207,7 @@ export function ConnectionStringParser({ onParse, className = "" }: ConnectionSt
         )}
 
         {error && (
-          <div className="flex items-center gap-1.5 text-xs text-destructive font-medium pt-1">
+          <div className="flex items-center gap-1.5 text-xs text-[#D64545] pt-1">
             <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
             <span>{error}</span>
           </div>
@@ -221,4 +216,3 @@ export function ConnectionStringParser({ onParse, className = "" }: ConnectionSt
     </div>
   );
 }
-

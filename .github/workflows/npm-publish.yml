@@ -1,0 +1,69 @@
+name: Publish to npm
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+  id-token: write # required for npm provenance
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - name: Check tag matches package.json version
+        run: |
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          TAG_VERSION=${GITHUB_REF_NAME#v}
+          if [ "$PKG_VERSION" != "$TAG_VERSION" ]; then
+            echo "Tag v$TAG_VERSION does not match package.json version $PKG_VERSION" >&2
+            exit 1
+          fi
+
+      # No lockfile is committed (bun.lock only), so install with npm install.
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Type-check
+        run: npm run type-check
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Pack
+        run: |
+          npm pack --ignore-scripts --pack-destination "$RUNNER_TEMP"
+          echo "TARBALL=$(ls "$RUNNER_TEMP"/mdadul-db-mcp-*.tgz)" >> "$GITHUB_ENV"
+
+      - name: Smoke test packed tarball
+        run: |
+          APP=$(mktemp -d)
+          cd "$APP" && npm init -y >/dev/null
+          npm install "$TARBALL" --no-audit --no-fund
+          INSTALLED=$(DB_MCP_HOME="$APP/home" node node_modules/@mdadul/db-mcp/dist/cli.js --version)
+          test "$INSTALLED" = "${GITHUB_REF_NAME#v}"
+          # Start the HTTP gateway and check that auth is enforced.
+          DB_MCP_HOME="$APP/home" PORT=4090 node node_modules/@mdadul/db-mcp/dist/cli.js &
+          PID=$!
+          for i in $(seq 1 20); do
+            curl -s -o /dev/null localhost:4090/ && break
+            sleep 0.5
+          done
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X POST localhost:4090/mcp)" = "401"
+          kill "$PID"
+
+      - name: Publish
+        run: npm publish "$TARBALL" --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

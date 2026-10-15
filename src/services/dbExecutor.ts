@@ -52,7 +52,7 @@ export async function createExecutor(config: DbConfig): Promise<DbExecutor> {
       const pool = mysql.createPool({
         host: config.host,
         port: config.port,
-        database: config.databaseName,
+        ...(config.databaseName ? { database: config.databaseName } : {}),
         user: config.username,
         password,
         ssl: config.ssl ? { rejectUnauthorized: false } : undefined,
@@ -85,16 +85,17 @@ export async function createExecutor(config: DbConfig): Promise<DbExecutor> {
       const payload: EncryptedPayload = JSON.parse(config.encryptedCredentials);
       const password = await decrypt(payload);
       const auth = config.username ? `${encodeURIComponent(config.username)}:${encodeURIComponent(password)}@` : "";
-      const uri = `mongodb://${auth}${config.host}:${config.port}/${config.databaseName}${config.ssl ? "?tls=true" : ""}`;
+      const dbPath = config.databaseName ? `/${config.databaseName}` : "/";
+      const uri = `mongodb://${auth}${config.host}:${config.port}${dbPath}${config.ssl ? "?tls=true" : ""}`;
       const client = new MongoClient(uri, { connectTimeoutMS: 10000, serverSelectionTimeoutMS: 10000 });
       await client.connect();
-      const mongoDb = client.db(config.databaseName);
+      const mongoDb = client.db(config.databaseName || "admin");
 
       return {
         type: "mongodb",
         // sqlString is a JSON DSL. Public queries (via execute_read_query) are limited to
         // {"collection","filter","projection","sort","limit"} by assertReadOnly in src/query/safety.ts.
-        // Internal schema-introspection tools additionally use {"op":"listCollections"|"listIndexes"|"sample"},
+        // Internal schema-introspection tools additionally use {"op":"listDatabases"|"listCollections"|"listIndexes"|"sample"},
         // which is never reachable from user-supplied queries since "op" is not an allowed DSL key.
         async query<T = Record<string, unknown>>(sqlString: string): Promise<T[]> {
           try {
@@ -105,13 +106,20 @@ export async function createExecutor(config: DbConfig): Promise<DbExecutor> {
             }
 
             const dsl = JSON.parse(sqlString) as {
-              op?: "listCollections" | "listIndexes" | "sample";
+              op?: "listDatabases" | "listCollections" | "listIndexes" | "sample";
               collection?: string;
               filter?: Record<string, unknown>;
               projection?: Record<string, unknown>;
               sort?: Record<string, unknown>;
               limit?: number;
             };
+
+            if (dsl.op === "listDatabases") {
+              const { databases } = await client.db().admin().listDatabases();
+              return databases
+                .filter((entry) => entry.name !== "admin" && entry.name !== "local")
+                .map((entry) => ({ table_name: entry.name, table_type: "database" })) as unknown as T[];
+            }
 
             if (dsl.op === "listCollections") {
               const collections = await mongoDb.listCollections({}, { nameOnly: true }).toArray();
@@ -167,7 +175,7 @@ export async function createExecutor(config: DbConfig): Promise<DbExecutor> {
       const sql = postgres({
         host: config.host,
         port: config.port,
-        database: config.databaseName,
+        ...(config.databaseName ? { database: config.databaseName } : {}),
         username: config.username,
         password,
         // Redshift always requires SSL; PostgreSQL respects the user toggle

@@ -11,7 +11,7 @@ const baseDatabaseFormObject = z.object({
     .pipe(z.number().int().min(0).max(65535))
     .optional()
     .default(5432),
-  databaseName: z.string().trim().min(1, "Required"),
+  databaseName: z.string().trim().optional().default(""),
   username: z.string().trim().optional().default(""),
   ssl: z.boolean().default(false),
   serviceName: z.string().trim().optional(),
@@ -19,7 +19,14 @@ const baseDatabaseFormObject = z.object({
 });
 
 // Exported for form field typing — the ZodObject without refinements
+function requireDatabaseFile(data: { type: string; databaseName?: string }, ctx: z.RefinementCtx) {
+  if (data.type === "sqlite" && !data.databaseName) {
+    ctx.addIssue({ code: "custom", path: ["databaseName"], message: "File path is required" });
+  }
+}
+
 export const baseDatabaseFormSchema = baseDatabaseFormObject.superRefine((data, ctx) => {
+  requireDatabaseFile(data, ctx);
   if (data.type !== "sqlite") {
     if (!data.host) ctx.addIssue({ code: "custom", path: ["host"], message: "Host is required" });
     if (!data.username) ctx.addIssue({ code: "custom", path: ["username"], message: "Username is required" });
@@ -29,6 +36,7 @@ export const baseDatabaseFormSchema = baseDatabaseFormObject.superRefine((data, 
 export const createDatabaseFormSchema = baseDatabaseFormObject
   .extend({ password: z.string().optional() })
   .superRefine((data, ctx) => {
+    requireDatabaseFile(data, ctx);
     if (data.type !== "sqlite") {
       if (!data.host) ctx.addIssue({ code: "custom", path: ["host"], message: "Host is required" });
       if (!data.username) ctx.addIssue({ code: "custom", path: ["username"], message: "Username is required" });
@@ -39,6 +47,7 @@ export const createDatabaseFormSchema = baseDatabaseFormObject
 export const updateDatabaseFormSchema = baseDatabaseFormObject
   .extend({ password: z.string().optional() })
   .superRefine((data, ctx) => {
+    requireDatabaseFile(data, ctx);
     if (data.type !== "sqlite") {
       if (!data.host) ctx.addIssue({ code: "custom", path: ["host"], message: "Host is required" });
       if (!data.username) ctx.addIssue({ code: "custom", path: ["username"], message: "Username is required" });

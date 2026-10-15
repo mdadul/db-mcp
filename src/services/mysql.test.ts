@@ -20,6 +20,19 @@ describe("MySQL Support", () => {
     assert.equal(valid.port, 3306);
   });
 
+  test("CreateDatabaseSchema allows a blank MySQL database name", () => {
+    const valid = CreateDatabaseSchema.parse({
+      name: "Shared MySQL login",
+      type: "mysql",
+      host: "localhost",
+      port: 3306,
+      username: "root",
+      password: "password123",
+    });
+
+    assert.equal(valid.databaseName, "");
+  });
+
   test("assertReadOnly permits read-only MySQL queries", () => {
     assert.doesNotThrow(() => assertReadOnly("SELECT * FROM users"));
     assert.doesNotThrow(() => assertReadOnly("SHOW TABLES"));

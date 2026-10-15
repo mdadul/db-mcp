@@ -14,6 +14,7 @@ import {
   TableHead,
   TableCell,
 } from "@/components/ui/Table";
+import { Play, Zap, Pencil, Trash2 } from "@/components/ui/Icons";
 import {
   testingIdAtom,
   testResultsAtom,
@@ -134,24 +135,19 @@ export function DatabaseTable({
         if (databases.length > 0 && focusedIndex >= databases.length) setFocusedIndex(databases.length - 1);
       }}
       aria-label="Database explorer table"
-      className="rounded-lg border overflow-hidden outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
+      className="rounded-[14px] border border-[#EEEEEE] bg-white overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.05),0_4px_16px_rgba(0,0,0,0.03)] outline-none"
     >
       <Table>
         <TableHeader>
-          <TableRow className="hover:bg-transparent">
-            <TableHead className="w-10 pl-4">
-              <Checkbox
-                checked={allSelected}
-                indeterminate={someSelected}
-                onCheckedChange={onToggleSelectAll}
-              />
-            </TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Name & Service</TableHead>
-            <TableHead>Environment</TableHead>
-            <TableHead>Host · Port / Database</TableHead>
-            <TableHead>SSL</TableHead>
-            <TableHead className="text-right pr-4">Actions</TableHead>
+          <TableRow className="hover:bg-transparent border-b border-[#EEEEEE] bg-[#FAFAFA]">
+            <TableHead className="w-10 pl-4" />
+            <TableHead className="w-10" />
+            <TableHead className="text-xs text-[#737373] font-normal">Status</TableHead>
+            <TableHead className="text-xs text-[#737373] font-normal">Name & Service</TableHead>
+            <TableHead className="text-xs text-[#737373] font-normal">Environment</TableHead>
+            <TableHead className="text-xs text-[#737373] font-normal">Host · Port / DB</TableHead>
+            <TableHead className="text-xs text-[#737373] font-normal">SSL</TableHead>
+            <TableHead className="text-right pr-4 text-xs text-[#737373] font-normal">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -160,6 +156,7 @@ export function DatabaseTable({
             const isFocused = focusedIndex === index;
             const isTesting = testingId === db.id;
             const testResult = testResults[db.id];
+            const isEnabled = db.status === "enabled";
 
             return (
               <TableRow
@@ -168,9 +165,18 @@ export function DatabaseTable({
                 onMouseEnter={() => setFocusedIndex(index)}
                 onClick={() => setFocusedIndex(index)}
                 data-state={isSelected ? "selected" : undefined}
-                className={isFocused && !isSelected ? "bg-muted/50 ring-1 ring-inset ring-ring/30" : ""}
+                className={`group relative transition-colors duration-100 border-b border-[#EEEEEE] ${
+                  isFocused && !isSelected ? "bg-[#F8F8F8]" : ""
+                }`}
               >
-                <TableCell className="pl-4">
+                {/* Left status accent stripe */}
+                <TableCell className="w-1 p-0">
+                  <div className={`w-[3px] h-full min-h-[52px] rounded-r transition-colors duration-200 ${
+                    isEnabled ? "bg-[#22C55E]" : "bg-[#EEEEEE]"
+                  }`} />
+                </TableCell>
+
+                <TableCell className="pl-3">
                   <Checkbox
                     checked={isSelected}
                     onCheckedChange={() => onToggleSelect(db.id)}
@@ -180,63 +186,96 @@ export function DatabaseTable({
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <Switch
-                      checked={db.status === "enabled"}
+                      checked={isEnabled}
                       onCheckedChange={() => toggleStatus(db)}
                     />
-                    <Badge variant={db.status === "enabled" ? "default" : "secondary"}>
+                    <Badge
+                      variant={isEnabled ? "accent" : "default"}
+                      className="text-xs"
+                    >
+                      <span className={`inline-block h-1.5 w-1.5 rounded-full ${isEnabled ? "bg-[#22C55E]" : "bg-[#999999]"}`} />
                       {db.status}
                     </Badge>
                   </div>
                 </TableCell>
 
                 <TableCell>
-                  <div className="font-semibold text-foreground flex items-center gap-1.5">
+                  <div className="font-medium text-[#0A0A0A] flex items-center gap-1.5">
+                    <DbEngineIcon type={db.type} className="w-4 h-4 object-contain shrink-0" />
                     <span>{db.name}</span>
-                    <DbEngineIcon type={db.type} className="w-4 h-4 object-contain" />
                   </div>
-                  <div className="text-muted-foreground text-[11px] font-mono capitalize mt-0.5">
+                  <div className="text-[#737373] text-xs font-mono capitalize mt-0.5">
                     {db.type}{db.serviceName && ` · ${db.serviceName}`}
                   </div>
                 </TableCell>
 
                 <TableCell>
                   {db.environment ? (
-                    <Badge variant="outline">{db.environment}</Badge>
+                    <Badge variant="outline" className="text-xs font-normal border-[#EEEEEE]">{db.environment}</Badge>
                   ) : (
-                    <span className="text-muted-foreground">—</span>
+                    <span className="text-[#CCCCCC]">—</span>
                   )}
                 </TableCell>
 
-                <TableCell className="font-mono">
-                  <div className="text-foreground">{db.host}:{db.port}</div>
-                  <div className="text-muted-foreground text-[11px] mt-0.5">{db.databaseName}</div>
+                <TableCell className="font-mono text-xs">
+                  <div className="text-[#0A0A0A]">{db.host}:{db.port}</div>
+                  <div className="text-[#737373] text-[11px] mt-0.5">{db.databaseName || "all databases"}</div>
                 </TableCell>
 
                 <TableCell>
                   {db.ssl ? (
-                    <Badge variant="secondary">SSL</Badge>
+                    <Badge variant="secondary" className="text-xs">SSL</Badge>
                   ) : (
-                    <span className="text-muted-foreground">—</span>
+                    <span className="text-[#CCCCCC]">—</span>
                   )}
                 </TableCell>
 
                 <TableCell className="pr-4">
                   <div className="flex items-center justify-end gap-1.5">
-                    <Button variant="default" size="sm" onClick={() => onOpenDetails(db)} title="Open Interactive Workbench">
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={() => onOpenDetails(db)}
+                      title="Open Interactive Workbench"
+                      className="gap-1.5 h-8 text-xs font-normal"
+                    >
+                      <Play className="w-3 h-3 fill-current" />
                       Workbench
                     </Button>
-                    <Button variant="outline" size="sm" disabled={isTesting} onClick={() => testConnection(db.id)}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={isTesting}
+                      onClick={() => testConnection(db.id)}
+                      title="Test Connection"
+                      className="h-8 text-xs font-normal text-[#4D4D4D]"
+                    >
+                      <Zap className="w-3 h-3" />
                       {isTesting ? "Testing…" : "Test"}
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={() => navigate(`/${db.id}/edit`)}>
-                      Edit
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => navigate(`/${db.id}/edit`)}
+                      title="Edit Connection"
+                      className="h-8 w-8 text-[#4D4D4D] hover:text-[#0A0A0A]"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
                     </Button>
-                    <Button variant="destructive" size="sm" onClick={() => onDeleteRequest(db)}>
-                      Delete
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => onDeleteRequest(db)}
+                      title="Delete Connection"
+                      className="h-8 w-8 text-[#D64545] hover:text-[#D64545] hover:bg-[#D64545]/10"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
                     </Button>
                   </div>
                   {testResult && (
-                    <p className={`mt-1.5 text-[11px] text-right ${testResult.success ? "text-primary" : "text-destructive"}`}>
+                    <p className={`mt-1 text-[11px] text-right ${
+                      testResult.success ? "text-[#15803D]" : "text-[#D64545]"
+                    }`}>
                       {testResult.success ? "✓" : "✕"} {testResult.message}
                     </p>
                   )}

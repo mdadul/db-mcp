@@ -71,7 +71,7 @@ export function useCommandPalette({
     ];
 
     const dbItems = matches.flatMap((db): PaletteItem[] => [
-      { id: `open-${db.id}`, icon: null, label: `Open Workbench · ${db.name}`, hint: `${db.type.toUpperCase()} · ${db.host}:${db.port}/${db.databaseName}`, action: () => onOpenWorkbench(db) },
+      { id: `open-${db.id}`, icon: null, label: `Open Workbench · ${db.name}`, hint: `${db.type.toUpperCase()} · ${db.host}:${db.port}${db.databaseName ? `/${db.databaseName}` : ""}`, action: () => onOpenWorkbench(db) },
       { id: `test-${db.id}`, icon: null, label: `Test Connection · ${db.name}`, hint: "Run health check and update status", action: () => onTestConnection(db.id) },
     ]);
 

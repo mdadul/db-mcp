@@ -1,32 +1,24 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "@fontsource-variable/inter";
-@import "@fontsource-variable/figtree";
-@import "@fontsource-variable/nunito-sans";
-@import "@fontsource-variable/geist";
-@import "@fontsource-variable/noto-sans";
-@import "@fontsource-variable/dm-sans";
-@import "@fontsource-variable/noto-serif";
-@import "@fontsource-variable/outfit";
-@import "@fontsource-variable/raleway";
-
-@custom-variant dark (&:is(.dark *));
 
 @layer base {
   body {
-    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-    @apply bg-background text-foreground;
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: var(--surface);
+    color: var(--on-surface);
   }
 
   code, pre, .font-mono {
     font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   }
+
   * {
-    @apply border-border outline-ring/50;
+    border-color: var(--border);
   }
+
   html {
-    @apply font-sans;
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   }
 }
 
@@ -39,121 +31,228 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: color-mix(in oklab, var(--muted-foreground) 38%, transparent);
+  background: #E5E5E5;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: color-mix(in oklab, var(--muted-foreground) 56%, transparent);
+  background: #CCCCCC;
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.147 0.004 49.25);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.147 0.004 49.25);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.147 0.004 49.25);
-  --primary: oklch(0.505 0.213 27.518);
-  --primary-foreground: oklch(0.971 0.013 17.38);
-  --secondary: oklch(0.967 0.001 286.375);
-  --secondary-foreground: oklch(0.21 0.006 285.885);
-  --muted: oklch(0.97 0.001 106.424);
-  --muted-foreground: oklch(0.553 0.013 58.071);
-  --accent: oklch(0.97 0.001 106.424);
-  --accent-foreground: oklch(0.216 0.006 56.043);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.923 0.003 48.717);
-  --input: oklch(0.923 0.003 48.717);
-  --ring: oklch(0.709 0.01 56.259);
-  --chart-1: oklch(0.869 0.005 56.366);
-  --chart-2: oklch(0.553 0.013 58.071);
-  --chart-3: oklch(0.444 0.011 73.639);
-  --chart-4: oklch(0.374 0.01 67.558);
-  --chart-5: oklch(0.268 0.007 34.298);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0.001 106.423);
-  --sidebar-foreground: oklch(0.147 0.004 49.25);
-  --sidebar-primary: oklch(0.577 0.245 27.325);
-  --sidebar-primary-foreground: oklch(0.971 0.013 17.38);
-  --sidebar-accent: oklch(0.97 0.001 106.424);
-  --sidebar-accent-foreground: oklch(0.216 0.006 56.043);
-  --sidebar-border: oklch(0.923 0.003 48.717);
-  --sidebar-ring: oklch(0.709 0.01 56.259);
-}
+  /* Corey.co Design System Colors */
+  --brand-primary: #4D4D4D;
+  --brand-primary-strong: #0A0A0A;
+  --brand-secondary: #CCCCCC;
+  --brand-tertiary: #E5E5E5;
+  --neutral: #FFFFFF;
+  --surface: #FFFFFF;
+  --surface-muted: #EEEEEE;
+  --on-surface: #4D4D4D;
+  --on-surface-strong: #0A0A0A;
+  --accent: #22C55E;
+  --border: #EEEEEE;
+  --shadow-color: #0000001A;
+  --error: #D64545;
 
-.dark {
-  --background: oklch(0.147 0.004 49.25);
-  --foreground: oklch(0.985 0.001 106.423);
-  --card: oklch(0.216 0.006 56.043);
-  --card-foreground: oklch(0.985 0.001 106.423);
-  --popover: oklch(0.216 0.006 56.043);
-  --popover-foreground: oklch(0.985 0.001 106.423);
-  --primary: oklch(0.444 0.177 26.899);
-  --primary-foreground: oklch(0.971 0.013 17.38);
-  --secondary: oklch(0.274 0.006 286.033);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.268 0.007 34.298);
-  --muted-foreground: oklch(0.709 0.01 56.259);
-  --accent: oklch(0.268 0.007 34.298);
-  --accent-foreground: oklch(0.985 0.001 106.423);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.553 0.013 58.071);
-  --chart-1: oklch(0.869 0.005 56.366);
-  --chart-2: oklch(0.553 0.013 58.071);
-  --chart-3: oklch(0.444 0.011 73.639);
-  --chart-4: oklch(0.374 0.01 67.558);
-  --chart-5: oklch(0.268 0.007 34.298);
-  --sidebar: oklch(0.216 0.006 56.043);
-  --sidebar-foreground: oklch(0.985 0.001 106.423);
-  --sidebar-primary: oklch(0.637 0.237 25.331);
-  --sidebar-primary-foreground: oklch(0.971 0.013 17.38);
-  --sidebar-accent: oklch(0.268 0.007 34.298);
-  --sidebar-accent-foreground: oklch(0.985 0.001 106.423);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.553 0.013 58.071);
+  /* Theme mappings for standard components */
+  --background: #FFFFFF;
+  --foreground: #4D4D4D;
+  --card: #FFFFFF;
+  --card-foreground: #0A0A0A;
+  --popover: #FFFFFF;
+  --popover-foreground: #0A0A0A;
+  --primary: #4D4D4D;
+  --primary-foreground: #FFFFFF;
+  --secondary: #E5E5E5;
+  --secondary-foreground: #0A0A0A;
+  --muted: #F8F8F8;
+  --muted-foreground: #737373;
+  --destructive: #D64545;
+  --destructive-foreground: #FFFFFF;
+  --input: #EEEEEE;
+  --ring: #0A0A0A;
+  --radius: 10px;
+
+  --sidebar: #FAFAFA;
+  --sidebar-foreground: #4D4D4D;
+  --sidebar-primary: #0A0A0A;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #EEEEEE;
+  --sidebar-accent-foreground: #0A0A0A;
+  --sidebar-border: #EEEEEE;
+  --sidebar-ring: #0A0A0A;
+
+  /* Corey.co Elevations & Shadows */
+  --shadow-subtle: 0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 16px rgba(0, 0, 0, 0.03);
+  --shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.06), 0 12px 28px rgba(0, 0, 0, 0.04);
 }
 
 @theme inline {
-  --font-sans: 'Inter Variable', sans-serif;
-  --font-heading: var(--font-sans);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
+  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-heading: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
-  --color-card: var(--card);
-  --color-foreground: var(--foreground);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
   --color-background: var(--background);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-destructive: var(--destructive);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --radius-sm: 4px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
 }
+
+/* ─── Corey.co Typography Classes ────────────────────────────────────────────── */
+.type-headline-display {
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-size: clamp(3rem, 7.5vw, 124px);
+  font-weight: 500;
+  line-height: 1.15;
+  letter-spacing: -3.1px;
+  color: var(--brand-primary-strong);
+}
+
+.type-headline-lg {
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-size: clamp(2rem, 4.5vw, 64px);
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -1.6px;
+  color: var(--brand-primary-strong);
+}
+
+.type-headline-md {
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-size: 40px;
+  font-weight: 500;
+  line-height: 48px;
+  letter-spacing: 0;
+  color: var(--brand-primary-strong);
+}
+
+.type-headline-sm {
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 33.6px;
+  letter-spacing: 0;
+  color: var(--brand-primary-strong);
+}
+
+.type-headline-xs {
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 22px;
+  letter-spacing: 0;
+  color: var(--brand-primary-strong);
+}
+
+.type-body-lg {
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 28px;
+  letter-spacing: 0;
+  color: var(--brand-primary);
+}
+
+.type-body-md {
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  letter-spacing: 0;
+  color: var(--brand-primary);
+}
+
+.type-body-sm {
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
+  letter-spacing: 0;
+  color: var(--brand-primary);
+}
+
+.type-label-lg {
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+  letter-spacing: 0;
+}
+
+.type-label-md {
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  letter-spacing: 0;
+}
+
+.type-label-sm {
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  letter-spacing: 0;
+}
+
+.type-caption {
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  letter-spacing: 0;
+  color: var(--muted-foreground);
+}
+
+/* ─── Layout & Page Atmosphere ────────────────────────────────────────────────── */
+body {
+  background-color: #FFFFFF;
+  color: #4D4D4D;
+  min-height: 100dvh;
+}
+
+/* ─── Animations ─────────────────────────────────────────────────────────────── */
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.animate-fade-in-up  { animation: fade-in-up  0.35s ease-out both; }
+.animate-fade-in     { animation: fade-in     0.25s ease-out both; }
+
+/* ─── Shadows & Card Elevation ───────────────────────────────────────────────── */
+.shadow-card       { box-shadow: var(--shadow-subtle); }
+.shadow-card-hover { box-shadow: var(--shadow-hover); }
+
+/* ─── Terminal / Code Block in Calm Charcoal ─────────────────────────────────── */
+.terminal-block {
+  background: #1A1A1A;
+  border: 1px solid #2A2A2A;
+  border-radius: 10px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  color: #E5E5E5;
+}
+.terminal-block .token-keyword { color: #CCCCCC; }
+.terminal-block .token-string  { color: #22C55E; }
+.terminal-block .token-comment { color: #737373; }

@@ -7,7 +7,7 @@ import { Alert } from "@/components/ui/Alert";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { ConfirmModal } from "@/components/brand/ConfirmModal";
-import { Button } from "@/components/ui/Button";
+import { Button, buttonVariants } from "@/components/ui/Button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/Toast";
 import {
@@ -143,7 +143,8 @@ export function DatabaseList() {
       (item.id.startsWith("open-") ? <Play className="h-3.5 w-3.5 text-primary" /> : <Zap className="h-3.5 w-3.5 text-primary" />),
   }));
 
-  if (loading) {
+  // Full-page spinner only on first load; refreshes keep the current content visible.
+  if (loading && databases.length === 0) {
     return (
       <PageLayout maxWidth="6xl">
         <Spinner label="Loading database connections…" />
@@ -153,45 +154,52 @@ export function DatabaseList() {
 
   return (
     <PageLayout maxWidth="6xl" className="space-y-6">
-      <div className="rounded-2xl border border-primary/30 bg-linear-to-r from-muted via-muted to-accent p-4 shadow-sm">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      {/* Dashboard Hero Banner */}
+      <div className="rounded-[14px] border border-[#EEEEEE] bg-white p-6 sm:p-7 shadow-[0_1px_3px_rgba(0,0,0,0.05),0_4px_16px_rgba(0,0,0,0.03)]">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between pb-6 border-b border-[#EEEEEE]">
           <div>
-            <div className="mb-1.5 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-background px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
-              <ShieldCheck className="h-3 w-3" />
-              Read-Only · AI-Safe
+            <div className="mb-2.5 inline-flex items-center gap-1.5 rounded-full border border-[#22C55E]/20 bg-[#22C55E]/10 px-2.5 py-0.5 text-xs text-[#15803D]">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E]" />
+              <span>Read-Only · AI Guardrail Active</span>
             </div>
-            <h1 className="text-xl font-bold tracking-tight text-foreground">Your Databases</h1>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Add a database, then copy the config snippet for your AI tool.
+            <h1 className="text-2xl sm:text-3xl font-medium tracking-tight text-[#0A0A0A]">Database Connections</h1>
+            <p className="mt-1 text-sm text-[#4D4D4D]">
+              Configure connections and expose verified read-only endpoints to your AI coding agents.
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2.5">
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
               onClick={() => setShowInsights((prev) => !prev)}
               title="Toggle secondary insights panels"
+              className="text-[#4D4D4D] hover:text-[#0A0A0A]"
             >
               {showInsights ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
               {showInsights ? "Hide Insights" : "Show Insights"}
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => fetchDatabases()}>
+            <Button variant="outline" size="sm" onClick={() => fetchDatabases()} className="text-[#4D4D4D] hover:text-[#0A0A0A]">
               <RefreshCw className="h-3.5 w-3.5" />
               Refresh
             </Button>
-            <Link to="/new">
-              <Button size="sm">
-                <Plus className="h-3.5 w-3.5" />
-                Add Connection
-              </Button>
+            <Link to="/new" className={buttonVariants({ size: "sm" })}>
+              <Plus className="h-3.5 w-3.5" />
+              Add Connection
             </Link>
           </div>
         </div>
 
-        <div className="mt-3 flex items-center gap-2 text-[11px] text-muted-foreground">
-          <Terminal className="h-3.5 w-3.5 text-primary" />
-          <span>Keyboard: <span className="font-semibold">Esc</span> close panel, <span className="font-semibold">Ctrl/Cmd+Enter</span> run query, <span className="font-semibold">Up/Down</span> navigate schema tables.</span>
+        {/* Keyboard hint strip */}
+        <div className="pt-3 flex items-center justify-between text-xs text-[#737373]">
+          <div className="flex items-center gap-2">
+            <Terminal className="h-3.5 w-3.5 text-[#4D4D4D] shrink-0" />
+            <span>
+              <kbd className="px-1.5 py-0.5 rounded bg-[#F8F8F8] border border-[#EEEEEE] font-mono text-[10px]">Cmd+K</kbd> palette ·{" "}
+              <kbd className="px-1.5 py-0.5 rounded bg-[#F8F8F8] border border-[#EEEEEE] font-mono text-[10px]">Esc</kbd> close
+            </span>
+          </div>
+          <span className="hidden sm:inline text-xs text-[#999999]">Port {window.location.port || "80"} · Streamable HTTP</span>
         </div>
       </div>
 
@@ -231,11 +239,9 @@ export function DatabaseList() {
             title="Get started with databases"
             description="Connect your first PostgreSQL or MySQL database to expose it to AI coding agents via MCP. Your database credentials are encrypted with AES-256."
             action={
-              <Link to="/new">
-                <Button>
-                  <span>+</span>
-                  <span className="ml-2">Add first database</span>
-                </Button>
+              <Link to="/new" className={buttonVariants()}>
+                <Plus className="h-3.5 w-3.5" />
+                Add first database
               </Link>
             }
           />
@@ -285,34 +291,34 @@ export function DatabaseList() {
       />
 
       {palette.open && (
-        <div className="fixed inset-0 z-50" onKeyDown={palette.handleKeyDown}>
+        <div className="fixed inset-0 z-50" onKeyDown={palette.handleKeyDown} role="dialog" aria-modal="true" aria-label="Command palette">
           <button
-            className="absolute inset-0 bg-muted backdrop-blur-[2px]"
+            className="absolute inset-0 bg-[#0A0A0A]/20 backdrop-blur-xs"
             onClick={() => palette.setOpen(false)}
             aria-label="Close command palette"
           />
 
-          <div className="relative mx-auto mt-16 w-[92%] max-w-2xl rounded-2xl border border-primary/30 bg-background shadow-2xl">
-            <div className="border-b border-border p-3">
-              <div className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/10 px-2.5 py-2">
-                <Search className="h-4 w-4 text-primary" />
+          <div className="relative mx-auto mt-20 w-[92%] max-w-2xl rounded-[14px] border border-[#EEEEEE] bg-white shadow-[0_12px_40px_rgba(0,0,0,0.08)] overflow-hidden">
+            <div className="border-b border-[#EEEEEE] p-3.5">
+              <div className="flex items-center gap-2.5 rounded-[10px] border border-[#EEEEEE] bg-[#FAFAFA] px-3 py-2">
+                <Search className="h-4 w-4 text-[#737373]" />
                 <Input
                   autoFocus
                   value={palette.query}
                   onChange={(e) => { palette.setQuery(e.target.value); palette.setActiveIndex(0); }}
                   placeholder="Search commands or databases..."
-                  className="h-8 border-0 bg-transparent p-0 text-sm focus-visible:ring-0"
+                  className="h-7 border-0 bg-transparent p-0 text-sm text-[#0A0A0A] focus-visible:ring-0 placeholder:text-[#999999]"
                 />
-                <span className="rounded bg-background px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground ring-1 ring-ring">
+                <span className="rounded-[6px] bg-white px-2 py-0.5 text-[10px] font-mono text-[#737373] border border-[#EEEEEE]">
                   Esc
                 </span>
               </div>
             </div>
 
-            <div className="max-h-[420px] overflow-y-auto p-2">
+            <div className="max-h-[380px] overflow-y-auto p-2" role="listbox" aria-label="Commands and databases">
               {paletteItems.length === 0 ? (
-                <div className="px-3 py-8 text-center text-sm text-muted-foreground">
-                  No matches. Try another database name, host, or command.
+                <div className="px-4 py-8 text-center text-sm text-[#737373]">
+                  No matches found.
                 </div>
               ) : (
                 paletteItems.map((item, index) => (
@@ -320,20 +326,22 @@ export function DatabaseList() {
                     key={item.id}
                     onClick={() => palette.run(index)}
                     onMouseEnter={() => palette.setActiveIndex(index)}
-                    className={`mb-1 flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition-colors ${
-                      index === palette.activeIndex ? "bg-primary/10 ring-1 ring-ring" : "hover:bg-muted"
+                    role="option"
+                    aria-selected={index === palette.activeIndex}
+                    className={`mb-1 flex w-full items-center justify-between rounded-[8px] px-3 py-2.5 text-left transition-colors cursor-pointer ${
+                      index === palette.activeIndex ? "bg-[#E5E5E5] text-[#0A0A0A]" : "hover:bg-[#F8F8F8] text-[#4D4D4D]"
                     }`}
                   >
-                    <div className="flex items-start gap-2.5">
-                      <span className="mt-0.5">{item.icon}</span>
+                    <div className="flex items-start gap-3">
+                      <span className="mt-0.5 text-[#4D4D4D]">{item.icon}</span>
                       <div>
-                        <p className="text-sm font-semibold text-muted-foreground">{item.label}</p>
-                        <p className="text-xs text-muted-foreground">{item.hint}</p>
+                        <p className="text-sm font-medium text-[#0A0A0A]">{item.label}</p>
+                        <p className="text-xs text-[#737373]">{item.hint}</p>
                       </div>
                     </div>
                     {index === palette.activeIndex && (
-                      <span className="rounded bg-background px-1.5 py-0.5 text-[10px] font-semibold text-primary ring-1 ring-ring">
-                        Enter
+                      <span className="rounded-[6px] bg-white px-2 py-0.5 text-[10px] font-mono text-[#0A0A0A] border border-[#CCCCCC]">
+                        ↵
                       </span>
                     )}
                   </button>
@@ -341,9 +349,9 @@ export function DatabaseList() {
               )}
             </div>
 
-            <div className="flex items-center justify-between border-t border-border px-3 py-2 text-[11px] text-muted-foreground">
-              <span>Cmd/Ctrl+K to open command palette</span>
-              <span>↑ ↓ to navigate · Enter to run</span>
+            <div className="flex items-center justify-between border-t border-[#EEEEEE] px-4 py-2.5 text-xs text-[#737373] bg-[#FAFAFA]">
+              <span>Cmd+K to open</span>
+              <span>↑ ↓ to navigate · Enter to select</span>
             </div>
           </div>
         </div>

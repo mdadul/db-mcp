@@ -1,9 +1,16 @@
 # ── Stage 1: Build the React client ──────────────────────────────────────────
 FROM oven/bun:1-alpine AS client-builder
+# Root deps: src/ (imported by the client via @server) needs zod, drizzle, etc.
+# Not frozen: the root bun.lock still lists the removed client workspace.
 WORKDIR /app
 COPY package.json bun.lock ./
-COPY client/package.json ./client/package.json
 RUN bun install --ignore-scripts
+# Client deps come from the client's own lockfile.
+WORKDIR /app/client
+COPY client/package.json client/bun.lock ./
+RUN bun install --frozen-lockfile --ignore-scripts
+# vite.config.ts aliases @server to ../src, so src/ must sit next to client/.
+WORKDIR /app
 COPY client/ ./client/
 COPY src/ ./src/
 WORKDIR /app/client
@@ -24,6 +31,8 @@ RUN npm install --omit=dev --ignore-scripts=false
 FROM node:24-slim AS runtime
 WORKDIR /app
 COPY --from=server-deps /app/node_modules ./node_modules
+# src/version.ts reads package.json at startup.
+COPY package.json ./
 COPY src/ ./src/
 COPY scripts/ ./scripts/
 COPY --from=client-builder /app/client/dist ./client/dist
@@ -34,6 +43,7 @@ VOLUME /data
 
 ENV DATABASE_PATH=/data/db-mcp.sqlite
 ENV PORT=4080
+ENV HOST=0.0.0.0
 EXPOSE 4080
 
 # Run setup (generates .env if missing) then start the server.

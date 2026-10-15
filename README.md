@@ -27,7 +27,38 @@ Instead of copy-pasting query results between your DB client and your AI tool, t
 
 ## Quick Start
 
-### Option A — Docker (recommended, no local install needed)
+Requires Node.js 22 or newer.
+
+**1. Start the gateway** (creates `~/.db-mcp/` on first run):
+
+```bash
+npx @mdadul/db-mcp            # or: npm install -g @mdadul/db-mcp && db-mcp
+```
+
+Open `http://localhost:4080` to add your databases.
+
+**2. Connect your AI tool:**
+
+```bash
+db-mcp install                # pick a client from the list
+db-mcp install claude-code    # or name one directly
+```
+
+Restart the tool afterwards. Other clients, and manual setup: [docs/installation.md](docs/installation.md).
+
+**Stdio alternative** for clients that launch MCP servers as a subprocess (no
+HTTP server, no token):
+
+```json
+{ "mcpServers": { "db-mcp": { "command": "npx", "args": ["-y", "@mdadul/db-mcp", "stdio"] } } }
+```
+
+Stdio reads the same databases you configured in the dashboard, so start the
+gateway once first to add them.
+
+---
+
+### Docker (alternative, no Node.js required)
 
 ```bash
 git clone https://github.com/mdadul/db-mcp
@@ -39,27 +70,36 @@ docker compose up
 ```
 
 `docker compose` pulls the pre-built image from Docker Hub — no build step required.  
-The `MCP_TOKEN` is printed by `setup.sh` — copy it before you close the terminal.
+The `MCP_TOKEN` is stored in `.env` (read it with `grep MCP_TOKEN .env`).
 
 ---
-
-### Option B — Native (requires [Bun](https://bun.sh))
-
-```bash
-git clone https://github.com/mdadul/db-mcp
-cd db-mcp
-bun install
-bun run dev   # generates .env automatically, then starts the server
-```
-
-Open **http://localhost:4080**.  
-Your `MCP_TOKEN` is in `.env`.
-
----
-
-
 
 ## Connect your AI tool
+
+The easiest way — run this once (from anywhere) and pick your tool from the list:
+
+```bash
+db-mcp install
+```
+
+This writes the right config file for you automatically, with the correct URL
+and token already filled in. Restart your tool afterwards.
+
+Or skip the picker and go straight to a client:
+
+```bash
+db-mcp install claude-code     # Claude Code (CLI)
+db-mcp install claude-desktop  # Claude Desktop
+db-mcp install cursor          # Cursor
+db-mcp install windsurf        # Windsurf
+db-mcp install opencode        # opencode
+db-mcp install vscode          # VS Code (writes .vscode/mcp.json in the current project)
+```
+
+Full per-client guide (manual config, Gemini CLI, Codex, Cline, troubleshooting): [docs/installation.md](docs/installation.md).
+
+<details>
+<summary>Manual setup</summary>
 
 #### Claude Code (CLI)
 
@@ -86,6 +126,8 @@ Add to your `mcp.json`:
   }
 }
 ```
+
+</details>
 
 #### Claude.ai Web
 
@@ -124,16 +166,24 @@ The AI will call the gateway tools automatically — no copy-pasting.
 
 ---
 
-## Environment variables
+## Configuration
 
-| Variable | Required | Description |
-|---|---|---|
-| `DATABASE_PATH` | Yes | Path for the local SQLite metadata store (e.g. `./data/db-mcp.sqlite`) |
-| `ENCRYPTION_KEY` | Yes | 64-char hex key for credential encryption. Generate: `openssl rand -hex 32` |
-| `MCP_TOKEN` | Yes | Bearer token for the `/mcp` endpoint. Generate: `openssl rand -base64 32` |
-| `PORT` | No | HTTP port (default: `4080`) |
+A `.env` file with secure random values is generated automatically on first
+run — you don't need to create one by hand. The few settings you might want
+to change:
 
-A `.env` file is created with generated values on first run.
+| Variable | Description |
+|---|---|
+| `PORT` | HTTP port the gateway listens on (default: `4080`) |
+| `HOST` | Interface to bind (default: `127.0.0.1`, so only this machine can reach it). Docker sets `0.0.0.0`. |
+| `DB_MCP_HOME` | Where the npm package stores its config and SQLite file (default: `~/.db-mcp`) |
+
+**Back up `ENCRYPTION_KEY`.** It lives only in `.env`. If you lose the file,
+the saved database passwords can't be decrypted and you'll need to re-enter
+them in the dashboard.
+
+The dashboard at `http://localhost:<port>` is where you add and manage your
+database connections after the gateway is running.
 
 ---
 
@@ -145,9 +195,6 @@ Restart Claude Code after adding the MCP server. If still missing, run `claude m
 **"Failed to connect" in Claude Code**
 Check the gateway is running (`http://localhost:4080` should load) and the token in your config matches `.env`.
 
-**"Session not found" errors**
-The gateway is stateless — each request is independent. If you see this, reconnect the MCP server in your IDE.
-
 **"URL must start with https"** (Claude.ai Web)
 Claude.ai blocks plain HTTP. Use a tunnel — see the Claude.ai Web setup above.
 
@@ -156,11 +203,32 @@ If the gateway runs in Docker and your database is on the host, use `host.docker
 
 ---
 
-## Security notes
+## Security model
 
-- The `MCP_TOKEN` controls access to all your databases via the gateway. Treat it like a password.
-- Database credentials are encrypted with AES-256-GCM. The key lives only in `ENCRYPTION_KEY` — never in the database.
-- Only `SELECT`, `SHOW`, `DESCRIBE`, and `EXPLAIN` are permitted. Write operations are rejected at the gateway layer before reaching the database.
-- All queries are logged in the web dashboard under each database's Logs tab.
+- **Read-only.** Queries must pass a read-only check (`SELECT`, `SHOW`,
+  `DESCRIBE`, `EXPLAIN`; MongoDB queries are a JSON find-style DSL with
+  write and server-side-code operators rejected). This check is a guard, not
+  the only defence: **create a read-only database user for each connection**
+  and give the gateway only that user's credentials.
+- **Local by default.** The gateway binds to `127.0.0.1`. Only set `HOST` to a
+  network address if you understand that anyone who can reach it and has the
+  token can query your databases.
+- **Token.** Every `/mcp` request needs `Authorization: Bearer <MCP_TOKEN>`.
+  The token is stored in `.env` (never printed). Treat it like a password and
+  don't commit `.env`. Reinstall the client config if you change it.
+- **Encryption.** Database passwords are encrypted with AES-256-GCM. The key
+  is `ENCRYPTION_KEY` in `.env`; it is never stored in the database.
+- **Stdio mode** has no token: anyone who can run `db-mcp stdio` as your user
+  can read the same `.env`, so it's as protected as your home directory.
+- **Tunnels.** Exposing the gateway with cloudflared or ngrok (needed for
+  Claude.ai web) makes it reachable from the internet. Only the token protects
+  it, so stop the tunnel when you're not using it.
+
+---
+
+## Contributing
+
+Want to run this from source, add a feature, or cut a release? See
+[CONTRIBUTING.md](CONTRIBUTING.md).
 
 

@@ -97,29 +97,39 @@ export async function getTableSchema(
         }
         break;
       }
-      case "mysql":
+      case "mysql": {
+        const qualified = tableName.includes(".") ? tableName.split(".") : [];
+        const schemaName = conn.databaseName || qualified[0] || "";
+        const bareTable = qualified.length > 1 ? qualified.slice(1).join(".") : tableName;
+        if (!schemaName) {
+          return JSON.stringify({
+            error: `Table "${tableName}" needs a database prefix when no default database is set.`,
+            hint: "Use database.table, for example billing.orders. Call get_database_schema to see qualified names.",
+          });
+        }
         [columns, indexes, foreignKeys] = await Promise.all([
           executor.query<ColumnRow>(
             `SELECT column_name, data_type, is_nullable, column_default, character_maximum_length
              FROM information_schema.columns
              WHERE table_schema = ? AND table_name = ?
              ORDER BY ordinal_position`,
-            [conn.databaseName, tableName]
+            [schemaName, bareTable]
           ),
           executor.query<IndexRow>(
             `SELECT index_name, column_name, (non_unique = 0) as is_unique, (index_name = 'PRIMARY') as is_primary
              FROM information_schema.statistics
              WHERE table_schema = ? AND table_name = ?`,
-            [conn.databaseName, tableName]
+            [schemaName, bareTable]
           ),
           executor.query<ForeignKeyRow>(
             `SELECT column_name, referenced_table_name as foreign_table, referenced_column_name as foreign_column
              FROM information_schema.key_column_usage
              WHERE table_schema = ? AND table_name = ? AND referenced_table_name IS NOT NULL`,
-            [conn.databaseName, tableName]
+            [schemaName, bareTable]
           ),
         ]);
         break;
+      }
       case "mongodb": {
         // No fixed schema — infer field names/types from a sample of recent documents
         const sample = await executor.query<Record<string, unknown>>(

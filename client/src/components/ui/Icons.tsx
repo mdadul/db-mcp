@@ -100,3 +100,4 @@ export const Radio = icon(RadioIcon);
 export const Layers = icon(LayersIcon);
 export const TableProperties = icon(LayoutTableIcon);
 export const ShieldAlert = icon(Shield01Icon);
+export { ArrowRight } from "lucide-react";
