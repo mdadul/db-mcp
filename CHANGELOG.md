@@ -4,6 +4,10 @@ All notable changes to this project are documented here. Versions follow [semver
 
 ## Unreleased
 
+_Nothing yet._
+
+## 1.1.0 - 2026-10-15
+
 ### Added
 - `db-mcp stdio` transport for MCP clients that launch servers as a subprocess (no HTTP server or token needed).
 - `db-mcp --version`.
