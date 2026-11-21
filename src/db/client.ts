@@ -9,3 +9,8 @@ client.pragma("journal_mode = WAL");
 client.pragma("foreign_keys = ON");
 
 export const db = drizzle(client, { schema });
+
+/** Closes the control-plane SQLite handle. Called on server shutdown. */
+export function closeDb(): void {
+  if (client.open) client.close();
+}

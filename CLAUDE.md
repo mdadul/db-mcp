@@ -45,13 +45,19 @@ bun run build:client           # build React app → client/dist/
 |---|---|---|
 | `DATABASE_PATH` | Yes | SQLite file path (internal control plane) |
 | `ENCRYPTION_KEY` | Yes | 64-char hex (32 bytes). Generate: `openssl rand -hex 32` |
-| `MCP_TOKEN` | Yes | Bearer token for /mcp. Generate: `openssl rand -base64 32` |
+| `HOST` | No | Bind address (default: `127.0.0.1`) |
 | `PORT` | No | HTTP port (default: 4080) |
+| `APP_SESSION_TOKEN` | No | If set, `/api/*` (except `GET /api/health`) requires `X-App-Session: <token>`. Unset = check skipped (local dev) |
+| `ALLOWED_ORIGINS` | No | Comma-separated extra browser origins allowed on `/api` (e.g. `http://localhost:5173`) |
 
 ## Security rules
 
 - `encryptedCredentials` must **never** appear in API responses, logs, or error messages
-- All `/mcp` requests require `Authorization: Bearer <MCP_TOKEN>`
+- Request guards run on every route (`src/api/middleware/localGuard.ts`):
+  - **Host allowlist**: `Host` must be `127.0.0.1:<PORT>`, `localhost:<PORT>` or `[::1]:<PORT>`, else 403 (blocks DNS rebinding)
+  - **`/mcp`**: no bearer token; any `Origin` header → 403 (MCP clients are not browsers)
+  - **`/api`**: `Origin` must be allowlisted (`tauri://localhost`, `http://tauri.localhost`, `https://tauri.localhost`, plus `ALLOWED_ORIGINS`), else 403. Allowed origins get CORS headers; preflight returns 204. If `APP_SESSION_TOKEN` is set, `X-App-Session` is compared in constant time, else 401
+- Guards are registered before the routes they protect. Hono only runs middleware added ahead of a matching route
 - All SQL through `execute_read_query` must pass `assertReadOnly()` **and** use a read-only DB user
 - `ENCRYPTION_KEY` is never stored in the database — it lives only in the environment
 
