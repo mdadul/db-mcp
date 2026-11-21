@@ -11,12 +11,6 @@ export default defineConfig({
       "@server": resolve(__dirname, "../src"),
     },
   },
-  server: {
-    proxy: {
-      "/api": "http://localhost:4080",
-      "/mcp": "http://localhost:4080",
-    },
-  },
   build: {
     outDir: "dist",
   },

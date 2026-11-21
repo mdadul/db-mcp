@@ -25,9 +25,7 @@
     "zod": "^4.4.3"
   },
   "scripts": {
-    "setup": "sh scripts/setup.sh",
-    "start": "sh scripts/setup.sh && node --env-file=.env src/index.ts",
-    "dev": "sh scripts/setup.sh && node --env-file=.env --watch src/index.ts",
+    "dev": "bun run desktop:dev",
     "desktop:sidecar": "node scripts/build-sidecar.mjs",
     "desktop:dev": "cd desktop/src-tauri && tauri dev",
     "desktop:build": "cd desktop/src-tauri && tauri build",
@@ -36,8 +34,7 @@
     "db:studio": "drizzle-kit studio",
     "type-check": "tsc --noEmit",
     "test": "node --test src/**/*.test.ts",
-    "build:client": "cd client && bun install && bun run build",
-    "dev:client": "cd client && bun run dev"
+    "build:client": "cd client && bun install && bun run build"
   },
   "engines": {
     "node": ">=26.0.0"
