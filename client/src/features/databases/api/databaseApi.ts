@@ -9,6 +9,9 @@ import type {
   QueryLogItem,
   SchemaResponse,
   TableSchema,
+  BrowseRowsResult,
+  SchemaTree,
+  TableStructure,
 } from "../types";
 
 export const databaseApi = {
@@ -64,6 +67,59 @@ export const databaseApi = {
     const client = await getApiClient();
     const res = await client.api.databases[":id"].schema.$get({ param: { id }, query: {} });
     return unwrap<SchemaResponse>(res);
+  },
+
+  async getSchemaTree(id: string, filter?: string): Promise<SchemaTree> {
+    const client = await getApiClient();
+    const res = await client.api.databases[":id"].schema.$get({
+      param: { id },
+      query: filter ? { filter } : {},
+    });
+    return unwrap<SchemaTree>(res);
+  },
+
+  async getTableStructure(id: string, table: string, schema?: string): Promise<TableStructure> {
+    const client = await getApiClient();
+    const res = await client.api.databases[":id"].tables[":tableName"].schema.$get({
+      param: { id, tableName: table },
+      query: schema ? { schema } : {},
+    });
+    return unwrap<TableStructure>(res);
+  },
+
+  async browseRows(id: string, table: string, options: { schema?: string; limit: number; offset: number; orderBy?: string; direction?: "asc" | "desc"; signal?: AbortSignal }): Promise<BrowseRowsResult> {
+    const client = await getApiClient();
+    const res = await client.api.databases[":id"].tables[":tableName"].rows.$get({
+      param: { id, tableName: table },
+      query: {
+        ...(options.schema ? { schema: options.schema } : {}),
+        limit: String(options.limit),
+        offset: String(options.offset),
+        ...(options.orderBy ? { orderBy: options.orderBy, direction: options.direction ?? "asc" } : {}),
+      },
+    }, options.signal ? { init: { signal: options.signal } } : undefined);
+    return unwrap<BrowseRowsResult>(res);
+  },
+
+  async testDraft(input: CreateDatabaseInput & { id?: string }, signal?: AbortSignal): Promise<TestResult> {
+    const client = await getApiClient();
+    const res = await client.api.databases.test.$post({ json: input }, signal ? { init: { signal } } : undefined);
+    return unwrap<TestResult>(res);
+  },
+
+  async duplicate(id: string, name?: string): Promise<DatabaseConnection> {
+    const client = await getApiClient();
+    const res = await client.api.databases[":id"].duplicate.$post({
+      param: { id },
+      json: name ? { name } : {},
+    });
+    return unwrap<DatabaseConnection>(res);
+  },
+
+  async getConnectionString(id: string): Promise<{ url: string }> {
+    const client = await getApiClient();
+    const res = await client.api.databases[":id"]["connection-string"].$get({ param: { id } });
+    return unwrap<{ url: string }>(res);
   },
 
   async getTableSchema(id: string, tableName: string): Promise<TableSchema> {

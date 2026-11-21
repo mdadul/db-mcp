@@ -1,5 +1,5 @@
-import { DatabaseForm } from "@/features/databases/components/DatabaseForm";
+import { ConnectionForm } from "@/features/databases/components/ConnectionForm";
 
 export function DatabaseFormPage() {
-  return <DatabaseForm />;
+  return <ConnectionForm />;
 }

@@ -1,10 +1,11 @@
 import { useState } from "react";
+import type { DbEngineType } from "../types";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Zap, ClipboardPaste, Check, Sparkles, AlertTriangle } from "@/components/ui/Icons";
 
 export interface ParsedConnectionFields {
-  type?: "postgresql" | "mysql";
+  type?: DbEngineType;
   host?: string;
   port?: number;
   databaseName?: string;
@@ -27,32 +28,24 @@ export function ConnectionStringParser({ onParse, className = "" }: ConnectionSt
     if (!rawUri.trim()) return null;
     try {
       let cleanUri = rawUri.trim();
-      let type: "postgresql" | "mysql" = "postgresql";
-
-      if (cleanUri.startsWith("postgres://")) {
-        cleanUri = "postgresql://" + cleanUri.slice(11);
-      } else if (cleanUri.startsWith("mysql://")) {
-        type = "mysql";
+      const protocol = cleanUri.slice(0, cleanUri.indexOf(":")).toLowerCase();
+      const type: DbEngineType = protocol === "mysql" ? "mysql" : protocol === "mongodb" || protocol === "mongodb+srv" ? "mongodb" : protocol === "redshift" ? "redshift" : protocol === "sqlite" ? "sqlite" : "postgresql";
+      if (type === "sqlite") {
+        const path = cleanUri.slice(cleanUri.indexOf(":") + 1).replace(/^\/\//, "");
+        return { type, databaseName: decodeURIComponent(path) };
       }
+      if (!["postgres", "postgresql", "mysql", "mongodb", "mongodb+srv", "redshift"].includes(protocol)) return null;
+      if (protocol === "postgres") cleanUri = `postgresql://${cleanUri.slice(cleanUri.indexOf(":") + 1).replace(/^\/\//, "")}`;
 
       const parsed = new URL(cleanUri);
-
-      if (
-        parsed.protocol !== "postgresql:" &&
-        parsed.protocol !== "postgres:" &&
-        parsed.protocol !== "mysql:"
-      ) {
-        return null;
-      }
-
+      const defaults: Record<DbEngineType, number> = { postgresql: 5432, mysql: 3306, sqlite: 0, redshift: 5439, mongodb: 27017 };
       const host = parsed.hostname || "localhost";
-      const defaultPort = type === "mysql" ? 3306 : 5432;
-      const port = parsed.port ? parseInt(parsed.port, 10) : defaultPort;
-      const databaseName = parsed.pathname ? parsed.pathname.replace(/^\//, "") : "";
+      const port = parsed.port ? parseInt(parsed.port, 10) : defaults[type];
+      const databaseName = parsed.pathname ? decodeURIComponent(parsed.pathname.replace(/^\//, "")) : "";
       const username = decodeURIComponent(parsed.username || "");
       const password = decodeURIComponent(parsed.password || "");
 
-      const sslParam = parsed.searchParams.get("ssl") || parsed.searchParams.get("sslmode");
+      const sslParam = parsed.searchParams.get("ssl") || parsed.searchParams.get("sslmode") || parsed.searchParams.get("tls");
       const ssl =
         sslParam === "require" ||
         sslParam === "verify-full" ||
@@ -84,12 +77,11 @@ export function ConnectionStringParser({ onParse, className = "" }: ConnectionSt
 
     const fields = parseUri(uri);
     if (!fields) {
-      setError("Invalid connection string format. Expected: postgresql://... or mysql://...");
+      setError("Use a PostgreSQL, MySQL, Redshift, MongoDB, or SQLite connection URL.");
       return;
     }
 
     onParse(fields);
-    setUri("");
     setCopiedSuccess(true);
     setTimeout(() => setCopiedSuccess(false), 2000);
   };
@@ -149,7 +141,7 @@ export function ConnectionStringParser({ onParse, className = "" }: ConnectionSt
           <div className="relative flex-1">
             <input
               type="text"
-              placeholder="postgresql://user:pass@host:5432/db  or  mysql://root:pass@127.0.0.1:3306/db"
+              placeholder="postgresql://user:pass@host:5432/db or mongodb://user:pass@host:27017/db"
               value={uri}
               onChange={(e) => {
                 setUri(e.target.value);

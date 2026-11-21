@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from "react";
-import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { createBrowserRouter, createRoutesFromElements, Navigate, Outlet, Route, RouterProvider, useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, FolderOpen, RotateCw, Server } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -17,7 +17,6 @@ const OnboardingPage = lazy(() => import("@/pages/OnboardingPage").then((module)
 const SettingsPage = lazy(() => import("@/pages/SettingsPage").then((module) => ({ default: module.SettingsPage })));
 const AiClientsPage = lazy(() => import("@/pages/AiClientsPage").then((module) => ({ default: module.AiClientsPage })));
 const ActivityPage = lazy(() => import("@/pages/ActivityPage").then((module) => ({ default: module.ActivityPage })));
-const ConnectionDetailPage = lazy(() => import("@/pages/ConnectionDetailPage").then((module) => ({ default: module.ConnectionDetailPage })));
 
 function ServerStateGate() {
   const { data: serverInfo, isLoading } = useServerInfo();
@@ -56,25 +55,27 @@ function ServerStateGate() {
   </section></main>;
 }
 
-export function App() {
-  return <BrowserRouter><Routes>
-    <Route element={<ServerStateGate />}>
-      <Route element={<AppShell />}>
-        <Route path="/" element={<HomeRedirect />} />
-        <Route element={<OnboardingGate />}>
-          <Route path="/onboarding" element={<LazyPage><OnboardingPage /></LazyPage>} />
-          <Route path="/connections" element={<LazyPage><DatabaseListPage /></LazyPage>} />
-          <Route path="/connections/new" element={<LazyPage><DatabaseFormPage /></LazyPage>} />
-          <Route path="/connections/:id/edit" element={<LazyPage><DatabaseFormPage /></LazyPage>} />
-          <Route path="/connections/:id" element={<LazyPage><ConnectionDetailPage /></LazyPage>} />
-          <Route path="/ai-clients" element={<LazyPage><AiClientsPage /></LazyPage>} />
-          <Route path="/activity" element={<LazyPage><ActivityPage /></LazyPage>} />
-          <Route path="/settings" element={<LazyPage><SettingsPage /></LazyPage>} />
-        </Route>
-        <Route path="*" element={<Navigate to="/connections" replace />} />
+const router = createBrowserRouter(createRoutesFromElements(
+  <Route element={<ServerStateGate />}>
+    <Route element={<AppShell />}>
+      <Route path="/" element={<HomeRedirect />} />
+      <Route element={<OnboardingGate />}>
+        <Route path="/onboarding" element={<LazyPage><OnboardingPage /></LazyPage>} />
+        <Route path="/connections" element={<LazyPage><DatabaseListPage /></LazyPage>} />
+        <Route path="/connections/:id" element={<LazyPage><DatabaseListPage /></LazyPage>} />
+        <Route path="/connections/new" element={<LazyPage><DatabaseFormPage /></LazyPage>} />
+        <Route path="/connections/:id/edit" element={<LazyPage><DatabaseFormPage /></LazyPage>} />
+        <Route path="/ai-clients" element={<LazyPage><AiClientsPage /></LazyPage>} />
+        <Route path="/activity" element={<LazyPage><ActivityPage /></LazyPage>} />
+        <Route path="/settings" element={<LazyPage><SettingsPage /></LazyPage>} />
       </Route>
+      <Route path="*" element={<Navigate to="/connections" replace />} />
     </Route>
-  </Routes></BrowserRouter>;
+  </Route>,
+));
+
+export function App() {
+  return <RouterProvider router={router} />;
 }
 
 function LazyPage({ children }: { children: React.ReactNode }) {
