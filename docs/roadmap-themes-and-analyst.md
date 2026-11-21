@@ -156,9 +156,35 @@ Normalized events: `message.delta`, `message.done`, `tool.call`, `tool.result`,
    datasets) vs a small custom set on top of a light library. Recommendation:
    Vega-Lite spec as the agent-facing format, rendered with vega-embed (lazy-loaded).
 
+### Research findings and decisions (2026-11-21)
+
+Source: provider research task (official docs, T3 Code source). Summary:
+
+| Provider | Drive method | Can restrict to our MCP tools only? | Use of the user's subscription login |
+|---|---|---|---|
+| Claude | Agent SDK `query()` with inline `mcpServers`, `strictMcpConfig`, `settingSources: []`, `tools: []`, `permissionMode: "dontAsk"` | Yes, documented | Not allowed for third-party apps without Anthropic approval; API key or cloud-provider credentials are fine |
+| Codex | `codex app-server` JSON-RPC over stdio | Not confirmed (read-only sandbox is not MCP-only) | Allowed for open-source, locally hosted apps via the documented "Sign in with ChatGPT" flow; never reuse the CLI's stored tokens |
+| OpenCode | `opencode serve` + SDK, app-owned config | Yes, with deny-all permissions plus allow-list of our tools | Follows the underlying provider's terms |
+| Antigravity | `agy acp --process-per-session` (ACP) | Not established | No explicit Google statement either way |
+| Gemini CLI | ACP | Not established | Google-account OAuth through third-party software is prohibited |
+
+Decisions:
+1. **Our own agent loop first.** Phase 1 ships an in-sidecar agent loop whose only
+   tools are our analyst tools, with these providers: Anthropic API key, OpenAI API
+   key, any OpenAI-compatible endpoint (Ollama, LM Studio, OpenRouter, etc.).
+   This is fully under our control, MCP-only by construction, and compliant.
+2. **Claude Agent SDK adapter** (phase 1b) with API-key auth, configured MCP-only as above.
+3. **OpenCode adapter** (phase 3) with an app-owned config and deny-all permissions.
+4. **Codex** (phase 3) only after a spike proves built-in tools can be removed, and
+   only through the documented Sign in with ChatGPT flow.
+5. **Claude subscription login, Antigravity, Gemini CLI:** not shipped until the
+   provider confirms in writing; fail closed.
+6. Every adapter verifies the effective tool list before the first prompt and
+   refuses to start if any tool other than ours is available.
+
 ### Phases
-1. Provider detection + adapters for Claude and Codex, chat UI with streaming,
-   tool steps, our MCP tools only, threads persisted.
+1. Own agent loop with Anthropic / OpenAI / OpenAI-compatible (local) providers,
+   keys in the OS keychain, chat UI with streaming, tool steps, threads persisted.
 2. Analyst tools (`run_query` with result store, profiling, charts) and artifacts.
-3. OpenCode, ACP, local providers; workbench side panel; `@` mentions; playbooks.
+3. Claude Agent SDK and OpenCode adapters; Codex after the spike; workbench side panel; `@` mentions; playbooks.
 4. Reports board, exports, PII masking, per-connection AI policy and approvals.
