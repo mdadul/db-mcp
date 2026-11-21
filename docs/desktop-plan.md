@@ -11,7 +11,7 @@ contract below, change it here first.
 | D1 | Desktop-only product. Docker/server-mode artifacts are removed in the final cleanup phase. |
 | D2 | MCP bearer token (`MCP_TOKEN`) is removed. `/mcp` is protected by loopback binding + Host allowlist + Origin rejection. |
 | D3 | UI is bundled in the Tauri app (`tauri://localhost`), not served by the backend. |
-| D4 | Backend runs unchanged in logic as a Node 24 sidecar (bundled Node binary + esbuild bundle). |
+| D4 | Backend runs unchanged in logic as a Node 26 sidecar (bundled Node binary + esbuild bundle). |
 | D5 | macOS ships separate arm64 and x64 builds (no universal binary — native `.node` modules make lipo fragile). |
 | D6 | Code signing is configured via CI secrets; unsigned builds must still work. |
 | D7 | Schema browser is out of scope for v1. |
@@ -28,7 +28,7 @@ Tauri shell (Rust, desktop/src-tauri)
  └─ IPC commands/events (contract below)
 UI (client/, bundled; loaded from tauri://localhost or http://tauri.localhost on Windows)
  └─ HTTP → http://127.0.0.1:<port>/api  with header X-App-Session
-Sidecar (Node 24 + desktop/src-tauri/resources/server/index.mjs)
+Sidecar (Node 26 + desktop/src-tauri/resources/server/index.mjs)
  ├─ /api  → CORS allowlist + X-App-Session
  └─ /mcp  → no auth; Host allowlist; browser Origins rejected
 ```
