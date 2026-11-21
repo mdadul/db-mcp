@@ -2,6 +2,16 @@ import { platform } from "@/platform";
 
 export type ActivityStatus = "success" | "error" | "timeout" | "blocked";
 export type ActivitySource = "mcp" | "agent" | "app";
+export type DailyStatsSource = ActivitySource | "all";
+
+export interface DailyActivityStat {
+  date: string;
+  toolCalls: number;
+  queries: number;
+  errors: number;
+  avgMs: number | null;
+  rows: number;
+}
 
 export interface ActivityItem {
   id: string;
@@ -15,8 +25,8 @@ export interface ActivityItem {
   rows: number | null;
   error: string | null;
   source: ActivitySource;
-  args?: string | null;
-  hint?: string | null;
+  args: string | null;
+  hint: string | null;
 }
 
 export interface ActivityResponse {
@@ -43,4 +53,12 @@ export async function getActivity(filters: ActivityFilters): Promise<ActivityRes
   const response = await fetch(`${serverInfo.baseUrl}/api/activity?${query}`, { headers: { "X-App-Session": serverInfo.sessionToken } });
   if (!response.ok) throw new Error("Could not load recent activity");
   return response.json();
+}
+
+export async function getDailyActivityStats(source: DailyStatsSource): Promise<DailyActivityStat[]> {
+  const serverInfo = await platform.getServerInfo();
+  const response = await fetch(`${serverInfo.baseUrl}/api/stats/daily?days=30&source=${source}`, { headers: { "X-App-Session": serverInfo.sessionToken } });
+  if (!response.ok) throw new Error("Could not load daily usage statistics");
+  const result = await response.json() as { days: DailyActivityStat[] };
+  return result.days;
 }

@@ -121,6 +121,7 @@ interface InstallResult  { configPath: string; backupPath: string | null; }
 | `update_settings` | `{ patch: Partial<AppSettings> }` | `AppSettings` (port change restarts server) |
 | `get_app_info` | — | `{ version: string; platform: "macos"\|"windows"\|"linux" }` |
 | `list_ai_clients` | — | `AiClient[]` |
+| `reveal_ai_client_config` | `{ id }` | `void` (reveals the allowlisted client's config file, or its existing parent directory if the file is missing) |
 | `preview_ai_client_install` | `{ id }` | `InstallPreview` |
 | `install_ai_client` | `{ id }` | `InstallResult` |
 | `uninstall_ai_client` | `{ id }` | `InstallResult` |

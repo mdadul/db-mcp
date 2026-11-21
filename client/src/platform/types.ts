@@ -77,6 +77,7 @@ export interface Platform {
   deleteCustomTheme(id: string): Promise<void>;
   getAppInfo(): Promise<AppInfo>;
   listAiClients(): Promise<AiClient[]>;
+  revealAiClientConfig(id: AiClientId): Promise<void>;
   previewAiClientInstall(id: AiClientId): Promise<InstallPreview>;
   installAiClient(id: AiClientId): Promise<InstallResult>;
   uninstallAiClient(id: AiClientId): Promise<InstallResult>;

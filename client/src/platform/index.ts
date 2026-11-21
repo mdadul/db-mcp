@@ -20,6 +20,7 @@ export const platform: Platform = {
   deleteCustomTheme: async (id) => (await previewPlatform).deleteCustomTheme(id),
   getAppInfo: async () => (await previewPlatform).getAppInfo(),
   listAiClients: async () => (await previewPlatform).listAiClients(),
+  revealAiClientConfig: async (id) => (await previewPlatform).revealAiClientConfig(id),
   previewAiClientInstall: async (id) => (await previewPlatform).previewAiClientInstall(id),
   installAiClient: async (id) => (await previewPlatform).installAiClient(id),
   uninstallAiClient: async (id) => (await previewPlatform).uninstallAiClient(id),

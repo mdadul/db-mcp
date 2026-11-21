@@ -32,6 +32,7 @@ export const databaseConnections = sqliteTable("database_connections", {
 export const toolCalls = sqliteTable("tool_calls", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   tool: text("tool").notNull(), // 'list_databases' | 'get_database_schema' | 'get_table_schema' | 'execute_read_query'
+  args: text("args"), // JSON-serialised, credential-redacted tool arguments
   databaseConnectionId: text("database_connection_id"),
   status: text("status").notNull().default("success"), // 'success' | 'error'
   createdAt: integer("created_at", { mode: "timestamp_ms" })

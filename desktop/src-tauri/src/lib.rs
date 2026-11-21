@@ -80,6 +80,7 @@ pub fn run() {
             commands::get_app_info,
             commands::reset_all_data,
             commands::list_ai_clients,
+            commands::reveal_ai_client_config,
             commands::preview_ai_client_install,
             commands::install_ai_client,
             commands::uninstall_ai_client,

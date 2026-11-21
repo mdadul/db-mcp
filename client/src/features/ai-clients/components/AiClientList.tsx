@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, ChevronRight, Copy, Download, FileCode2, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Copy, Download, FileCode2, FolderOpen, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -26,6 +26,11 @@ export function AiClientList({ compact = false, mcpUrl = "http://127.0.0.1:4080/
   const copyConfig = async (client: AiClient) => {
     try { await navigator.clipboard.writeText(client.snippet); toast.success(`${client.name} configuration copied`); }
     catch { toast.error("Could not copy configuration"); }
+  };
+
+  const revealConfig = async (client: AiClient) => {
+    try { await platform.revealAiClientConfig(client.id); }
+    catch (error: unknown) { toast.error(error instanceof Error ? error.message : "Could not reveal configuration"); }
   };
 
   const openInstallPreview = async (client: AiClient) => {
@@ -72,10 +77,10 @@ export function AiClientList({ compact = false, mcpUrl = "http://127.0.0.1:4080/
 
   return <>
     <div className="overflow-hidden rounded-lg border border-border bg-card">
-      {detected.length ? detected.map((client) => <AiClientRow key={client.id} client={client} mcpUrl={mcpUrl} onCopy={() => void copyConfig(client)} onInstall={() => void openInstallPreview(client)} onRemove={() => setRemoveTarget(client)} />) : <p className="px-4 py-6 text-center text-[12px] text-muted-foreground">No supported AI clients were detected. You can still add the MCP URL to any client.</p>}
+      {detected.length ? detected.map((client) => <AiClientRow key={client.id} client={client} mcpUrl={mcpUrl} onCopy={() => void copyConfig(client)} onReveal={() => void revealConfig(client)} onInstall={() => void openInstallPreview(client)} onRemove={() => setRemoveTarget(client)} />) : <p className="px-4 py-6 text-center text-[12px] text-muted-foreground">No supported AI clients were detected. You can still add the MCP URL to any client.</p>}
       {!compact && undetected.length > 0 && <>
         <button type="button" className="flex w-full items-center gap-2 border-t border-border px-3 py-2.5 text-left text-[12px] font-medium text-muted-foreground hover:bg-muted/50 hover:text-foreground" aria-expanded={showUndetected} onClick={() => setShowUndetected((value) => !value)}>{showUndetected ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}Not detected on this computer <span className="text-[11px]">({undetected.length})</span></button>
-        {showUndetected && undetected.map((client) => <AiClientRow key={client.id} client={client} mcpUrl={mcpUrl} onCopy={() => void copyConfig(client)} onInstall={() => void openInstallPreview(client)} onRemove={() => setRemoveTarget(client)} />)}
+        {showUndetected && undetected.map((client) => <AiClientRow key={client.id} client={client} mcpUrl={mcpUrl} onCopy={() => void copyConfig(client)} onReveal={() => void revealConfig(client)} onInstall={() => void openInstallPreview(client)} onRemove={() => setRemoveTarget(client)} />)}
       </>}
     </div>
     {compact && <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-muted/40 px-3 py-2"><div className="min-w-0"><p className="text-[10px] font-medium text-muted-foreground">MCP URL</p><code className="block truncate font-mono text-[11px]">{mcpUrl}</code></div><CopyButton value={mcpUrl} label="Copy URL" /></div>}
@@ -101,12 +106,12 @@ export function AiClientList({ compact = false, mcpUrl = "http://127.0.0.1:4080/
   }
 }
 
-function AiClientRow({ client, mcpUrl, onCopy, onInstall, onRemove }: { client: AiClient; mcpUrl: string; onCopy: () => void; onInstall: () => void; onRemove: () => void }) {
+function AiClientRow({ client, mcpUrl, onCopy, onReveal, onInstall, onRemove }: { client: AiClient; mcpUrl: string; onCopy: () => void; onReveal: () => void; onInstall: () => void; onRemove: () => void }) {
   const state = client.configured ? "Connected" : client.detected ? "Detected" : "Not installed";
   const command = `claude mcp add --transport http db-mcp ${mcpUrl}`;
   return <article className="flex min-h-14 flex-wrap items-center gap-x-3 gap-y-2 border-b border-border px-3 py-2.5 last:border-b-0">
     <span className="flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-muted text-[11px] font-semibold" aria-hidden="true">{client.name.split(/\s+/).map((part) => part[0]).slice(0, 2).join("")}</span>
-    <div className="min-w-[130px] flex-1"><div className="flex flex-wrap items-center gap-2"><h2 className="text-[12px] font-medium">{client.name}</h2><Badge variant={client.configured ? "secondary" : "outline"}>{state}</Badge></div><div className="mt-0.5 flex min-w-0 items-center gap-1.5"><p className="max-w-[360px] truncate font-mono text-[10px] text-muted-foreground" title={client.configPath ?? undefined}>{client.configPath ?? "No config file found"}</p>{client.configPath && <button type="button" className="inline-flex shrink-0 items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground" onClick={() => void navigator.clipboard.writeText(client.configPath ?? "").then(() => toast.success("Config path copied")).catch(() => toast.error("Could not copy path"))}><Copy className="size-3" />Copy path</button>}</div></div>
+    <div className="min-w-[130px] flex-1"><div className="flex flex-wrap items-center gap-2"><h2 className="text-[12px] font-medium">{client.name}</h2><Badge variant={client.configured ? "secondary" : "outline"}>{state}</Badge></div><div className="mt-0.5 flex min-w-0 items-center gap-1.5"><p className="max-w-[360px] truncate font-mono text-[10px] text-muted-foreground" title={client.configPath ?? undefined}>{client.configPath ?? "No config file found"}</p>{client.configPath && <button type="button" className="inline-flex shrink-0 items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground" onClick={() => void navigator.clipboard.writeText(client.configPath ?? "").then(() => toast.success("Config path copied")).catch(() => toast.error("Could not copy path"))}><Copy className="size-3" />Copy path</button>}<button type="button" className="inline-flex shrink-0 items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground" onClick={onReveal}><FolderOpen className="size-3" />Reveal</button></div></div>
     <div className="ml-auto flex items-center gap-1">{client.id === "claude-code" ? <CopyButton value={command} label="Copy command" /> : <>{client.autoInstall && !client.configured && <Button size="sm" onClick={onInstall}><Download data-icon="inline-start" />Add db-mcp</Button>}{client.configured && <Button size="sm" variant="outline" onClick={onRemove}><Trash2 data-icon="inline-start" />Remove</Button>}<Button size="sm" variant="ghost" onClick={onCopy}><Copy data-icon="inline-start" />Copy config</Button></>}</div>
   </article>;
 }

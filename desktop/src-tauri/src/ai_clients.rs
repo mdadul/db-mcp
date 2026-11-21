@@ -93,6 +93,12 @@ pub fn list_clients(env: &Env<'_>, mcp_url: &str) -> Vec<AiClient> {
         .collect()
 }
 
+/// Resolves a supported client's config path without accepting filesystem paths
+/// from the UI. The returned target is selected only from the client table.
+pub fn config_path(env: &Env<'_>, id: &str) -> Result<PathBuf, String> {
+    find_target(env, id).map(|target| target.config_path)
+}
+
 pub fn preview_install(env: &Env<'_>, id: &str, mcp_url: &str) -> Result<InstallPreview, String> {
     let Plan {
         target,
@@ -969,6 +975,10 @@ mod tests {
         let sb = Sandbox::new("unknown");
         let env = sb.env();
         assert_eq!(
+            config_path(&env, "nope").unwrap_err(),
+            "Unknown AI client: nope"
+        );
+        assert_eq!(
             install(&env, "nope", URL).unwrap_err(),
             "Unknown AI client: nope"
         );
@@ -980,6 +990,19 @@ mod tests {
             uninstall(&env, "nope").unwrap_err(),
             "Unknown AI client: nope"
         );
+    }
+
+    #[test]
+    fn config_path_resolves_allowlisted_clients_even_when_config_is_missing() {
+        let sb = Sandbox::new("config-path");
+        let env = sb.env();
+        let expected = sb.home.join(".cursor").join("mcp.json");
+
+        assert_eq!(
+            config_path(&env, "cursor").expect("supported client"),
+            expected
+        );
+        assert!(!expected.exists());
     }
 
     #[test]

@@ -65,6 +65,10 @@ export const devPreviewPlatform: Platform = {
   },
   async getAppInfo() { return { version: "0.1.0", platform: "macos" } satisfies AppInfo; },
   async listAiClients() { return sampleClients; },
+  async revealAiClientConfig(id) {
+    const client = sampleClients.find((item) => item.id === id);
+    if (!client?.configPath) throw new Error("No configuration path is available for this AI client.");
+  },
   async previewAiClientInstall(id) { return { configPath: sampleClients.find((client) => client.id === id)?.configPath ?? "~/.config/ai-client/config.json", before: "{}", after: "{\"mcpServers\":{\"db-mcp\":{\"url\":\"http://127.0.0.1:4080/mcp\"}}}" }; },
   async installAiClient(id) { return { configPath: sampleClients.find((client) => client.id === id)?.configPath ?? "~/.config/ai-client/config.json", backupPath: null }; },
   async uninstallAiClient(id) { return { configPath: sampleClients.find((client) => client.id === id)?.configPath ?? "~/.config/ai-client/config.json", backupPath: null }; },

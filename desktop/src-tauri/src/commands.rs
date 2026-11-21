@@ -299,6 +299,36 @@ pub async fn list_ai_clients(
 }
 
 #[tauri::command]
+pub async fn reveal_ai_client_config(id: String, app: AppHandle) -> Result<(), String> {
+    let (home, config_dir) = ai_clients::env_paths(&app)?;
+    let client_id = id.clone();
+    let path = tauri::async_runtime::spawn_blocking(move || {
+        let env = ai_clients::Env {
+            home: &home,
+            config_dir: &config_dir,
+        };
+        ai_clients::config_path(&env, &client_id)
+    })
+    .await
+    .map_err(|error| format!("AI client task failed: {error}"))??;
+
+    let reveal_path = if path.exists() {
+        path
+    } else if let Some(parent) = path.parent().filter(|parent| parent.is_dir()) {
+        parent.to_path_buf()
+    } else {
+        return Err(format!(
+            "Could not reveal configuration for {id}: neither {} nor its parent directory exists",
+            path.display()
+        ));
+    };
+
+    app.opener()
+        .reveal_item_in_dir(reveal_path)
+        .map_err(|error| format!("Could not reveal AI client configuration: {error}"))
+}
+
+#[tauri::command]
 pub async fn preview_ai_client_install(
     id: String,
     app: AppHandle,

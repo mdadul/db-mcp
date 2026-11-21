@@ -14,6 +14,7 @@ export const tauriPlatform: Platform = {
   deleteCustomTheme: (id) => invoke("delete_custom_theme", { id }),
   getAppInfo: () => invoke("get_app_info"),
   listAiClients: () => invoke("list_ai_clients"),
+  revealAiClientConfig: (id: AiClientId) => invoke("reveal_ai_client_config", { id }),
   previewAiClientInstall: (id: AiClientId) => invoke("preview_ai_client_install", { id }),
   installAiClient: (id: AiClientId) => invoke("install_ai_client", { id }),
   uninstallAiClient: (id: AiClientId) => invoke("uninstall_ai_client", { id }),
