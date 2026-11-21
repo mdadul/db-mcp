@@ -1,0 +1,201 @@
+import { build } from "esbuild";
+import { createHash } from "node:crypto";
+import { chmod, copyFile, mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { spawnSync } from "node:child_process";
+
+const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const tauriDir = join(root, "desktop", "src-tauri");
+const serverDir = join(tauriDir, "resources", "server");
+const binaryDir = join(tauriDir, "binaries");
+const cacheDir = join(root, "desktop", ".cache");
+const manifest = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
+const NODE_MAJOR = 26;
+const targets = {
+  "aarch64-apple-darwin": { distName: "darwin-arm64", archiveExt: "tar.xz", executableExt: "", npmPlatform: "darwin", npmArch: "arm64" },
+  "x86_64-apple-darwin": { distName: "darwin-x64", archiveExt: "tar.xz", executableExt: "", npmPlatform: "darwin", npmArch: "x64" },
+  "x86_64-pc-windows-msvc": { distName: "win-x64", archiveExt: "zip", executableExt: ".exe", npmPlatform: "win32", npmArch: "x64" },
+  "x86_64-unknown-linux-gnu": { distName: "linux-x64", archiveExt: "tar.xz", executableExt: "", npmPlatform: "linux", npmArch: "x64" },
+  "aarch64-unknown-linux-gnu": { distName: "linux-arm64", archiveExt: "tar.xz", executableExt: "", npmPlatform: "linux", npmArch: "arm64" },
+};
+
+await mkdir(serverDir, { recursive: true });
+await mkdir(binaryDir, { recursive: true });
+await mkdir(cacheDir, { recursive: true });
+
+const optionalExternal = [
+  "better-sqlite3",
+  "kerberos",
+  "@mongodb-js/zstd",
+  "@aws-sdk/credential-providers",
+  "gcp-metadata",
+  "snappy",
+  "socks",
+  "aws4",
+  "mongodb-client-encryption",
+];
+const target = parseArgument("--target") ?? process.env.TAURI_ENV_TARGET_TRIPLE ?? process.env.CARGO_BUILD_TARGET ?? rustHostTriple();
+const targetInfo = targets[target];
+if (!targetInfo) throw new Error(`Unsupported Node ${NODE_MAJOR} sidecar target: ${target}`);
+
+await build({
+  entryPoints: [join(root, "src", "index.ts")],
+  outfile: join(serverDir, "index.mjs"),
+  bundle: true,
+  platform: "node",
+  format: "esm",
+  target: `node${NODE_MAJOR}`,
+  sourcemap: "linked",
+  external: optionalExternal,
+  banner: {
+    js: 'import { createRequire } from "node:module";\nconst require = createRequire(import.meta.url);',
+  },
+});
+
+await rm(join(serverDir, "migrations"), { recursive: true, force: true });
+await mkdir(join(serverDir, "migrations"), { recursive: true });
+await copyTree(join(root, "src", "db", "migrations"), join(serverDir, "migrations"));
+
+const runtimeManifest = {
+  private: true,
+  type: "module",
+  allowScripts: { "better-sqlite3": true },
+  dependencies: { "better-sqlite3": manifest.dependencies["better-sqlite3"] },
+};
+await writeFile(join(serverDir, "package.json"), `${JSON.stringify(runtimeManifest, null, 2)}\n`);
+
+const requestedArch = parseArgument("--arch") ?? process.env.npm_config_arch ?? process.env.NPM_CONFIG_ARCH ?? targetInfo.npmArch;
+const release = await latestNodeRelease();
+const npmEnv = { ...process.env };
+npmEnv.npm_config_arch = requestedArch;
+npmEnv.NPM_CONFIG_ARCH = requestedArch;
+npmEnv.npm_config_target = release.slice(1);
+npmEnv.NPM_CONFIG_TARGET = release.slice(1);
+npmEnv.npm_config_build_from_source = "true";
+npmEnv.NPM_CONFIG_BUILD_FROM_SOURCE = "true";
+await rm(join(serverDir, "node_modules"), { recursive: true, force: true });
+await rm(join(serverDir, "package-lock.json"), { force: true });
+run("npm", ["install", "--omit=dev", "--no-audit", "--no-fund"], { cwd: serverDir, env: npmEnv });
+
+const nodeBinary = await fetchNodeBinary(target, release);
+const nodeStat = await stat(nodeBinary);
+const bundleStat = await stat(join(serverDir, "index.mjs"));
+const nativeAddon = await findFile(join(serverDir, "node_modules", "better-sqlite3"), "better_sqlite3.node");
+const nativeSize = nativeAddon ? (await stat(nativeAddon)).size : 0;
+console.log(`Sidecar build complete for ${target}`);
+console.log(`  Node ${NODE_MAJOR} binary: ${nodeBinary} (${formatBytes(nodeStat.size)})`);
+console.log(`  Server bundle:   ${join(serverDir, "index.mjs")} (${formatBytes(bundleStat.size)})`);
+console.log(`  SQLite addon:    ${nativeAddon ?? "not found"}${nativeAddon ? ` (${formatBytes(nativeSize)})` : ""}`);
+console.log(`  Migrations:      ${join(serverDir, "migrations")}`);
+
+async function copyTree(source, destination) {
+  await mkdir(destination, { recursive: true });
+  for (const entry of await readdir(source, { withFileTypes: true })) {
+    const from = join(source, entry.name);
+    const to = join(destination, entry.name);
+    if (entry.isDirectory()) await copyTree(from, to);
+    else await copyFile(from, to);
+  }
+}
+
+function parseArgument(name) {
+  const index = process.argv.indexOf(name);
+  if (index >= 0) return process.argv[index + 1];
+  const value = process.argv.find((argument) => argument.startsWith(`${name}=`));
+  return value?.slice(name.length + 1);
+}
+
+function rustHostTriple() {
+  const result = spawnSync("rustc", ["-vV"], { encoding: "utf8" });
+  if (result.status !== 0) throw new Error(`Could not detect Rust host triple: ${result.stderr}`);
+  const host = result.stdout.match(/^host: (.+)$/m)?.[1];
+  if (!host) throw new Error("Could not find host triple in rustc -vV output");
+  return host;
+}
+
+async function latestNodeRelease() {
+  const indexResponse = await fetch("https://nodejs.org/dist/index.json");
+  if (!indexResponse.ok) throw new Error(`Could not fetch official Node release index: ${indexResponse.status}`);
+  const versions = await indexResponse.json();
+  const latest = versions.find((entry) => entry.version.startsWith(`v${NODE_MAJOR}.`));
+  if (!latest) throw new Error(`No Node ${NODE_MAJOR} release found in the official release index`);
+  return latest.version;
+}
+
+async function fetchNodeBinary(triple, release) {
+  const targetInfo = targets[triple];
+  const archiveName = `node-${release}-${targetInfo.distName}.${targetInfo.archiveExt}`;
+  const archiveRoot = `node-${release}-${targetInfo.distName}`;
+  const releaseDir = join(cacheDir, release);
+  const archivePath = join(releaseDir, archiveName);
+  const sumsPath = join(releaseDir, "SHASUMS256.txt");
+  await mkdir(releaseDir, { recursive: true });
+  await download(`https://nodejs.org/dist/${release}/${archiveName}`, archivePath);
+  await download(`https://nodejs.org/dist/${release}/SHASUMS256.txt`, sumsPath);
+
+  const sums = await readFile(sumsPath, "utf8");
+  const expected = sums.split("\n").find((line) => line.trim().endsWith(` ${archiveName}`))?.split(/\s+/)[0];
+  if (!expected) throw new Error(`Official SHA256 not found for ${archiveName}`);
+  const actual = createHash("sha256").update(await readFile(archivePath)).digest("hex");
+  if (actual !== expected) throw new Error(`SHA256 verification failed for ${archiveName}`);
+
+  const outputName = `node-${triple}${targetInfo.executableExt}`;
+  const outputPath = join(binaryDir, outputName);
+  const extractedPath = join(cacheDir, `${release}-${triple}-extracted`);
+  await rm(extractedPath, { recursive: true, force: true });
+  await mkdir(extractedPath, { recursive: true });
+
+  if (targetInfo.archiveExt === "zip") {
+    const extractPath = `${archiveRoot}/node.exe`;
+    const result = spawnSync("unzip", ["-p", archivePath, extractPath], { encoding: null, maxBuffer: 128 * 1024 * 1024 });
+    if (result.status !== 0) throw new Error(`Could not extract Node executable: ${result.stderr?.toString()}`);
+    const { writeFile: writeBinary } = await import("node:fs/promises");
+    await writeBinary(outputPath, result.stdout);
+  } else {
+    run("tar", ["-xf", archivePath, "-C", extractedPath, `${archiveRoot}/bin/node`]);
+    await copyFile(join(extractedPath, archiveRoot, "bin", "node"), outputPath);
+  }
+
+  if (targetInfo.executableExt !== ".exe") await chmod(outputPath, 0o755);
+  return outputPath;
+}
+
+async function download(url, destination) {
+  try {
+    await stat(destination);
+    return;
+  } catch {}
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`Download failed (${response.status}): ${url}`);
+  const data = Buffer.from(await response.arrayBuffer());
+  await writeFile(destination, data);
+}
+
+function run(command, args, options = {}) {
+  const result = spawnSync(command, args, { stdio: "inherit", ...options });
+  if (result.error) throw result.error;
+  if (result.status !== 0) throw new Error(`${command} ${args.join(" ")} exited with status ${result.status}`);
+}
+
+async function findFile(directory, basename) {
+  let entries;
+  try {
+    entries = await readdir(directory, { withFileTypes: true });
+  } catch {
+    return null;
+  }
+  for (const entry of entries) {
+    const path = join(directory, entry.name);
+    if (entry.isFile() && entry.name === basename) return path;
+    if (entry.isDirectory()) {
+      const found = await findFile(path, basename);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+function formatBytes(bytes) {
+  return `${(bytes / 1024 / 1024).toFixed(2)} MiB`;
+}

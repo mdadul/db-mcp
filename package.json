@@ -1,5 +1,6 @@
 {
   "name": "db-mcp",
+  "version": "0.1.0",
   "module": "index.ts",
   "type": "module",
   "private": true,
@@ -27,6 +28,9 @@
     "setup": "sh scripts/setup.sh",
     "start": "sh scripts/setup.sh && node --env-file=.env src/index.ts",
     "dev": "sh scripts/setup.sh && node --env-file=.env --watch src/index.ts",
+    "desktop:sidecar": "node scripts/build-sidecar.mjs",
+    "desktop:dev": "cd desktop/src-tauri && tauri dev",
+    "desktop:build": "cd desktop/src-tauri && tauri build",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
@@ -36,7 +40,7 @@
     "dev:client": "cd client && bun run dev"
   },
   "engines": {
-    "node": ">=24.0.0"
+    "node": ">=26.0.0"
   },
   "workspaces": [
     "client"

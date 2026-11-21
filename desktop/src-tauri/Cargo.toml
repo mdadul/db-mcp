@@ -1,0 +1,25 @@
+[package]
+name = "db-mcp-desktop"
+version = "0.1.0"
+description = "DB MCP Desktop"
+authors = ["DB MCP"]
+edition = "2021"
+
+[lib]
+name = "db_mcp_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[[bin]]
+name = "db-mcp-desktop"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+getrandom = "0.3"
+log = "0.4"
+tauri = { version = "2", features = [] }
+tauri-plugin-log = "2"
+tauri-plugin-shell = "2"
+tauri-plugin-single-instance = "2"
