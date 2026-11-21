@@ -237,7 +237,7 @@ Deliverables:
   assets, DMG background.
 
 Name directions (to choose from or replace):
-1. **Tablet** style descriptive names: "Querylane", "Datagate".
+1. Descriptive names: "Querylane", "Datagate".
 2. Calm object names: "Harbor", "Ledger", "Quarry".
 3. Keep the meaning, drop the acronym: "DB Bridge", "Local Data Gateway".
 The MCP endpoint name in client configs can stay `db-mcp` for compatibility.
