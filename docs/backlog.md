@@ -33,6 +33,24 @@ Done when a chat runs end to end through OpenCode and Claude Code, tests cover t
 fail-closed tool check, event mapping and cancel, and the Claude terms risk is shown
 in the provider setup UI.
 
+## P1 — UX polish M1 (from `docs/ux-plan.md` sections 8–9)
+
+- Filled-button contrast: dark text on light accents or darker accent (WCAG AA).
+- Icon rail (56px) for app navigation on Connections and Analyst; remove the
+  full-row "Collapse sidebar".
+- Name spelled **DB MCP** everywhere in the UI; new tagline; logo mark and icons.
+- Connections: one add action per context; home view when nothing is selected
+  (recent tables/queries, health); status dot only after a test; SVG engine logos;
+  `database · host` secondary line.
+- Analyst: one Providers entry; collapse empty chat list.
+- AI Clients: real logos; success style for Connected; Remove, Copy path and Reveal
+  in a row menu; show the MCP URL once plus JSON.
+- Activity: status badge only for errors; hide empty duration/rows; show the client
+  name; capitalised filter labels; error-rate card links to filtered errors.
+- Settings: disabled switches show their real state; replace the two close-behaviour
+  toggles with one choice (Quit / Keep in menu bar / Keep only the MCP server running).
+- Remove duplicate page titles and duplicated explanations.
+
 ## P1 — Settings: font family and font size
 
 Settings → Appearance → Text.

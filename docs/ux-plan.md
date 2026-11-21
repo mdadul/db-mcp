@@ -222,22 +222,20 @@ port, background mode, current connection, read-only badge), and a shortcut shee
 Goal: a product name and identity that reads as a desktop data tool, not a
 protocol acronym, ready for the public release.
 
+**Name stays as is for now.** Product name in the UI is **DB MCP** everywhere
+(window title, sidebar, About, onboarding, README); `db-mcp` only where a technical
+id is expected (repo, binaries, the MCP server entry in client configs). The app
+identifier `dev.dbmcp.desktop` does not change, so no data migration is needed.
+A rename can happen later without redoing the identity work below.
+
 Deliverables:
-- Name and tagline (decision needed, options below), app identifier change plan
-  (`dev.dbmcp.desktop` → new id) with data migration for settings, keychain entry,
-  app data folder, LaunchAgent label and AI-client config entry name.
+- One spelling of the name across the app and docs (fix the sidebar "db-mcp" and
+  replace the "Local database gateway" tagline with a clearer one).
 - Logo mark (works at 16px in the menu bar and 1024px app icon, light/dark),
   macOS icon in the system style, Windows/Linux icons, tray template icon.
 - Colour: brand accent with filled-button contrast ≥ 4.5:1 in light and dark;
   stays one of the selectable accents.
-- Typography: keep system UI font for the interface; optional display face for
-  marketing only.
+- Typography: system UI font for the interface.
 - Voice: short, calm, precise; glossary (connection, AI client, analyst, read-only).
 - Applied to: app icon, sidebar/rail header, About, onboarding, README, release
   assets, DMG background.
-
-Name directions (to choose from or replace):
-1. Descriptive names: "Querylane", "Datagate".
-2. Calm object names: "Harbor", "Ledger", "Quarry".
-3. Keep the meaning, drop the acronym: "DB Bridge", "Local Data Gateway".
-The MCP endpoint name in client configs can stay `db-mcp` for compatibility.
