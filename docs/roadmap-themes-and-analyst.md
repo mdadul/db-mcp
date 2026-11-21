@@ -165,8 +165,21 @@ Source: provider research task (official provider documentation). Summary:
 | Antigravity | `agy acp --process-per-session` (ACP) | Not established | No explicit Google statement either way |
 | Gemini CLI | ACP | Not established | Google-account OAuth through third-party software is prohibited |
 
-Decisions:
-1. **Our own agent loop first.** Phase 1 ships an in-sidecar agent loop whose only
+Decisions (revised 2026-11-21 after product-owner review):
+0. **Use the user's own signed-in agents first, starting with OpenCode.** The
+   analyst runs on agents already installed and authenticated on the computer.
+   OpenCode is first: the app starts its own `opencode serve` on 127.0.0.1 with an
+   app-owned config (the user's OpenCode config is never edited) that defines a
+   `db-analyst` agent with every built-in tool denied and only the analyst MCP tools
+   allowed. The analyst tools are served by the sidecar on a per-session MCP
+   endpoint protected by a random per-session token header. The model picker lists
+   the models the user's OpenCode is already signed in to. The adapter checks the
+   effective tool list before the first prompt and fails closed. Codex follows
+   after the built-in-tool spike. Claude subscription login stays blocked by
+   Anthropic's terms for third-party apps unless approved; Claude models remain
+   available through the user's OpenCode providers. API-key providers stay as a
+   fallback.
+1. **Own agent loop (now the fallback).** Phase 1 ships an in-sidecar agent loop whose only
    tools are our analyst tools, with these providers: Anthropic API key, OpenAI API
    key, any OpenAI-compatible endpoint (Ollama, LM Studio, OpenRouter, etc.).
    This is fully under our control, MCP-only by construction, and compliant.
