@@ -502,7 +502,7 @@ function groupForeignKeys(rows: MetadataRow[]): TableStructure["foreignKeys"] {
   return [...grouped].map(([name, items]) => ({ name, columns: Array.isArray(items[0]?.columns) ? items[0]!.columns as string[] : items.map((item) => String(item.column_name ?? item.from)), refSchema: items[0]?.ref_schema == null ? null : String(items[0].ref_schema), refTable: String(items[0]?.ref_table ?? items[0]?.foreign_table ?? items[0]?.table ?? ""), refColumns: Array.isArray(items[0]?.ref_columns) ? items[0]!.ref_columns as string[] : items.map((item) => String(item.ref_column ?? item.foreign_column ?? item.to)) }));
 }
 
-export async function browseTableRows(id: string, tableName: string, input: BrowseRowsInput): Promise<BrowseRowsResult> {
+export async function browseTableRows(id: string, tableName: string, input: BrowseRowsInput, source: "app" | "agent" = "app"): Promise<BrowseRowsResult> {
   const { row, executor } = await getEnabledExecutor(id);
   const structure = await getTableSchemaApi(id, tableName, input.schema);
   if (input.orderBy && !structure.columns.some((column) => column.name === input.orderBy)) throw new BadRequestError(`Unknown order column "${input.orderBy}"`, "Choose an orderBy column returned by the table schema endpoint.");
@@ -521,14 +521,14 @@ export async function browseTableRows(id: string, tableName: string, input: Brow
     }
   } catch (error) {
     const executionTimeMs = Date.now() - startedAt;
-    await db.insert(queryLogs).values({ databaseConnectionId: row.id, query: auditQuery, executionTimeMs, rowCount: null, status: "error", error: sanitizeError(error), source: "app" });
+    await db.insert(queryLogs).values({ databaseConnectionId: row.id, query: auditQuery, executionTimeMs, rowCount: null, status: "error", error: sanitizeError(error), source });
     throw new BadRequestError("Unable to browse table rows", "Check the selected table, schema, and database permissions.");
   }
   const executionTimeMs = Date.now() - startedAt;
   const hasMore = rows.length > input.limit;
   const visibleRows = normalizeRows(rows.slice(0, input.limit));
   const columns = structure.columns.map(({ name, dataType }) => ({ name, dataType }));
-  await db.insert(queryLogs).values({ databaseConnectionId: row.id, query: auditQuery, executionTimeMs, rowCount: visibleRows.length, status: "success", source: "app" });
+  await db.insert(queryLogs).values({ databaseConnectionId: row.id, query: auditQuery, executionTimeMs, rowCount: visibleRows.length, status: "success", source });
   return { columns, rows: visibleRows, limit: input.limit, offset: input.offset, hasMore, executionTimeMs };
 }
 
@@ -540,7 +540,7 @@ export async function executeQueryStructured(
   id: string,
   query: string,
   limit?: number,
-  source: "mcp" | "app" = "mcp"
+  source: "mcp" | "app" | "agent" = "mcp"
 ): Promise<StructuredQueryResult> {
   const row = await findOrThrow(id);
   if (row.status !== "enabled") {
@@ -654,7 +654,7 @@ export async function getDatabaseLogs(
     rowCount: r.rowCount,
     status: r.status,
     error: r.error,
-    source: r.source as "mcp" | "app",
+    source: r.source as "mcp" | "app" | "agent",
     createdAt: r.createdAt.toISOString(),
   }));
 }

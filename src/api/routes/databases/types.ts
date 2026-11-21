@@ -197,6 +197,6 @@ export interface QueryLogItem {
   rowCount: number | null;
   status: string;
   error: string | null;
-  source: "mcp" | "app";
+  source: "mcp" | "app" | "agent";
   createdAt: string;
 }

@@ -51,8 +51,39 @@ export const queryLogs = sqliteTable("query_logs", {
   rowCount: integer("row_count"),
   status: text("status").notNull(), // 'success' | 'error' | 'timeout' | 'blocked'
   error: text("error"),
-  source: text("source").notNull().default("mcp"), // 'mcp' | 'app'
+  source: text("source").notNull().default("mcp"), // 'mcp' | 'app' | 'agent'
   createdAt: integer("created_at", { mode: "timestamp_ms" })
     .notNull()
     .default(nowMs),
+});
+
+export const aiProviders = sqliteTable("ai_providers", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  kind: text("kind").notNull(), // 'anthropic' | 'openai' | 'openai-compatible'
+  name: text("name").notNull(),
+  baseUrl: text("base_url"),
+  /** JSON-serialised EncryptedPayload — never returned to clients */
+  encryptedApiKey: text("encrypted_api_key"),
+  defaultModel: text("default_model").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().default(nowMs),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull().default(nowMs),
+});
+
+export const analystThreads = sqliteTable("analyst_threads", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  title: text("title").notNull(),
+  providerId: text("provider_id").notNull().references(() => aiProviders.id, { onDelete: "cascade" }),
+  model: text("model").notNull(),
+  databaseId: text("database_id").references(() => databaseConnections.id, { onDelete: "set null" }),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().default(nowMs),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull().default(nowMs),
+});
+
+export const analystMessages = sqliteTable("analyst_messages", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  threadId: text("thread_id").notNull().references(() => analystThreads.id, { onDelete: "cascade" }),
+  role: text("role").notNull(), // 'user' | 'assistant' | 'tool'
+  content: text("content").notNull(), // JSON-serialised message parts
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().default(nowMs),
+  usage: text("usage"), // JSON token usage, nullable
 });

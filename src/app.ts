@@ -3,6 +3,7 @@ import { healthRoutes } from "./api/routes/health/index.ts";
 import { databaseRoutes } from "./api/routes/databases/index.ts";
 import { statsRoutes } from "./api/routes/stats/index.ts";
 import { activityRoutes } from "./api/routes/activity/index.ts";
+import { analystRoutes } from "./analyst/routes.ts";
 import { AppError } from "./errors.ts";
 
 /** Maps AppError to its status code and everything else to a generic 500. */
@@ -24,7 +25,8 @@ export const app = new Hono()
   .route("/api", healthRoutes)
   .route("/api/databases", databaseRoutes)
   .route("/api/stats", statsRoutes)
-  .route("/api/activity", activityRoutes);
+  .route("/api/activity", activityRoutes)
+  .route("/api/analyst", analystRoutes);
 
 app.onError(handleAppError);
 

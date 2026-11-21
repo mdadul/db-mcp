@@ -15,6 +15,13 @@
       "when": 1795261963132,
       "tag": "0001_natural_captain_flint",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1795263278009,
+      "tag": "0002_round_madelyne_pryor",
+      "breakpoints": true
     }
   ]
 }
