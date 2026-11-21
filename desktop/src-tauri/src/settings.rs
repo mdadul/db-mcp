@@ -25,6 +25,18 @@ pub struct AppSettings {
     #[serde(default = "default_font_size")]
     pub font_size: u8,
     #[serde(default)]
+    pub ui_font: UiFont,
+    #[serde(default)]
+    pub ui_font_custom: String,
+    #[serde(default)]
+    pub code_font: CodeFont,
+    #[serde(default)]
+    pub code_font_custom: String,
+    #[serde(default = "default_code_font_size")]
+    pub code_font_size: u8,
+    #[serde(default)]
+    pub code_ligatures: bool,
+    #[serde(default)]
     pub onboarding_completed: bool,
     #[serde(default)]
     pub background_server: bool,
@@ -60,6 +72,32 @@ pub enum Density {
     Comfortable,
 }
 
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum UiFont {
+    #[default]
+    System,
+    Inter,
+    IbmPlexSans,
+    #[serde(rename = "source-sans-3")]
+    SourceSans3,
+    #[serde(rename = "atkinson-hyperlegible")]
+    AtkinsonHyperlegible,
+    Custom,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum CodeFont {
+    #[default]
+    SystemMono,
+    JetbrainsMono,
+    FiraCode,
+    IbmPlexMono,
+    SourceCodePro,
+    Custom,
+}
+
 impl Default for AppSettings {
     fn default() -> Self {
         Self {
@@ -72,6 +110,12 @@ impl Default for AppSettings {
             accent: Accent::Blue,
             density: Density::Default,
             font_size: default_font_size(),
+            ui_font: UiFont::default(),
+            ui_font_custom: String::new(),
+            code_font: CodeFont::default(),
+            code_font_custom: String::new(),
+            code_font_size: default_code_font_size(),
+            code_ligatures: false,
             onboarding_completed: false,
             background_server: false,
         }
@@ -90,6 +134,12 @@ pub struct SettingsPatch {
     pub accent: Option<Accent>,
     pub density: Option<Density>,
     pub font_size: Option<u8>,
+    pub ui_font: Option<UiFont>,
+    pub ui_font_custom: Option<String>,
+    pub code_font: Option<CodeFont>,
+    pub code_font_custom: Option<String>,
+    pub code_font_size: Option<u8>,
+    pub code_ligatures: Option<bool>,
     pub onboarding_completed: Option<bool>,
     pub background_server: Option<bool>,
 }
@@ -123,6 +173,24 @@ impl AppSettings {
         if let Some(font_size) = patch.font_size {
             self.font_size = font_size;
         }
+        if let Some(ui_font) = patch.ui_font {
+            self.ui_font = ui_font;
+        }
+        if let Some(value) = patch.ui_font_custom {
+            self.ui_font_custom = value;
+        }
+        if let Some(code_font) = patch.code_font {
+            self.code_font = code_font;
+        }
+        if let Some(value) = patch.code_font_custom {
+            self.code_font_custom = value;
+        }
+        if let Some(value) = patch.code_font_size {
+            self.code_font_size = value;
+        }
+        if let Some(value) = patch.code_ligatures {
+            self.code_ligatures = value;
+        }
         if let Some(value) = patch.onboarding_completed {
             self.onboarding_completed = value;
         }
@@ -149,7 +217,7 @@ impl Default for SettingsStore {
 impl SettingsStore {
     pub fn load(path: PathBuf) -> Self {
         let current = match fs::read(&path) {
-            Ok(contents) => serde_json::from_slice(&contents).unwrap_or_else(|error| {
+            Ok(contents) => deserialize_settings(&contents).unwrap_or_else(|error| {
                 warn!("Could not parse settings at {}: {error}", path.display());
                 AppSettings::default()
             }),
@@ -176,8 +244,17 @@ impl SettingsStore {
             .map_err(|_| "Settings lock is unavailable".to_owned())?;
         let mut updated = current.clone();
         updated.apply(patch);
-        if !(12..=14).contains(&updated.font_size) {
-            return Err("Interface font size must be 12, 13, or 14".to_owned());
+        if !(12..=18).contains(&updated.font_size) {
+            return Err("Interface font size must be between 12 and 18".to_owned());
+        }
+        if !(11..=20).contains(&updated.code_font_size) {
+            return Err("Code font size must be between 11 and 20".to_owned());
+        }
+        if !valid_custom_font_name(&updated.ui_font_custom) {
+            return Err("Custom interface font must be at most 64 letters, numbers, spaces, hyphens, or underscores".to_owned());
+        }
+        if !valid_custom_font_name(&updated.code_font_custom) {
+            return Err("Custom code font must be at most 64 letters, numbers, spaces, hyphens, or underscores".to_owned());
         }
         if updated.theme_id.is_empty()
             || updated.theme_id.len() > 40
@@ -210,6 +287,33 @@ fn write_atomic(path: &PathBuf, settings: &AppSettings) -> Result<(), String> {
     fs::rename(&temporary, path).map_err(|error| format!("Could not replace settings: {error}"))
 }
 
+fn deserialize_settings(contents: &[u8]) -> Result<AppSettings, serde_json::Error> {
+    let mut value: serde_json::Value = serde_json::from_slice(contents)?;
+    if let Some(object) = value.as_object_mut() {
+        // Legacy sizes are migrated once; persisted settings include uiFont thereafter.
+        if !object.contains_key("uiFont") {
+            if let Some(font_size) = object.get("fontSize").and_then(serde_json::Value::as_u64) {
+                let migrated = match font_size {
+                    12 => serde_json::Value::from(13),
+                    13 => serde_json::Value::from(14),
+                    14 => serde_json::Value::from(15),
+                    _ => serde_json::Value::from(font_size),
+                };
+                object.insert("fontSize".to_owned(), migrated);
+            }
+        }
+    }
+    serde_json::from_value(value)
+}
+
+fn valid_custom_font_name(value: &str) -> bool {
+    value.len() <= 64
+        && (value.is_empty()
+            || value
+                .chars()
+                .all(|character| character.is_ascii_alphanumeric() || " -_".contains(character)))
+}
+
 const fn default_port() -> u16 {
     4080
 }
@@ -223,6 +327,10 @@ fn default_theme_id() -> String {
 }
 
 const fn default_font_size() -> u8 {
+    14
+}
+
+const fn default_code_font_size() -> u8 {
     13
 }
 
@@ -240,7 +348,9 @@ mod tests {
         assert_eq!(AppSettings::default().accent, Accent::Blue);
         assert_eq!(AppSettings::default().theme_id, "default");
         assert_eq!(AppSettings::default().density, Density::Default);
-        assert_eq!(AppSettings::default().font_size, 13);
+        assert_eq!(AppSettings::default().font_size, 14);
+        assert_eq!(AppSettings::default().code_font_size, 13);
+        assert!(!AppSettings::default().code_ligatures);
         assert!(!AppSettings::default().onboarding_completed);
         assert!(!AppSettings::default().background_server);
     }
@@ -273,7 +383,7 @@ mod tests {
             serde_json::from_str(r#"{"port":4080}"#).expect("deserialize old settings");
         assert_eq!(settings.accent, Accent::Blue);
         assert_eq!(settings.theme_id, "default");
-        assert_eq!(settings.font_size, 13);
+        assert_eq!(settings.font_size, 14);
         assert_eq!(
             serde_json::to_string(&Accent::Graphite).expect("serialize accent"),
             "\"graphite\""
@@ -288,7 +398,7 @@ mod tests {
         .expect("deserialize settings written before theme fields existed");
         assert_eq!(settings.theme_id, "default");
         assert_eq!(settings.density, Density::Default);
-        assert_eq!(settings.font_size, 13);
+        assert_eq!(settings.font_size, 14);
         assert!(!settings.background_server);
     }
 
@@ -316,7 +426,38 @@ mod tests {
             .is_err());
         assert!(store
             .update(SettingsPatch {
-                font_size: Some(15),
+                font_size: Some(19),
+                ..SettingsPatch::default()
+            })
+            .is_err());
+    }
+
+    #[test]
+    fn migrates_legacy_font_sizes_once() {
+        for (old, expected) in [(12, 13), (13, 14), (14, 15)] {
+            let json = format!(r#"{{"fontSize":{old}}}"#);
+            assert_eq!(
+                deserialize_settings(json.as_bytes()).unwrap().font_size,
+                expected
+            );
+        }
+        let current = deserialize_settings(br#"{"fontSize":14,"uiFont":"system"}"#).unwrap();
+        assert_eq!(current.font_size, 14);
+        assert_eq!(AppSettings::default().font_size, 14);
+    }
+
+    #[test]
+    fn rejects_invalid_custom_fonts_and_code_sizes() {
+        let store = SettingsStore::default();
+        assert!(store
+            .update(SettingsPatch {
+                ui_font_custom: Some("font; color:red".to_owned()),
+                ..SettingsPatch::default()
+            })
+            .is_err());
+        assert!(store
+            .update(SettingsPatch {
+                code_font_size: Some(21),
                 ..SettingsPatch::default()
             })
             .is_err());

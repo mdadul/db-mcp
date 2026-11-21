@@ -30,6 +30,11 @@ export interface BackgroundServerStatus {
   error: string | null;
 }
 
+export const INTERFACE_FONT_SIZES = [12, 13, 14, 15, 16, 17, 18] as const;
+export type InterfaceFontSize = (typeof INTERFACE_FONT_SIZES)[number];
+export const CODE_FONT_SIZES = [11, 12, 13, 14, 15, 16, 17, 18, 19, 20] as const;
+export type CodeFontSize = (typeof CODE_FONT_SIZES)[number];
+
 export interface AppSettings {
   port: number;
   launchAtLogin: boolean;
@@ -39,7 +44,13 @@ export interface AppSettings {
   themeId: string;
   accent: "blue" | "violet" | "green" | "orange" | "pink" | "graphite";
   density: "compact" | "default" | "comfortable";
-  fontSize: 12 | 13 | 14;
+  fontSize: InterfaceFontSize;
+  uiFont: "system" | "inter" | "ibm-plex-sans" | "source-sans-3" | "atkinson-hyperlegible" | "custom";
+  uiFontCustom: string;
+  codeFont: "system-mono" | "jetbrains-mono" | "fira-code" | "ibm-plex-mono" | "source-code-pro" | "custom";
+  codeFontCustom: string;
+  codeFontSize: CodeFontSize;
+  codeLigatures: boolean;
   onboardingCompleted: boolean;
   backgroundServer: boolean;
 }

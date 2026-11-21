@@ -27,7 +27,13 @@ export function useServerInfo() {
 }
 
 export function useSettings() {
-  return useQuery({ queryKey: settingsQueryKey, queryFn: platform.getSettings });
+  const query = useQuery({ queryKey: settingsQueryKey, queryFn: platform.getSettings });
+  useEffect(() => {
+    const listener = () => { void query.refetch(); };
+    window.addEventListener("dbmcp:settings-updated", listener);
+    return () => window.removeEventListener("dbmcp:settings-updated", listener);
+  }, [query.refetch]);
+  return query;
 }
 
 export function useUpdateSettings() {

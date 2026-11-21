@@ -30,11 +30,11 @@ export function VirtualDataTable({ data, isLoading, error, onRetry, pageSize, on
 }) {
   return <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
     {isLoading ? <div className="min-h-0 flex-1 space-y-2 overflow-hidden p-3" role="status" aria-label="Loading rows">{Array.from({ length: 8 }, (_, index) => <div key={index} className="h-7 animate-pulse rounded bg-muted" />)}</div>
-      : error ? <div className="m-3 rounded-md border border-danger/30 bg-danger-subtle p-3 text-[12px] text-danger" role="alert"><p>{error}</p><Button variant="outline" size="xs" className="mt-2" onClick={onRetry}>Retry</Button></div>
+      : error ? <div className="m-3 rounded-md border border-danger/30 bg-danger-subtle p-3 text-secondary text-danger" role="alert"><p>{error}</p><Button variant="outline" size="xs" className="mt-2" onClick={onRetry}>Retry</Button></div>
         : <VirtualDataGrid rows={data?.rows ?? []} columns={data?.columns ?? []} rowOffset={data?.offset ?? 0} onSort={onSort} orderBy={orderBy} direction={direction} onCopy={onCopy} />}
-    <div className="relative z-30 flex h-8 shrink-0 items-center gap-3 border-t border-border bg-surface px-3 text-[11px] text-muted-foreground">
+    <div className="relative z-30 flex h-8 shrink-0 items-center gap-3 border-t border-border bg-surface px-3 text-caption text-muted-foreground">
       <span>Rows {data?.rows.length ? (data.offset + 1).toLocaleString() : 0}–{((data?.offset ?? 0) + (data?.rows.length ?? 0)).toLocaleString()}</span>
-      <label className="ml-auto flex items-center gap-1">Page size<select aria-label="Rows per page" value={pageSize} onChange={(event) => onPageSize(Number(event.target.value))} className="h-6 rounded border border-border bg-surface px-1 text-[11px] text-foreground">{[50, 100, 200, 500].map((size) => <option value={size} key={size}>{size}</option>)}</select></label>
+      <label className="ml-auto flex items-center gap-1">Page size<select aria-label="Rows per page" value={pageSize} onChange={(event) => onPageSize(Number(event.target.value))} className="h-6 rounded border border-border bg-surface px-1 text-caption text-foreground">{[50, 100, 200, 500].map((size) => <option value={size} key={size}>{size}</option>)}</select></label>
       <Button variant="outline" size="xs" disabled={(data?.offset ?? 0) === 0} onClick={() => onOffset(Math.max(0, (data?.offset ?? 0) - pageSize))}>Previous</Button>
       <Button variant="outline" size="xs" disabled={!data?.hasMore} onClick={() => onOffset((data?.offset ?? 0) + pageSize)}>Next</Button>
       <span>{data?.executionTimeMs ?? 0} ms</span>
@@ -79,8 +79,8 @@ export function VirtualDataGrid({ rows, columns, onSort, orderBy, direction, row
 
   return <div className="relative flex min-h-0 min-w-0 flex-1 overflow-hidden">
     <div ref={scrollRef} role="grid" aria-label="Database rows" className="relative min-h-0 min-w-0 flex-1 overflow-auto" style={{ position: "relative", contain: "strict" }}>
-      <div className="sticky top-0 z-20 grid bg-muted font-mono text-[11px]" style={{ height: rowHeight(), width: totalWidth, minWidth: "100%", gridTemplateColumns: gridTemplate }}>
-        <div className="sticky left-0 z-30 flex items-center justify-end border-b border-r border-border bg-muted px-2 text-[10px] text-muted-foreground">#</div>
+      <div className="sticky top-0 z-20 grid bg-muted text-code" style={{ height: rowHeight(), width: totalWidth, minWidth: "100%", gridTemplateColumns: gridTemplate }}>
+        <div className="sticky left-0 z-30 flex items-center justify-end border-b border-r border-border bg-muted px-2 text-caption text-muted-foreground">#</div>
         {virtualColumns.map(({ column, start, size }) => {
           const index = usableColumns.indexOf(column);
           return <div key={column.name} className="relative flex min-w-0 items-center border-b border-r border-border" style={{ position: usableColumns.length > 30 ? "absolute" : undefined, left: usableColumns.length > 30 ? columnStart(index) : undefined, width: size, height: rowHeight() }}>
@@ -92,8 +92,8 @@ export function VirtualDataGrid({ rows, columns, onSort, orderBy, direction, row
         })}
       </div>
       <div className="relative" style={{ width: totalWidth, minWidth: "100%", height: rowVirtualizer.getTotalSize() }}>
-        {rowVirtualizer.getVirtualItems().map((virtualRow) => <div key={virtualRow.key} role="row" className="absolute left-0 grid font-mono text-[11px] hover:bg-muted/70" style={{ top: 0, height: virtualRow.size, transform: `translateY(${virtualRow.start - rowHeight()}px)`, width: totalWidth, gridTemplateColumns: gridTemplate }}>
-          <div className="sticky left-0 z-[1] flex items-center justify-end border-b border-r border-border bg-surface px-2 text-[10px] text-muted-foreground">{rowOffset + virtualRow.index + 1}</div>
+        {rowVirtualizer.getVirtualItems().map((virtualRow) => <div key={virtualRow.key} role="row" className="absolute left-0 grid text-code hover:bg-muted/70" style={{ top: 0, height: virtualRow.size, transform: `translateY(${virtualRow.start - rowHeight()}px)`, width: totalWidth, gridTemplateColumns: gridTemplate }}>
+          <div className="sticky left-0 z-[1] flex items-center justify-end border-b border-r border-border bg-surface px-2 text-caption text-muted-foreground">{rowOffset + virtualRow.index + 1}</div>
           {virtualColumns.map(({ column, start, size }) => {
             const index = usableColumns.indexOf(column);
             const display = formattedRows[virtualRow.index]?.[column.name] ?? "NULL";
@@ -102,13 +102,13 @@ export function VirtualDataGrid({ rows, columns, onSort, orderBy, direction, row
             return <Cell key={column.name} column={column} display={display} original={original} size={size} left={columnStart(index)} absolute={usableColumns.length > 30} selected={selected} onSelect={() => setSelection({ row: virtualRow.index, column: column.name, value: original })} />;
           })}
         </div>)}
-        {!rows.length && <div className="p-5 text-center text-[12px] text-muted-foreground">No rows returned.</div>}
+        {!rows.length && <div className="p-5 text-center text-secondary text-muted-foreground">No rows returned.</div>}
       </div>
     </div>
     {selection && <aside className="flex w-64 shrink-0 flex-col overflow-hidden border-l border-border bg-surface" aria-label="Cell inspector">
-      <div className="flex h-8 shrink-0 items-center gap-2 border-b border-border px-2 text-[11px]"><span className="min-w-0 flex-1 truncate font-medium">{selection.column}</span><Button variant="ghost" size="icon-xs" aria-label="Close cell inspector" onClick={() => setSelection(null)}><X /></Button></div>
-      <p className="px-2 pt-1 text-[10px] text-muted-foreground">Row {rowOffset + selection.row + 1} · {selection.value === null ? "NULL" : typeof selection.value}</p>
-      <pre data-selectable="true" className="m-2 min-h-0 flex-1 overflow-auto whitespace-pre-wrap break-words rounded bg-background p-2 font-mono text-[11px]">{formatValue(selection.value, Infinity)}</pre>
+      <div className="flex h-8 shrink-0 items-center gap-2 border-b border-border px-2 text-caption"><span className="min-w-0 flex-1 truncate font-medium">{selection.column}</span><Button variant="ghost" size="icon-xs" aria-label="Close cell inspector" onClick={() => setSelection(null)}><X /></Button></div>
+      <p className="px-2 pt-1 text-caption text-muted-foreground">Row {rowOffset + selection.row + 1} · {selection.value === null ? "NULL" : typeof selection.value}</p>
+       <pre data-selectable="true" className="m-2 min-h-0 flex-1 overflow-auto whitespace-pre-wrap break-words rounded bg-background p-2 text-code">{formatValue(selection.value, Infinity)}</pre>
       <Button variant="outline" size="xs" className="mx-2 mb-2" onClick={() => onCopy?.(formatValue(selection.value, Infinity))}><Copy data-icon="inline-start" />Copy value</Button>
     </aside>}
   </div>;
@@ -116,7 +116,7 @@ export function VirtualDataGrid({ rows, columns, onSort, orderBy, direction, row
 
 const Cell = memo(function Cell({ column, display, original, size, left, absolute, selected, onSelect }: { column: GridColumn; display: string; original: unknown; size: number; left: number; absolute: boolean; selected: boolean; onSelect: () => void }) {
   const isNull = original === null || original === undefined;
-  return <div role="gridcell" style={{ width: size, ...(absolute ? { position: "absolute", left } : {}) }} className={`flex h-7 min-w-0 items-center overflow-hidden border-b border-r border-border px-2 ${isNull ? "text-muted-foreground italic" : "text-foreground"}`}>
+  return <div role="gridcell" style={{ width: size, ...(absolute ? { position: "absolute", left } : {}) }} className={`flex h-full min-w-0 items-center overflow-hidden border-b border-r border-border px-2 ${isNull ? "text-muted-foreground italic" : "text-foreground"}`}>
     <button type="button" className={`w-full truncate text-left outline-none focus-visible:ring-2 focus-visible:ring-ring ${selected ? "bg-accent-subtle" : ""}`} title={display} onClick={onSelect}>{display.length > 200 ? `${display.slice(0, 200)}…` : display}</button>
   </div>;
 });

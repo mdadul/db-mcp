@@ -15,7 +15,7 @@ tokens, `data-theme`, `data-accent`, density variables). Nothing here is built y
   a dark-only theme forces dark.
 - **Accent** (already planned): applies on top of any theme that allows it.
 - **Density**: Compact / Default / Comfortable (control height, row height, font size).
-- **Interface font size**: 12 / 13 / 14 px. **Code font**: system mono or a chosen installed font.
+- **Interface font size**: 12–18 px (default 14). **Code font size**: 11–20 px (default 13), with system mono or a bundled font.
 - **Import theme**: drop a `.json` theme file; validate, preview, then install.
   **Export** the current theme as a starting point.
 

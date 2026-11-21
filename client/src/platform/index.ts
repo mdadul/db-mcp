@@ -14,7 +14,11 @@ export const platform: Platform = {
   readServerLogs: async (lines) => (await previewPlatform).readServerLogs(lines),
   openLogsDir: async () => (await previewPlatform).openLogsDir(),
   getSettings: async () => (await previewPlatform).getSettings(),
-  updateSettings: async (patch) => (await previewPlatform).updateSettings(patch),
+  updateSettings: async (patch) => {
+    const updated = await (await previewPlatform).updateSettings(patch);
+    window.dispatchEvent(new CustomEvent("dbmcp:settings-updated", { detail: updated }));
+    return updated;
+  },
   listCustomThemes: async () => (await previewPlatform).listCustomThemes(),
   installCustomTheme: async (json) => (await previewPlatform).installCustomTheme(json),
   deleteCustomTheme: async (id) => (await previewPlatform).deleteCustomTheme(id),

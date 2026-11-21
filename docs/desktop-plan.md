@@ -97,10 +97,18 @@ interface AppSettings {
   themeId: string;          // default "default"; built-in or imported theme id
   accent: "blue" | "violet" | "green" | "orange" | "pink" | "graphite"; // default "blue"
   density: "compact" | "default" | "comfortable"; // default "default"
-  fontSize: 12 | 13 | 14;  // default 13 px
+  fontSize: 12 | 13 | 14 | 15 | 16 | 17 | 18; // default 14 px; legacy values 12/13/14 migrate to 13/14/15
+  uiFont: "system" | "inter" | "ibm-plex-sans" | "source-sans-3" | "atkinson-hyperlegible" | "custom"; // default "system"
+  uiFontCustom: string;      // at most 64 letters, digits, spaces, hyphens or underscores
+  codeFont: "system-mono" | "jetbrains-mono" | "fira-code" | "ibm-plex-mono" | "source-code-pro" | "custom"; // default "system-mono"
+  codeFontCustom: string;    // at most 64 letters, digits, spaces, hyphens or underscores
+  codeFontSize: number;      // integer 11–20, default 13 px
+  codeLigatures: boolean;    // default false
   onboardingCompleted: boolean;       // default false
   backgroundServer: boolean;         // default false
 }
+
+Interface font scale: caption = `fontSize - 2`, secondary = `fontSize - 1`, body = `fontSize`, title = `fontSize + 3`, heading = `fontSize + 8`. Control height is at least `round(fontSize × 2.2)` and row height is at least `round(fontSize × 2)`, respecting the chosen density. Legacy settings without `uiFont` migrate font sizes 12→13, 13→14 and 14→15; saved modern values are not migrated again.
 
 interface AiClient {
   id: "claude-desktop" | "claude-code" | "cursor" | "vscode" | "windsurf" | "lm-studio";

@@ -30,7 +30,7 @@ export function ConfirmModal({
       <DialogContent className="max-w-md">
         <div className="flex items-start gap-4">
           <div
-            className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg shrink-0 ${
+            className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-scale-lg shrink-0 ${
               variant === "danger"
                 ? "bg-destructive/10 text-destructive border border-destructive/30"
                 : "bg-primary/10 text-primary border border-primary/30"
@@ -43,8 +43,8 @@ export function ConfirmModal({
             )}
           </div>
           <div className="flex-1">
-            <DialogTitle className="text-base font-bold">{title}</DialogTitle>
-            <DialogDescription className="text-xs sm:text-sm mt-1">
+            <DialogTitle className="text-scale-base font-bold">{title}</DialogTitle>
+            <DialogDescription className="text-scale-xs sm:text-scale-sm mt-1">
               {description}
             </DialogDescription>
           </div>

@@ -15,18 +15,18 @@ export function Header({ title, subtitle, backTo, action }: HeaderProps) {
         {backTo && (
           <Link
             to={backTo}
-            className="text-muted-foreground hover:text-muted-foreground transition-colors text-lg leading-none"
+            className="text-muted-foreground hover:text-muted-foreground transition-colors text-scale-lg leading-none"
             aria-label="Back"
           >
             ←
           </Link>
         )}
         <div>
-          <h1 className="text-2xl font-bold text-foreground tracking-tight">
+          <h1 className="text-scale-2xl font-bold text-foreground tracking-tight">
             {title}
           </h1>
           {subtitle && (
-            <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>
+            <p className="text-scale-sm text-muted-foreground mt-1">{subtitle}</p>
           )}
         </div>
       </div>

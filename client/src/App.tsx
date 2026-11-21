@@ -31,8 +31,8 @@ function ServerStateGate() {
     if (serverInfo?.state === "failed") void platform.readServerLogs(200).then(setLogs);
   }, [serverInfo?.state]);
 
-  if (isLoading || !serverInfo) return <div className="flex min-h-screen items-center justify-center bg-background"><div className="w-full max-w-sm space-y-3 p-8" role="status" aria-label="Starting local server"><Skeleton className="h-5 w-48" /><Skeleton className="h-3 w-64" /><Skeleton className="h-1 w-full" /><p className="text-sm text-muted-foreground">Starting local server…</p></div></div>;
-  if (serverInfo.state === "starting") return <div className="flex min-h-screen items-center justify-center bg-background"><div className="w-full max-w-sm space-y-3 p-8" role="status" aria-label="Starting local server"><Skeleton className="h-5 w-48" /><Skeleton className="h-3 w-64" /><div className="h-1 overflow-hidden rounded-full bg-muted"><div className="h-full w-1/2 animate-pulse rounded-full bg-primary motion-reduce:animate-none" /></div><p className="text-sm text-muted-foreground">Starting local server…</p></div></div>;
+  if (isLoading || !serverInfo) return <div className="flex min-h-screen items-center justify-center bg-background"><div className="w-full max-w-sm space-y-3 p-8" role="status" aria-label="Starting local server"><Skeleton className="h-5 w-48" /><Skeleton className="h-3 w-64" /><Skeleton className="h-1 w-full" /><p className="text-scale-sm text-muted-foreground">Starting local server…</p></div></div>;
+  if (serverInfo.state === "starting") return <div className="flex min-h-screen items-center justify-center bg-background"><div className="w-full max-w-sm space-y-3 p-8" role="status" aria-label="Starting local server"><Skeleton className="h-5 w-48" /><Skeleton className="h-3 w-64" /><div className="h-1 overflow-hidden rounded-full bg-muted"><div className="h-full w-1/2 animate-pulse rounded-full bg-primary motion-reduce:animate-none" /></div><p className="text-scale-sm text-muted-foreground">Starting local server…</p></div></div>;
   if (serverInfo.state === "healthy" || serverInfo.state === "unhealthy" || serverInfo.state === "restarting") return <Outlet />;
   if (location.pathname === "/settings") return <Outlet />;
   const stateCopy: Record<Extract<ServerState, "port_in_use" | "failed" | "stopped">, { title: string; description: string }> = {
@@ -45,14 +45,14 @@ function ServerStateGate() {
 
   return <main className="flex h-full items-center justify-center overflow-auto bg-background px-6 py-8"><section className="w-full max-w-xl rounded-lg border border-border bg-card p-6">
     <div className="mb-4 flex size-9 items-center justify-center rounded-md bg-danger-subtle text-danger"><AlertTriangle className="size-4" /></div>
-    <h1 className="text-[15px] font-semibold">{title}</h1><p className="mt-1 mb-4 text-[12px] text-muted-foreground">{description}</p>
-    {state === "failed" && <div className="mb-5"><div className="mb-2 flex items-center justify-between"><h2 className="text-[12px] font-semibold">Recent server logs</h2><Button variant="ghost" size="sm" onClick={() => void platform.readServerLogs(200).then(setLogs)}>Refresh logs</Button></div><pre data-selectable="true" className="max-h-64 overflow-auto rounded-md border border-border bg-muted p-3 font-mono text-[11px] leading-5 text-muted-foreground">{logs.length ? logs.slice(-200).join("\n") : "Select Refresh logs to load recent output."}</pre></div>}
+    <h1 className="text-title font-semibold">{title}</h1><p className="mt-1 mb-4 text-secondary text-muted-foreground">{description}</p>
+    {state === "failed" && <div className="mb-5"><div className="mb-2 flex items-center justify-between"><h2 className="text-secondary font-semibold">Recent server logs</h2><Button variant="ghost" size="sm" onClick={() => void platform.readServerLogs(200).then(setLogs)}>Refresh logs</Button></div><pre data-selectable="true" className="max-h-64 overflow-auto rounded-md border border-border bg-muted p-3 font-mono text-caption leading-5 text-muted-foreground">{logs.length ? logs.slice(-200).join("\n") : "Select Refresh logs to load recent output."}</pre></div>}
     <div className="flex flex-wrap gap-2">
       <Button onClick={() => restart.mutate()} disabled={restart.isPending}><RotateCw data-icon="inline-start" />Restart server</Button>
       {state === "failed" && <Button variant="outline" onClick={() => void platform.openLogsDir()}><FolderOpen data-icon="inline-start" />Open logs folder</Button>}
       {state === "port_in_use" && <Button variant="outline" onClick={() => navigate("/settings")}><Server data-icon="inline-start" />Open Settings</Button>}
     </div>
-    {settings?.port !== undefined && state === "port_in_use" && <p className="mt-4 text-xs text-muted-foreground">Current port: <code className="font-mono">{settings.port}</code></p>}
+    {settings?.port !== undefined && state === "port_in_use" && <p className="mt-4 text-scale-xs text-muted-foreground">Current port: <code className="font-mono">{settings.port}</code></p>}
   </section></main>;
 }
 

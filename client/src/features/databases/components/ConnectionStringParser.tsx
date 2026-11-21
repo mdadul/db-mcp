@@ -114,11 +114,11 @@ export function ConnectionStringParser({ onParse, className = "" }: ConnectionSt
             <Zap className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <h4 className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-1.5">
+            <h4 className="text-scale-xs font-bold uppercase tracking-wider text-primary flex items-center gap-1.5">
               <span>Quick URI Import</span>
               <Sparkles className="w-3.5 h-3.5 text-primary animate-pulse" />
             </h4>
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <p className="text-scale-xs text-muted-foreground mt-0.5">
               Paste a database URI string to auto-fill form fields
             </p>
           </div>
@@ -129,7 +129,7 @@ export function ConnectionStringParser({ onParse, className = "" }: ConnectionSt
           variant="outline"
           size="sm"
           onClick={handlePasteClipboard}
-          className="text-xs bg-background/80 hover:bg-background border-primary/30 text-primary self-start sm:self-auto gap-1.5 shadow-2xs"
+          className="text-scale-xs bg-background/80 hover:bg-background border-primary/30 text-primary self-start sm:self-auto gap-1.5 shadow-2xs"
         >
           <ClipboardPaste className="w-3.5 h-3.5" />
           <span>Paste from Clipboard</span>
@@ -147,10 +147,10 @@ export function ConnectionStringParser({ onParse, className = "" }: ConnectionSt
                 setUri(e.target.value);
                 if (error) setError(null);
               }}
-              className="w-full px-3.5 py-2 text-xs font-mono border border-primary/30 rounded-lg bg-background/90 focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all placeholder:text-muted-foreground/60"
+              className="w-full px-3.5 py-2 text-scale-xs font-mono border border-primary/30 rounded-lg bg-background/90 focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all placeholder:text-muted-foreground/60"
             />
             {copiedSuccess && (
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] text-success font-medium flex items-center gap-1">
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-secondary text-success font-medium flex items-center gap-1">
                 <Check className="w-3.5 h-3.5" /> Parsed & Applied!
               </span>
             )}
@@ -162,7 +162,7 @@ export function ConnectionStringParser({ onParse, className = "" }: ConnectionSt
             size="sm"
             onClick={handleParse}
             disabled={!uri.trim()}
-            className="shrink-0 text-xs px-4"
+            className="shrink-0 text-scale-xs px-4"
           >
             Auto-Fill
           </Button>
@@ -171,32 +171,32 @@ export function ConnectionStringParser({ onParse, className = "" }: ConnectionSt
         {/* Live Detected Preview Chips */}
         {detectedFields && (
           <div className="flex flex-wrap items-center gap-1.5 pt-1 animate-in fade-in slide-in-from-top-1">
-            <span className="text-[11px] font-medium text-muted-foreground mr-1">Detected:</span>
-            <Badge variant="secondary" className="text-[10px] uppercase font-bold bg-primary/10 text-primary border-primary/20">
+            <span className="text-caption font-medium text-muted-foreground mr-1">Detected:</span>
+            <Badge variant="secondary" className="text-caption uppercase font-bold bg-primary/10 text-primary border-primary/20">
               {detectedFields.type}
             </Badge>
             {detectedFields.host && (
-              <Badge variant="outline" className="text-[10px] font-mono bg-background">
+              <Badge variant="outline" className="text-caption font-mono bg-background">
                 host: {detectedFields.host}
               </Badge>
             )}
             {detectedFields.port && (
-              <Badge variant="outline" className="text-[10px] font-mono bg-background">
+              <Badge variant="outline" className="text-caption font-mono bg-background">
                 port: {detectedFields.port}
               </Badge>
             )}
             {detectedFields.databaseName && (
-              <Badge variant="outline" className="text-[10px] font-mono bg-background">
+              <Badge variant="outline" className="text-caption font-mono bg-background">
                 db: {detectedFields.databaseName}
               </Badge>
             )}
             {detectedFields.username && (
-              <Badge variant="outline" className="text-[10px] font-mono bg-background">
+              <Badge variant="outline" className="text-caption font-mono bg-background">
                 user: {detectedFields.username}
               </Badge>
             )}
             {detectedFields.ssl && (
-              <Badge variant="outline" className="text-[11px] font-mono bg-success-subtle text-success border-success/30">
+              <Badge variant="outline" className="text-caption font-mono bg-success-subtle text-success border-success/30">
                 SSL Required
               </Badge>
             )}
@@ -204,7 +204,7 @@ export function ConnectionStringParser({ onParse, className = "" }: ConnectionSt
         )}
 
         {error && (
-          <div className="flex items-center gap-1.5 text-xs text-destructive font-medium pt-1">
+          <div className="flex items-center gap-1.5 text-scale-xs text-destructive font-medium pt-1">
             <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
             <span>{error}</span>
           </div>

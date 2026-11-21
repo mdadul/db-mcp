@@ -94,13 +94,13 @@ export function McpToolExplorer() {
     <div className="bg-background rounded-3xl p-6 sm:p-8 border border-border shadow-sm mb-12">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
-          <span className="text-xs font-bold text-primary uppercase tracking-widest">
+          <span className="text-scale-xs font-bold text-primary uppercase tracking-widest">
             What your AI can do
           </span>
-          <h2 className="text-2xl font-bold text-foreground tracking-tight mt-1">
+          <h2 className="text-scale-2xl font-bold text-foreground tracking-tight mt-1">
             4 tools, zero risk
           </h2>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+          <p className="text-scale-xs sm:text-scale-sm text-muted-foreground mt-1">
             Every AI tool call goes through one of these four read-only operations
           </p>
         </div>
@@ -112,7 +112,7 @@ export function McpToolExplorer() {
               key={t.name}
               onClick={() => setActiveIdx(idx)}
               aria-pressed={activeIdx === idx}
-              className={`px-3 py-1.5 text-xs font-mono font-semibold rounded-lg transition-all shrink-0 ${
+              className={`px-3 py-1.5 text-scale-xs font-mono font-semibold rounded-lg transition-all shrink-0 ${
                 activeIdx === idx
                   ? "bg-background text-primary shadow-2xs"
                   : "text-muted-foreground hover:text-muted-foreground"
@@ -129,19 +129,19 @@ export function McpToolExplorer() {
         {/* Description & Parameters */}
         <div className="space-y-4">
           <div className="p-4 rounded-2xl bg-primary/10 border border-primary/30">
-            <h3 className="text-base font-mono font-bold text-primary">
+            <h3 className="text-scale-base font-mono font-bold text-primary">
               {activeTool.name}
             </h3>
-            <p className="text-xs sm:text-sm text-primary mt-1 leading-relaxed">
+            <p className="text-scale-xs sm:text-scale-sm text-primary mt-1 leading-relaxed">
               {activeTool.description}
             </p>
           </div>
 
           <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+            <p className="text-scale-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
               Parameters JSON Schema
             </p>
-            <pre className="text-xs text-muted-foreground bg-muted p-4 rounded-xl border border-border font-mono overflow-x-auto">
+            <pre className="text-scale-xs text-muted-foreground bg-muted p-4 rounded-xl border border-border font-mono overflow-x-auto">
               {activeTool.parameters}
             </pre>
           </div>
@@ -149,10 +149,10 @@ export function McpToolExplorer() {
 
         {/* Sample Output */}
         <div>
-          <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+          <p className="text-scale-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
             Sample Response Payload
           </p>
-          <pre className="text-xs text-primary bg-muted p-4 rounded-xl border border-border font-mono overflow-x-auto h-[220px]">
+          <pre className="text-scale-xs text-primary bg-muted p-4 rounded-xl border border-border font-mono overflow-x-auto h-[220px]">
             {activeTool.sampleResponse}
           </pre>
         </div>

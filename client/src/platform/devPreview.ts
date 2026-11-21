@@ -10,7 +10,13 @@ const defaults: AppSettings = {
   themeId: "default",
   accent: "blue",
   density: "default",
-  fontSize: 13,
+  fontSize: 14,
+  uiFont: "system",
+  uiFontCustom: "",
+  codeFont: "system-mono",
+  codeFontCustom: "",
+  codeFontSize: 13,
+  codeLigatures: false,
   onboardingCompleted: true,
   backgroundServer: false,
 };
@@ -26,7 +32,8 @@ function readSettings(): AppSettings {
     const stored: unknown = JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? "null");
     if (typeof stored !== "object" || stored === null) return defaults;
     const candidate = stored as Partial<AppSettings>;
-    return { ...defaults, ...candidate };
+    const fontSize = candidate.fontSize === 12 ? 13 : candidate.fontSize === 13 ? 14 : candidate.fontSize === 14 && candidate.uiFont === undefined ? 15 : candidate.fontSize;
+    return { ...defaults, ...candidate, fontSize: fontSize ?? defaults.fontSize };
   } catch {
     return defaults;
   }
