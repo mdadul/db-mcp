@@ -4,9 +4,11 @@
   "type": "module",
   "private": true,
   "devDependencies": {
+    "@tauri-apps/cli": "^2",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^26.1.1",
     "drizzle-kit": "^0.31.10",
+    "esbuild": "^0.28.2",
     "typescript": "^5"
   },
   "dependencies": {
