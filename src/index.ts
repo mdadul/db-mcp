@@ -15,6 +15,16 @@ import { closeAll } from "./services/connPool.ts";
 
 const SHUTDOWN_TIMEOUT_MS = 5000;
 
+// The server only runs as the desktop app's sidecar, which always passes a
+// per-launch session token. Refuse to start without it so /api is never open.
+const sessionToken = process.env.APP_SESSION_TOKEN?.trim();
+if (!sessionToken) {
+  console.error(
+    "APP_SESSION_TOKEN is required. The server is started by the DB MCP desktop app; run `bun run desktop:dev` instead of starting it directly."
+  );
+  process.exit(1);
+}
+
 // Run migrations before accepting traffic
 await runMigrations();
 
@@ -29,7 +39,7 @@ root.use("*", hostGuard(port));
 root.use(
   "/api/*",
   apiGuard({
-    sessionToken: process.env.APP_SESSION_TOKEN,
+    sessionToken,
     allowedOrigins: parseAllowedOrigins(process.env.ALLOWED_ORIGINS),
   })
 );
