@@ -103,25 +103,6 @@ From the review of 2026-11-21. Blockers fixed in `8068c6c`. Remaining, highest r
   toggles with one choice (Quit / Keep in menu bar / Keep only the MCP server running).
 - Remove duplicate page titles and duplicated explanations.
 
-## P1 — Settings: font family and font size
-
-Settings → Appearance → Text.
-
-- `fontSize` 12–18 (default 14), replacing 12/13/14; migrate existing values.
-- `uiFont`: `system`, `inter`, `ibm-plex-sans`, `source-sans-3`,
-  `atkinson-hyperlegible`, or `custom` + `uiFontCustom`.
-- `codeFont`: `system-mono`, `jetbrains-mono`, `fira-code`, `ibm-plex-mono`,
-  `source-code-pro`, or `custom` + `codeFontCustom`.
-- `codeFontSize` 11–20 (default 13) for SQL editor, data grid, code blocks, logs.
-- `codeLigatures` (default off). Validate in Rust `settings.rs` and with zod.
-- Fonts load lazily, only when selected. The `@fontsource` packages are already in
-  `client/package.json` (uncommitted in the working tree).
-- Custom font not installed → "Not installed on this computer — using the system font".
-- ⌘+ / ⌘− / ⌘0 adjust or reset the interface size. Applied before first paint.
-- Live preview in Settings.
-- Replace the ~160 hard-coded `text-[11px]`…`text-[15px]` classes in `client/src`
-  with size tokens based on `--font-size-base`; row heights grow with font size.
-
 ## P1 — Split the 745 kB main client bundle
 
 - Find what is in the shared chunk (visualizer or source-map-explorer).
@@ -239,6 +220,8 @@ After the first release:
 ---
 
 ## Done
+
+- Font family selection and larger app-wide sizing (14px default) — `275f283`.
 
 - Security: block write-capable SELECTs (INTO/OUTFILE), cap CTE results, redact logged SQL — `8068c6c`.
 
