@@ -9,6 +9,7 @@ import {
 import { createExecutor, type DbConfig } from "../../../services/dbExecutor.ts";
 import { quoteIdentifier } from "../../../query/identifiers.ts";
 import { toJsonSafe } from "../../../query/jsonSafe.ts";
+import { sanitizeQuery, sanitizeToolArgs } from "../../../db/logToolCall.ts";
 import {
   assertReadOnly,
   injectLimit,
@@ -609,7 +610,9 @@ export async function executeQueryStructured(
   await db.insert(queryLogs)
     .values({
       databaseConnectionId: row.id,
-      query: finalQuery,
+      // Same redaction as tool-call args: literals can contain secrets.
+      // MongoDB queries are JSON, so keep their structure and redact sensitive keys.
+      query: row.type === "mongodb" ? (sanitizeToolArgs(finalQuery) ?? "") : sanitizeQuery(finalQuery),
       executionTimeMs,
       rowCount: status === "success" ? rows.length : null,
       status,

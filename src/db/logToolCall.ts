@@ -11,7 +11,8 @@ function sanitizeText(value: string): string {
     .replace(SENSITIVE_ASSIGNMENT, "$1$2[REDACTED]");
 }
 
-function sanitizeQuery(query: string): string {
+/** Redacts SQL string literals and credential-looking assignments before the text is stored. */
+export function sanitizeQuery(query: string): string {
   return sanitizeText(query.replace(/'(?:''|[^'])*'|"(?:""|[^"])*"/g, "'[REDACTED]'"));
 }
 
