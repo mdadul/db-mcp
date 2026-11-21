@@ -175,10 +175,15 @@ Decisions (revised 2026-11-21 after product-owner review):
    endpoint protected by a random per-session token header. The model picker lists
    the models the user's OpenCode is already signed in to. The adapter checks the
    effective tool list before the first prompt and fails closed. Codex follows
-   after the built-in-tool spike. Claude subscription login stays blocked by
-   Anthropic's terms for third-party apps unless approved; Claude models remain
-   available through the user's OpenCode providers. API-key providers stay as a
-   fallback.
+   after the built-in-tool spike. **Claude Code** is driven the same way: the
+   Claude Agent SDK reuses the login the user already has in their installed
+   Claude Code (the app shows no login screen and never reads or stores
+   credentials; usage is billed to the user's own account). Built-in tools are
+   removed with `tools: []`, `strictMcpConfig`, `settingSources: []` and
+   `permissionMode: "dontAsk"`. If an agent is installed but not signed in, the app
+   shows the command to run in a terminal (`claude auth login`, `opencode auth login`).
+   Product owner accepted the terms risk noted in the research findings. API-key
+   providers stay as a fallback.
 1. **Own agent loop (now the fallback).** Phase 1 ships an in-sidecar agent loop whose only
    tools are our analyst tools, with these providers: Anthropic API key, OpenAI API
    key, any OpenAI-compatible endpoint (Ollama, LM Studio, OpenRouter, etc.).
