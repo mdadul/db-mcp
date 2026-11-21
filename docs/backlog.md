@@ -33,6 +33,58 @@ Done when a chat runs end to end through OpenCode and Claude Code, tests cover t
 fail-closed tool check, event mapping and cancel, and the Claude terms risk is shown
 in the provider setup UI.
 
+## P1 — Code review findings (clean code, DRY, React, TypeScript)
+
+From the review of 2026-11-21. Blockers fixed in `8068c6c`. Remaining, highest risk first:
+
+1. **Defense in depth for read-only**: run user/agent queries inside a read-only
+   transaction (PostgreSQL/Redshift `BEGIN READ ONLY`, MySQL `START TRANSACTION READ ONLY`,
+   SQLite `PRAGMA query_only`) so side-effecting functions are blocked even with a
+   privileged DB user. Tests per engine where possible.
+2. **Supervisor child ownership** (`desktop/src-tauri/src/supervisor.rs:504`): a
+   restarted child is not stored before health polling and polling has no deadline,
+   so stop can miss it and a failed start can orphan Node. Store the child first,
+   bound startup, kill/reap on timeout or stop.
+3. **Single-flight executor creation** (`src/services/connPool.ts:8`): concurrent
+   first requests for one connection can create several pools and leak one; make
+   creation in-flight-aware and serialize replace/close.
+4. **Real query cancellation** (`src/api/routes/databases/service.ts:576`): the
+   timeout only stops waiting; use driver statement timeouts / cancel so the query
+   stops on the server.
+5. **One schema-inspection implementation**: `service.ts` (workbench),
+   `src/mcp/tools/getDatabaseSchema.ts` and `getTableSchema.ts` each have per-engine
+   metadata SQL (the Redshift `distkey` bug came from this). MCP tools should adapt
+   the service results; add `never` exhaustiveness instead of "default = PostgreSQL".
+6. **Error redaction**: centralise redaction of driver errors (URI credentials,
+   driver formats) for API and MCP responses (`service.ts:93`, MCP tools).
+7. **Engine registry**: default ports and engine metadata repeated in
+   `src/api/routes/databases/types.ts`, `client/src/features/databases/{types/index.ts,
+   schemas/databaseSchemas.ts, hooks/useDatabaseForm.ts, components/ConnectionForm.tsx,
+   components/ConnectionStringParser.tsx}`; derive all from one registry.
+8. **Analyst turn ordering** (`src/analyst/service.ts:188`): validate the database
+   before persisting the user message.
+9. **PATCH ignores `type`** (`service.ts:153`): reject engine changes explicitly.
+10. **Audit-log failures are swallowed** (`service.ts:619`): surface them.
+11. **Split `service.ts`** (~700 lines) into connections, metadata and query modules.
+12. **Types at boundaries**: remove `any`/unchecked casts in `dbExecutor.ts`, MCP
+    tools and `service.ts`; validate persisted localStorage shapes in
+    `ConnectionsWorkbench.tsx`; derive client API types from Hono route types instead
+    of `unwrap<T>` assertions; one runtime schema for analyst SSE events shared by
+    server and client.
+13. **Workbench component**: extract state/data hooks and pane components;
+    fix the keyboard effect without dependencies (re-subscribes every render);
+    derive active-tab state during render instead of effects.
+14. **Rendering hot paths**: chart heatmap/category lookups via index maps
+    (`ChartRenderer.tsx:29,80`); format grid cells lazily for visible rows only
+    (`VirtualDataGrid.tsx:58`).
+15. **Small DRY items**: provider fallback model lists (server + `AnalystPage.tsx`),
+    theme-ID validation (`commands.rs` + `settings.rs`), versioned localStorage keys
+    for analyst preferences.
+16. **Reproducible sidecar**: pin an exact Node 26 patch release and checksum in
+    `scripts/build-sidecar.mjs` instead of "latest 26.x".
+17. Rust/TS contract types (`ServerInfo`, `AppSettings`) are duplicated by necessity;
+    consider generating TS types from Rust (e.g. `ts-rs`) if the contract keeps growing.
+
 ## P1 — UX polish M1 (from `docs/ux-plan.md` sections 8–9)
 
 - Filled-button contrast: dark text on light accents or darker accent (WCAG AA).
@@ -55,12 +107,12 @@ in the provider setup UI.
 
 Settings → Appearance → Text.
 
-- `fontSize` 11–16 (default 13), replacing 12/13/14; migrate existing values.
+- `fontSize` 12–18 (default 14), replacing 12/13/14; migrate existing values.
 - `uiFont`: `system`, `inter`, `ibm-plex-sans`, `source-sans-3`,
   `atkinson-hyperlegible`, or `custom` + `uiFontCustom`.
 - `codeFont`: `system-mono`, `jetbrains-mono`, `fira-code`, `ibm-plex-mono`,
   `source-code-pro`, or `custom` + `codeFontCustom`.
-- `codeFontSize` 11–18 (default 12) for SQL editor, data grid, code blocks, logs.
+- `codeFontSize` 11–20 (default 13) for SQL editor, data grid, code blocks, logs.
 - `codeLigatures` (default off). Validate in Rust `settings.rs` and with zod.
 - Fonts load lazily, only when selected. The `@fontsource` packages are already in
   `client/package.json` (uncommitted in the working tree).
@@ -187,6 +239,8 @@ After the first release:
 ---
 
 ## Done
+
+- Security: block write-capable SELECTs (INTO/OUTFILE), cap CTE results, redact logged SQL — `8068c6c`.
 
 - Background server (D9) — `aa0f143`, verified on macOS.
 - Redshift `get_table_schema` dist key / schema-qualified names — `8becd74`.
