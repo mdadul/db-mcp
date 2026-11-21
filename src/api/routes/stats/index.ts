@@ -31,7 +31,7 @@ export const statsRoutes = new Hono().get("/", async (c) => {
         totalRows: sql<number>`coalesce(sum(${queryLogs.rowCount}), 0)`,
       })
       .from(queryLogs)
-      .where(gte(queryLogs.createdAt, since)),
+      .where(and(gte(queryLogs.createdAt, since), eq(queryLogs.source, "mcp"))),
 
     // Per-database tool call breakdown
     db

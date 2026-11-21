@@ -51,6 +51,7 @@ export const queryLogs = sqliteTable("query_logs", {
   rowCount: integer("row_count"),
   status: text("status").notNull(), // 'success' | 'error' | 'timeout' | 'blocked'
   error: text("error"),
+  source: text("source").notNull().default("mcp"), // 'mcp' | 'app'
   createdAt: integer("created_at", { mode: "timestamp_ms" })
     .notNull()
     .default(nowMs),

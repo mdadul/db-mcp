@@ -8,7 +8,7 @@ import { AppError } from "./errors.ts";
 /** Maps AppError to its status code and everything else to a generic 500. */
 export const handleAppError: ErrorHandler = (err, c) => {
   if (err instanceof AppError) {
-    return c.json({ error: err.message }, err.statusCode);
+    return c.json({ error: err.message, ...(err.hint ? { hint: err.hint } : {}) }, err.statusCode);
   }
   console.error("Unhandled error:", err);
   return c.json({ error: "Internal server error" }, 500);

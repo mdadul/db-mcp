@@ -9,21 +9,24 @@ export const activityRoutes = new Hono().get(
   "/",
   zValidator("query", activityQuerySchema),
   async (c) => {
-    const { limit, offset, databaseId, status, tool } = c.req.valid("query");
+    const { limit, offset, databaseId, status, tool, source } = c.req.valid("query");
     const queryConditions = [
       ...(databaseId ? [eq(queryLogs.databaseConnectionId, databaseId)] : []),
       ...(status ? [eq(queryLogs.status, status)] : []),
       ...(tool ? [sql`coalesce(${queryLogs.toolName}, 'execute_read_query') = ${tool}`] : []),
+      ...(source ? [eq(queryLogs.source, source)] : []),
     ];
     const toolConditions = [
       ...(databaseId ? [eq(toolCalls.databaseConnectionId, databaseId)] : []),
       ...(status === "success" || status === "error" ? [eq(toolCalls.status, status)] : status ? [sql`0 = 1`] : []),
       ...(tool ? [eq(toolCalls.tool, tool)] : []),
+      ...(source === "app" ? [sql`0 = 1`] : []),
     ];
 
     const queryItems = db
       .select({
         id: queryLogs.id,
+        source: queryLogs.source,
         kind: sql<"query">`'query'`,
         tool: sql<string>`coalesce(${queryLogs.toolName}, 'execute_read_query')`,
         databaseConnectionId: queryLogs.databaseConnectionId,
@@ -41,6 +44,7 @@ export const activityRoutes = new Hono().get(
     const toolItems = db
       .select({
         id: toolCalls.id,
+        source: sql<"mcp">`'mcp'`,
         kind: sql<"tool">`'tool'`,
         tool: toolCalls.tool,
         databaseConnectionId: toolCalls.databaseConnectionId,

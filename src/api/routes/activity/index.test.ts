@@ -16,4 +16,6 @@ test("activity query caps page size and rejects invalid filters", () => {
   assert.equal(activityQuerySchema.safeParse({ offset: "10001" }).success, false);
   assert.equal(activityQuerySchema.safeParse({ status: "unknown" }).success, false);
   assert.equal(activityQuerySchema.safeParse({ tool: " " }).success, false);
+  assert.deepEqual(activityQuerySchema.parse({ source: "app" }), { limit: 50, offset: 0, source: "app" });
+  assert.equal(activityQuerySchema.safeParse({ source: "desktop" }).success, false);
 });

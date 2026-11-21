@@ -105,7 +105,7 @@ export async function createExecutor(config: DbConfig): Promise<DbExecutor> {
             }
 
             const dsl = JSON.parse(sqlString) as {
-              op?: "listCollections" | "listIndexes" | "sample";
+              op?: "listCollections" | "listIndexes" | "sample" | "sampleWorkbench" | "browse" | "buildInfo" | "ping";
               collection?: string;
               filter?: Record<string, unknown>;
               projection?: Record<string, unknown>;
@@ -115,7 +115,17 @@ export async function createExecutor(config: DbConfig): Promise<DbExecutor> {
 
             if (dsl.op === "listCollections") {
               const collections = await mongoDb.listCollections({}, { nameOnly: true }).toArray();
-              return collections.map((c) => ({ table_name: c.name, table_type: "collection" })) as unknown as T[];
+              return Promise.all(collections.map(async (c) => ({ table_name: c.name, table_type: "collection", row_estimate: await mongoDb.collection(c.name).estimatedDocumentCount() }))) as unknown as T[];
+            }
+
+            if (dsl.op === "buildInfo") {
+              const info = await mongoDb.command({ buildInfo: 1 });
+              return [{ version: info.version }] as unknown as T[];
+            }
+
+            if (dsl.op === "ping") {
+              await mongoDb.command({ ping: 1 });
+              return [{ ok: 1 }] as unknown as T[];
             }
 
             if (dsl.op === "listIndexes") {
@@ -136,6 +146,25 @@ export async function createExecutor(config: DbConfig): Promise<DbExecutor> {
                 .limit(dsl.limit ?? 50)
                 .toArray();
               return docs.map((doc) => JSON.parse(JSON.stringify(doc))) as T[];
+            }
+
+            if (dsl.op === "sampleWorkbench") {
+              return await mongoDb
+                .collection(dsl.collection!)
+                .find({})
+                .sort({ _id: -1 })
+                .limit(Math.min(dsl.limit ?? 50, 50))
+                .toArray() as unknown as T[];
+            }
+
+            if (dsl.op === "browse") {
+              const cursor = mongoDb.collection(dsl.collection!).find({})
+                .skip(Number((dsl as { offset?: number }).offset ?? 0))
+                .limit(Math.min(Number(dsl.limit ?? 51), 501));
+              if ((dsl as { orderBy?: string }).orderBy) {
+                cursor.sort({ [(dsl as { orderBy: string }).orderBy]: (dsl as { direction?: string }).direction === "desc" ? -1 : 1 });
+              }
+              return await cursor.toArray() as unknown as T[];
             }
 
             const cursor = mongoDb
