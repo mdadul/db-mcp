@@ -61,12 +61,12 @@ export function ChartRenderer({ rows, spec: rawSpec, large = false }: { rows: Ch
     } catch (error) { setExportError(error instanceof Error ? error.message : "PNG export failed."); }
   }
 
-  if (!spec) return <p role="status" className="p-4 text-secondary text-muted-foreground">This chart uses an unsupported chart specification.</p>;
-  if (!points.length && !heatCells.length) return <p role="status" className="p-4 text-secondary text-muted-foreground">No chartable data is available.</p>;
+  if (!spec) return <p role="status" className="p-4 text-ui-sm text-muted-foreground">This chart uses an unsupported chart specification.</p>;
+  if (!points.length && !heatCells.length) return <p role="status" className="p-4 text-ui-sm text-muted-foreground">No chartable data is available.</p>;
   const title = spec.encoding.y?.title ?? spec.encoding.theta?.title ?? spec.encoding.x?.title ?? spec.encoding.y?.field ?? spec.encoding.theta?.field ?? "Value";
 
   return <div className={`flex min-w-0 flex-col ${large ? "h-full" : "h-[280px]"}`}>
-    <div className="flex shrink-0 justify-end gap-1"><button type="button" className="rounded px-2 py-1 text-caption text-muted-foreground hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring" onClick={exportSvg}>Export SVG</button><button type="button" className="rounded px-2 py-1 text-caption text-muted-foreground hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring" onClick={() => void exportPng()}>Export PNG</button></div>
+    <div className="flex shrink-0 justify-end gap-1"><button type="button" className="rounded px-2 py-1 text-ui-xs text-muted-foreground hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring" onClick={exportSvg}>Export SVG</button><button type="button" className="rounded px-2 py-1 text-ui-xs text-muted-foreground hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring" onClick={() => void exportPng()}>Export PNG</button></div>
     <svg ref={svgRef} role="img" aria-label={`${spec.mark} chart of ${title}`} viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="min-h-0 w-full flex-1" preserveAspectRatio="xMidYMid meet" style={{ fontFamily: "var(--font-ui)", fontSize: "var(--font-size-caption)" }}>
       <style>{`:root{color:var(--foreground)}`}</style>
       {spec.mark !== "arc" && <>
@@ -84,7 +84,7 @@ export function ChartRenderer({ rows, spec: rawSpec, large = false }: { rows: Ch
       {spec.mark === "arc" && renderArcs(points, colorFor)}
       {groups.length > 1 && <g transform={`translate(${MARGIN.left},${HEIGHT - MARGIN.bottom + 34})`}>{groups.map((group, index) => <g key={group} transform={`translate(${index * 130},0)`}><circle r="4" cy="-3" fill={colors[index % colors.length] ?? "var(--primary)"}/><text x="8" fill="var(--muted-foreground)">{truncate(group, 18)}</text></g>)}</g>}
     </svg>
-    {exportError && <p role="alert" className="px-2 text-caption text-danger">{exportError}</p>}
+    {exportError && <p role="alert" className="px-2 text-ui-xs text-danger">{exportError}</p>}
     <div className="sr-only" aria-live="polite">Chart is rendered from {points.length} grouped data points.</div>
   </div>;
 }

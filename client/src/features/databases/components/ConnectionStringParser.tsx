@@ -150,7 +150,7 @@ export function ConnectionStringParser({ onParse, className = "" }: ConnectionSt
               className="w-full px-3.5 py-2 text-scale-xs font-mono border border-primary/30 rounded-lg bg-background/90 focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all placeholder:text-muted-foreground/60"
             />
             {copiedSuccess && (
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-secondary text-success font-medium flex items-center gap-1">
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-ui-sm text-success font-medium flex items-center gap-1">
                 <Check className="w-3.5 h-3.5" /> Parsed & Applied!
               </span>
             )}
@@ -171,32 +171,32 @@ export function ConnectionStringParser({ onParse, className = "" }: ConnectionSt
         {/* Live Detected Preview Chips */}
         {detectedFields && (
           <div className="flex flex-wrap items-center gap-1.5 pt-1 animate-in fade-in slide-in-from-top-1">
-            <span className="text-caption font-medium text-muted-foreground mr-1">Detected:</span>
-            <Badge variant="secondary" className="text-caption uppercase font-bold bg-primary/10 text-primary border-primary/20">
+            <span className="text-ui-xs font-medium text-muted-foreground mr-1">Detected:</span>
+            <Badge variant="secondary" className="text-ui-xs uppercase font-bold bg-primary/10 text-primary border-primary/20">
               {detectedFields.type}
             </Badge>
             {detectedFields.host && (
-              <Badge variant="outline" className="text-caption font-mono bg-background">
+              <Badge variant="outline" className="text-ui-xs font-mono bg-background">
                 host: {detectedFields.host}
               </Badge>
             )}
             {detectedFields.port && (
-              <Badge variant="outline" className="text-caption font-mono bg-background">
+              <Badge variant="outline" className="text-ui-xs font-mono bg-background">
                 port: {detectedFields.port}
               </Badge>
             )}
             {detectedFields.databaseName && (
-              <Badge variant="outline" className="text-caption font-mono bg-background">
+              <Badge variant="outline" className="text-ui-xs font-mono bg-background">
                 db: {detectedFields.databaseName}
               </Badge>
             )}
             {detectedFields.username && (
-              <Badge variant="outline" className="text-caption font-mono bg-background">
+              <Badge variant="outline" className="text-ui-xs font-mono bg-background">
                 user: {detectedFields.username}
               </Badge>
             )}
             {detectedFields.ssl && (
-              <Badge variant="outline" className="text-caption font-mono bg-success-subtle text-success border-success/30">
+              <Badge variant="outline" className="text-ui-xs font-mono bg-success-subtle text-success border-success/30">
                 SSL Required
               </Badge>
             )}

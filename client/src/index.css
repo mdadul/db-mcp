@@ -90,11 +90,14 @@
   --radius-xl: 9px;
 }
 
-@utility text-caption { font-size: var(--font-size-caption); line-height: 1.4; }
-@utility text-secondary { font-size: var(--font-size-secondary); line-height: 1.45; }
-@utility text-body { font-size: var(--font-size-base); line-height: 1.45; }
-@utility text-title { font-size: var(--font-size-title); line-height: 1.3; }
-@utility text-heading { font-size: var(--font-size-heading); line-height: 1.2; }
+/* Type-scale utilities use the text-ui-* prefix on purpose: names like
+   text-secondary collide with Tailwind's colour utilities (text-<color>) and
+   silently recolour text. */
+@utility text-ui-xs { font-size: var(--font-size-caption); line-height: 1.4; }
+@utility text-ui-sm { font-size: var(--font-size-secondary); line-height: 1.45; }
+@utility text-ui { font-size: var(--font-size-base); line-height: 1.45; }
+@utility text-ui-title { font-size: var(--font-size-title); line-height: 1.3; }
+@utility text-ui-heading { font-size: var(--font-size-heading); line-height: 1.2; }
 @utility text-code { font-family: var(--font-mono); font-size: var(--font-size-code); font-feature-settings: var(--font-feature-settings); }
 @utility text-scale-xs { font-size: var(--font-size-caption); line-height: 1.4; }
 @utility text-scale-sm { font-size: var(--font-size-secondary); line-height: 1.45; }
@@ -104,12 +107,12 @@
 @utility text-scale-2xl { font-size: calc(var(--font-size-base) + 10px); line-height: 1.2; }
 
 @layer utilities {
-  .h-6.text-caption, .h-6.text-secondary, .h-6.text-body { height: auto !important; min-height: var(--control-h-sm) !important; }
-  .h-7.text-caption, .h-8.text-caption, .h-7.text-secondary, .h-8.text-secondary,
-  .h-7.text-body, .h-8.text-body { height: auto !important; min-height: var(--row-h) !important; }
-  .h-9.text-caption, .h-10.text-caption, .h-9.text-secondary, .h-10.text-secondary,
-  .h-9.text-body, .h-10.text-body { height: auto !important; min-height: var(--control-h-lg) !important; }
-  .h-11.text-caption, .h-11.text-secondary, .h-11.text-body { height: auto !important; min-height: var(--control-h-lg) !important; }
+  .h-6.text-ui-xs, .h-6.text-ui-sm, .h-6.text-ui { height: auto !important; min-height: var(--control-h-sm) !important; }
+  .h-7.text-ui-xs, .h-8.text-ui-xs, .h-7.text-ui-sm, .h-8.text-ui-sm,
+  .h-7.text-ui, .h-8.text-ui { height: auto !important; min-height: var(--row-h) !important; }
+  .h-9.text-ui-xs, .h-10.text-ui-xs, .h-9.text-ui-sm, .h-10.text-ui-sm,
+  .h-9.text-ui, .h-10.text-ui { height: auto !important; min-height: var(--control-h-lg) !important; }
+  .h-11.text-ui-xs, .h-11.text-ui-sm, .h-11.text-ui { height: auto !important; min-height: var(--control-h-lg) !important; }
   .app-window > div > header[data-tauri-drag-region] { height: auto; min-height: var(--control-h-lg); }
   .workbench-pane [class*="border-b"].h-9 { height: auto; min-height: var(--control-h-lg); }
 }
@@ -130,7 +133,7 @@
   :focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
   a { color: var(--accent); text-decoration: none; }
   code, pre, .font-mono { font-family: var(--font-mono); font-size: var(--font-size-code); font-feature-settings: var(--font-feature-settings); }
-  [class*="text-caption"][class*="h-"], [class*="text-secondary"][class*="h-"], [class*="text-body"][class*="h-"] { height: auto; min-height: var(--control-h-sm); }
+  [class*="text-ui-xs"][class*="h-"], [class*="text-ui-sm"][class*="h-"], [class*="text-ui"][class*="h-"] { height: auto; min-height: var(--control-h-sm); }
   .workbench-pane [data-slot="select-trigger"], .workbench-pane [data-slot="input"] { max-width: 100%; }
 }
 

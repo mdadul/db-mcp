@@ -45,8 +45,8 @@ function ServerStateGate() {
 
   return <main className="flex h-full items-center justify-center overflow-auto bg-background px-6 py-8"><section className="w-full max-w-xl rounded-lg border border-border bg-card p-6">
     <div className="mb-4 flex size-9 items-center justify-center rounded-md bg-danger-subtle text-danger"><AlertTriangle className="size-4" /></div>
-    <h1 className="text-title font-semibold">{title}</h1><p className="mt-1 mb-4 text-secondary text-muted-foreground">{description}</p>
-    {state === "failed" && <div className="mb-5"><div className="mb-2 flex items-center justify-between"><h2 className="text-secondary font-semibold">Recent server logs</h2><Button variant="ghost" size="sm" onClick={() => void platform.readServerLogs(200).then(setLogs)}>Refresh logs</Button></div><pre data-selectable="true" className="max-h-64 overflow-auto rounded-md border border-border bg-muted p-3 font-mono text-caption leading-5 text-muted-foreground">{logs.length ? logs.slice(-200).join("\n") : "Select Refresh logs to load recent output."}</pre></div>}
+    <h1 className="text-ui-title font-semibold">{title}</h1><p className="mt-1 mb-4 text-ui-sm text-muted-foreground">{description}</p>
+    {state === "failed" && <div className="mb-5"><div className="mb-2 flex items-center justify-between"><h2 className="text-ui-sm font-semibold">Recent server logs</h2><Button variant="ghost" size="sm" onClick={() => void platform.readServerLogs(200).then(setLogs)}>Refresh logs</Button></div><pre data-selectable="true" className="max-h-64 overflow-auto rounded-md border border-border bg-muted p-3 font-mono text-ui-xs leading-5 text-muted-foreground">{logs.length ? logs.slice(-200).join("\n") : "Select Refresh logs to load recent output."}</pre></div>}
     <div className="flex flex-wrap gap-2">
       <Button onClick={() => restart.mutate()} disabled={restart.isPending}><RotateCw data-icon="inline-start" />Restart server</Button>
       {state === "failed" && <Button variant="outline" onClick={() => void platform.openLogsDir()}><FolderOpen data-icon="inline-start" />Open logs folder</Button>}

@@ -8,5 +8,5 @@ export function Banner({ variant = "info", children, dismissible = false }: { va
   if (!visible) return null;
   const Icon = variant === "info" ? Info : variant === "warning" ? AlertTriangle : AlertCircle;
   const styles = { info: "border-info/30 bg-info-subtle text-info", warning: "border-warning/30 bg-warning-subtle text-warning", danger: "border-danger/30 bg-danger-subtle text-danger" };
-  return <div role="status" className={`flex items-start gap-2 border px-3 py-2 text-secondary ${styles[variant]}`}><Icon className="mt-0.5 size-3.5 shrink-0" /><div className="min-w-0 flex-1 text-foreground">{children}</div>{dismissible && <Button variant="ghost" size="icon-xs" aria-label="Dismiss message" onClick={() => setVisible(false)}><X /></Button>}</div>;
+  return <div role="status" className={`flex items-start gap-2 border px-3 py-2 text-ui-sm ${styles[variant]}`}><Icon className="mt-0.5 size-3.5 shrink-0" /><div className="min-w-0 flex-1 text-foreground">{children}</div>{dismissible && <Button variant="ghost" size="icon-xs" aria-label="Dismiss message" onClick={() => setVisible(false)}><X /></Button>}</div>;
 }

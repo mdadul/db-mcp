@@ -7,5 +7,5 @@ export function InputGroup({ children, className = "" }: { children: ReactNode; 
 
 /** Leading or trailing adornment for an InputGroup. */
 export function InputGroupAddon({ children, side = "leading", className = "" }: { children: ReactNode; side?: "leading" | "trailing"; className?: string }) {
-  return <span className={`flex shrink-0 items-center gap-1 text-secondary text-muted-foreground ${side === "trailing" ? "order-1" : ""} ${className}`}>{children}</span>;
+  return <span className={`flex shrink-0 items-center gap-1 text-ui-sm text-muted-foreground ${side === "trailing" ? "order-1" : ""} ${className}`}>{children}</span>;
 }

@@ -7,7 +7,7 @@ export interface SpinnerProps {
 /** Compact inline loading indicator that supports an accessible status label. */
 export function Spinner({ label, className = "", size = "default" }: SpinnerProps) {
   return (
-    <div role="status" className={`inline-flex items-center gap-2 text-secondary text-muted-foreground ${className}`}>
+    <div role="status" className={`inline-flex items-center gap-2 text-ui-sm text-muted-foreground ${className}`}>
       <svg
         className={`animate-spin shrink-0 text-primary ${size === "sm" ? "size-3" : "size-4"}`}
         xmlns="http://www.w3.org/2000/svg"
