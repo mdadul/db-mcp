@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/Button";
 import { Alert } from "@/components/ui/Alert";
 import { Card } from "@/components/ui/Card";
-import { Spinner } from "@/components/ui/Spinner";
 import { Switch } from "@/components/ui/Switch";
 import { Badge } from "@/components/ui/Badge";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/Select";
@@ -20,20 +19,22 @@ import { ConnectionStringParser } from "./ConnectionStringParser";
 import { PresetSelector } from "./PresetSelector";
 import { DB_ENGINES } from "../types";
 import { useDatabaseForm } from "../hooks/useDatabaseForm";
+import { Skeleton } from "@/components/ui/primitives";
+import { Spinner } from "@/components/ui/Spinner";
 
-export function DatabaseForm() {
+export function DatabaseForm({ onCreated }: { onCreated?: (connection: import("../types").DatabaseConnection) => void } = {}) {
   const {
     isEdit, form, fieldErrors, currentEngine,
     loading, saving, showPassword, setShowPassword,
     error, testing, testResult, copiedUri, generatedUri,
     handleChange, handleEngineChange, handleAutoFill,
     handleSubmit, handleTest, copyUriToClipboard,
-  } = useDatabaseForm();
+  } = useDatabaseForm({ onCreated });
 
   if (loading) {
     return (
       <PageLayout maxWidth="4xl">
-        <Spinner label="Loading connection details…" />
+        <div className="flex flex-col gap-3" role="status" aria-label="Loading connection details"><Skeleton className="h-8 w-56" /><Skeleton className="h-24 w-full" /><Skeleton className="h-64 w-full" /></div>
       </PageLayout>
     );
   }

@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { useNavigate } from "react-router-dom";
+import { MoreHorizontal, Copy, Pencil, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Switch } from "@/components/ui/Switch";
@@ -14,6 +16,8 @@ import {
   TableCell,
 } from "@/components/ui/Table";
 import type { DatabaseConnection, TestResult } from "../types";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useServerInfo } from "@/platform/hooks";
 
 export interface DatabaseTableProps {
   databases: DatabaseConnection[];
@@ -26,6 +30,8 @@ export interface DatabaseTableProps {
   onTestConnection: (id: string) => void;
   testingId: string | null;
   testResults: Record<string, TestResult>;
+  testedAt: Record<string, string>;
+  queryCounts: Map<string | null, number>;
 }
 
 export function DatabaseTable({
@@ -39,8 +45,11 @@ export function DatabaseTable({
   onTestConnection,
   testingId,
   testResults,
+  testedAt,
+  queryCounts,
 }: DatabaseTableProps) {
   const navigate = useNavigate();
+  const { data: serverInfo } = useServerInfo();
   const [focusedIndex, setFocusedIndex] = useState<number>(0);
   const rowRefs = useRef<Array<HTMLTableRowElement | null>>([]);
 
@@ -71,6 +80,12 @@ export function DatabaseTable({
       tag === "BUTTON" ||
       target.isContentEditable
     );
+  };
+
+  const copyMcpConfig = async () => {
+    const url = serverInfo?.mcpUrl ?? "http://127.0.0.1:4080/mcp";
+    await navigator.clipboard.writeText(JSON.stringify({ mcpServers: { "db-mcp": { url } } }, null, 2));
+    toast.success("MCP configuration copied");
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -146,6 +161,8 @@ export function DatabaseTable({
             <TableHead>Environment</TableHead>
             <TableHead>Host · Port / Database</TableHead>
             <TableHead>SSL</TableHead>
+            <TableHead>Last tested</TableHead>
+            <TableHead>MCP calls · 30d</TableHead>
             <TableHead className="text-right pr-4">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -215,20 +232,24 @@ export function DatabaseTable({
                   )}
                 </TableCell>
 
+                <TableCell className="text-muted-foreground" title={testedAt[db.id] ? new Date(testedAt[db.id]).toLocaleString() : undefined}>{testedAt[db.id] ? new Date(testedAt[db.id]).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "Not tested"}</TableCell>
+
+                <TableCell className="font-mono text-muted-foreground">{queryCounts.get(db.id)?.toLocaleString() ?? "—"}</TableCell>
+
                 <TableCell className="pr-4">
                   <div className="flex items-center justify-end gap-1.5">
-                    <Button variant="default" size="sm" onClick={() => onOpenDetails(db)} title="Open Interactive Workbench">
-                      Workbench
-                    </Button>
-                    <Button variant="outline" size="sm" disabled={isTesting} onClick={() => onTestConnection(db.id)}>
-                      {isTesting ? "Testing…" : "Test"}
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => navigate(`/connections/${db.id}/edit`)}>
-                      Edit
-                    </Button>
-                    <Button variant="destructive" size="sm" onClick={() => onDeleteRequest(db)}>
-                      Delete
-                    </Button>
+                    <Button variant="default" size="sm" onClick={() => onOpenDetails(db)} title="Open connection details">Details</Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label={`Actions for ${db.name}`} />}><MoreHorizontal /></DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuGroup>
+                          <DropdownMenuItem disabled={isTesting} onClick={() => onTestConnection(db.id)}>{isTesting ? "Testing connection…" : "Test connection"}</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => navigate(`/connections/${db.id}/edit`)}><Pencil />Edit</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => void copyMcpConfig()}><Copy />Copy MCP config</DropdownMenuItem>
+                          <DropdownMenuItem variant="destructive" onClick={() => onDeleteRequest(db)}><Trash2 />Delete</DropdownMenuItem>
+                        </DropdownMenuGroup>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                   {testResult && (
                     <p className={`mt-1.5 text-[11px] text-right ${testResult.success ? "text-primary" : "text-destructive"}`}>

@@ -9,7 +9,7 @@ import {
   type BaseDatabaseFormData,
 } from "../schemas/databaseSchemas";
 import { DB_ENGINES } from "../types";
-import type { DbEngineType, TestResult, UpdateDatabaseInput } from "../types";
+import type { DatabaseConnection, DbEngineType, TestResult, UpdateDatabaseInput } from "../types";
 import type { ParsedConnectionFields } from "../components/ConnectionStringParser";
 
 export type DatabaseFormState = BaseDatabaseFormData & { password?: string };
@@ -27,7 +27,7 @@ const INITIAL_FORM: DatabaseFormState = {
   environment: "",
 };
 
-export function useDatabaseForm() {
+export function useDatabaseForm(options: { onCreated?: (connection: DatabaseConnection) => void } = {}) {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const isEdit = Boolean(id);
@@ -165,8 +165,10 @@ export function useDatabaseForm() {
         await saveMutation.mutateAsync({ input: data, connectionId: id });
         toast.success(`Updated "${data.name}"`);
       } else {
-        await saveMutation.mutateAsync({ input: data });
+        const created = await saveMutation.mutateAsync({ input: data });
         toast.success(`Added "${data.name}"`);
+        options.onCreated?.(created);
+        if (options.onCreated) return;
       }
       navigate("/connections");
     } catch (err: unknown) {

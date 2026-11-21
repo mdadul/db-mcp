@@ -24,35 +24,49 @@ export function useBulkActions({
   const bulkEnable = async () => {
     setIsActioning(true);
     let count = 0;
-    for (const db of selected()) {
-      if (db.status !== "enabled") { await onToggleStatus(db); count++; }
+    try {
+      for (const db of selected()) {
+        if (db.status !== "enabled") { await onToggleStatus(db); count++; }
+      }
+      toast.success(`Enabled ${count} database connection(s)`);
+      onClearSelection();
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Could not enable selected connections");
+    } finally {
+      setIsActioning(false);
     }
-    setIsActioning(false);
-    toast.success(`Enabled ${count} database connection(s)`);
-    onClearSelection();
   };
 
   const bulkDisable = async () => {
     setIsActioning(true);
     let count = 0;
-    for (const db of selected()) {
-      if (db.status !== "disabled") { await onToggleStatus(db); count++; }
+    try {
+      for (const db of selected()) {
+        if (db.status !== "disabled") { await onToggleStatus(db); count++; }
+      }
+      toast.info(`Disabled ${count} database connection(s)`);
+      onClearSelection();
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Could not disable selected connections");
+    } finally {
+      setIsActioning(false);
     }
-    setIsActioning(false);
-    toast.info(`Disabled ${count} database connection(s)`);
-    onClearSelection();
   };
 
   const bulkDelete = async () => {
-    if (!confirm(`Delete ${selectedIds.length} connection(s)? This cannot be undone.`)) return;
     setIsActioning(true);
     let count = 0;
-    for (const db of selected()) {
-      await onDeleteDatabase({ id: db.id, name: db.name }); count++;
+    try {
+      for (const db of selected()) {
+        await onDeleteDatabase({ id: db.id, name: db.name }); count++;
+      }
+      toast.success(`Deleted ${count} connection(s)`);
+      onClearSelection();
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Could not delete selected connections");
+    } finally {
+      setIsActioning(false);
     }
-    setIsActioning(false);
-    toast.success(`Deleted ${count} connection(s)`);
-    onClearSelection();
   };
 
   return { isActioning, bulkEnable, bulkDisable, bulkDelete };

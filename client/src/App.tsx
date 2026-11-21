@@ -1,17 +1,20 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { AlertTriangle, FolderOpen, RotateCw, Server } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { DatabaseListPage } from "@/pages/DatabaseListPage";
-import { DatabaseFormPage } from "@/pages/DatabaseFormPage";
-import { PlaceholderPage } from "@/pages/PlaceholderPage";
-import { OnboardingPage } from "@/pages/OnboardingPage";
-import { SettingsPage } from "@/pages/SettingsPage";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Skeleton } from "@/components/ui/primitives";
 import { platform } from "@/platform";
 import { useRestartServer, useServerInfo, useSettings } from "@/platform/hooks";
 import type { ServerState } from "@/platform/types";
+
+const DatabaseListPage = lazy(() => import("@/pages/DatabaseListPage").then((module) => ({ default: module.DatabaseListPage })));
+const DatabaseFormPage = lazy(() => import("@/pages/DatabaseFormPage").then((module) => ({ default: module.DatabaseFormPage })));
+const OnboardingPage = lazy(() => import("@/pages/OnboardingPage").then((module) => ({ default: module.OnboardingPage })));
+const SettingsPage = lazy(() => import("@/pages/SettingsPage").then((module) => ({ default: module.SettingsPage })));
+const AiClientsPage = lazy(() => import("@/pages/AiClientsPage").then((module) => ({ default: module.AiClientsPage })));
+const ActivityPage = lazy(() => import("@/pages/ActivityPage").then((module) => ({ default: module.ActivityPage })));
+const ConnectionDetailPage = lazy(() => import("@/pages/ConnectionDetailPage").then((module) => ({ default: module.ConnectionDetailPage })));
 
 function ServerStateGate() {
   const { data: serverInfo, isLoading } = useServerInfo();
@@ -55,21 +58,34 @@ export function App() {
     <Route element={<ServerStateGate />}>
       <Route element={<AppShell />}>
         <Route path="/" element={<HomeRedirect />} />
-        <Route path="/onboarding" element={<OnboardingPage />} />
-        <Route path="/connections" element={<DatabaseListPage />} />
-        <Route path="/connections/new" element={<DatabaseFormPage />} />
-        <Route path="/connections/:id/edit" element={<DatabaseFormPage />} />
-        <Route path="/ai-clients" element={<PlaceholderPage title="AI Clients" description="Connect your AI tools to the local db-mcp server." />} />
-        <Route path="/activity" element={<PlaceholderPage title="Activity" description="Review recent database and MCP activity." />} />
-        <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/onboarding" element={<LazyPage><OnboardingPage /></LazyPage>} />
+        <Route element={<OnboardingGate />}>
+          <Route path="/connections" element={<LazyPage><DatabaseListPage /></LazyPage>} />
+          <Route path="/connections/new" element={<LazyPage><DatabaseFormPage /></LazyPage>} />
+          <Route path="/connections/:id/edit" element={<LazyPage><DatabaseFormPage /></LazyPage>} />
+          <Route path="/connections/:id" element={<LazyPage><ConnectionDetailPage /></LazyPage>} />
+          <Route path="/ai-clients" element={<LazyPage><AiClientsPage /></LazyPage>} />
+          <Route path="/activity" element={<LazyPage><ActivityPage /></LazyPage>} />
+          <Route path="/settings" element={<LazyPage><SettingsPage /></LazyPage>} />
+        </Route>
         <Route path="*" element={<Navigate to="/connections" replace />} />
       </Route>
     </Route>
   </Routes></BrowserRouter>;
 }
 
+function LazyPage({ children }: { children: React.ReactNode }) {
+  return <Suspense fallback={<div className="mx-auto flex max-w-5xl flex-col gap-3 px-6 py-7" role="status" aria-label="Loading page"><Skeleton className="h-8 w-56" /><Skeleton className="h-4 w-80" /><Skeleton className="mt-4 h-64 w-full" /></div>}>{children}</Suspense>;
+}
+
 function HomeRedirect() {
   const { data: settings } = useSettings();
   if (!settings) return <div className="p-8"><Skeleton className="h-8 w-40" /></div>;
   return <Navigate to={settings.onboardingCompleted ? "/connections" : "/onboarding"} replace />;
+}
+
+function OnboardingGate() {
+  const { data: settings } = useSettings();
+  if (!settings) return <div className="p-8"><Skeleton className="h-8 w-40" /></div>;
+  return settings.onboardingCompleted ? <Outlet /> : <Navigate to="/onboarding" replace />;
 }

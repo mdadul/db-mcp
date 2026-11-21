@@ -11,6 +11,10 @@ export interface DatabaseToolbarProps {
   statusFilter: string;
   onStatusFilterChange: (status: string) => void;
   environments: string[];
+  engineFilter: string;
+  onEngineFilterChange: (engine: string) => void;
+  sortOrder: "name" | "created";
+  onSortOrderChange: (sort: "name" | "created") => void;
 }
 
 export function DatabaseToolbar({
@@ -21,9 +25,13 @@ export function DatabaseToolbar({
   statusFilter,
   onStatusFilterChange,
   environments,
+  engineFilter,
+  onEngineFilterChange,
+  sortOrder,
+  onSortOrderChange,
 }: DatabaseToolbarProps) {
   return (
-    <Card className="mb-2 space-y-3 border-border bg-background p-4 shadow-sm">
+    <Card className="mb-2 flex flex-col gap-3 border-border bg-background p-4 shadow-sm">
       <div className="flex items-center justify-between">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Explorer Controls</p>
         <p className="text-xs text-muted-foreground">Search, filter, and switch views</p>
@@ -63,6 +71,18 @@ export function DatabaseToolbar({
             <option value="all">All Statuses</option>
             <option value="enabled">Enabled Only</option>
             <option value="disabled">Disabled Only</option>
+          </select>
+          <select aria-label="Filter by database engine" value={engineFilter} onChange={(e) => onEngineFilterChange(e.target.value)} className="text-xs px-3 py-1.5 border border-border rounded-lg bg-background text-muted-foreground font-medium focus:outline-none focus:ring-2 focus:ring-ring">
+            <option value="all">All engines</option>
+            <option value="postgresql">PostgreSQL</option>
+            <option value="mysql">MySQL</option>
+            <option value="mongodb">MongoDB</option>
+            <option value="sqlite">SQLite</option>
+            <option value="redshift">Redshift</option>
+          </select>
+          <select aria-label="Sort connections" value={sortOrder} onChange={(e) => onSortOrderChange(e.target.value === "name" ? "name" : "created")} className="text-xs px-3 py-1.5 border border-border rounded-lg bg-background text-muted-foreground font-medium focus:outline-none focus:ring-2 focus:ring-ring">
+            <option value="created">Recently added</option>
+            <option value="name">Name A–Z</option>
           </select>
         </div>
       </div>
