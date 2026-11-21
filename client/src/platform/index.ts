@@ -25,5 +25,9 @@ export const platform: Platform = {
   installAiClient: async (id) => (await previewPlatform).installAiClient(id),
   uninstallAiClient: async (id) => (await previewPlatform).uninstallAiClient(id),
   resetAllData: async () => (await previewPlatform).resetAllData(),
+  getBackgroundServer: async () => (await previewPlatform).getBackgroundServer(),
+  setBackgroundServer: async (enabled) => (await previewPlatform).setBackgroundServer(enabled),
+  restartBackgroundServer: async () => (await previewPlatform).restartBackgroundServer(),
+  stopBackgroundServer: async () => (await previewPlatform).stopBackgroundServer(),
   onServerState: async (callback) => (await previewPlatform).onServerState(callback),
 };

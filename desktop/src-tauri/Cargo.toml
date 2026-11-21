@@ -30,7 +30,7 @@ tauri-plugin-opener = "2"
 tauri-plugin-single-instance = "2"
 tauri-plugin-window-state = "2"
 tauri-plugin-updater = { version = "2", optional = true }
-tokio = { version = "1", features = ["io-util", "process", "sync", "time"] }
+tokio = { version = "1", features = ["io-util", "macros", "process", "signal", "sync", "time"] }
 
 [features]
 default = []

@@ -12,6 +12,7 @@ const defaults: AppSettings = {
   density: "default",
   fontSize: 13,
   onboardingCompleted: true,
+  backgroundServer: false,
 };
 
 const sampleClients: AiClient[] = [
@@ -36,7 +37,7 @@ export const devPreviewPlatform: Platform = {
   async getServerInfo() {
     const port = Number(import.meta.env.VITE_DEV_BACKEND_PORT ?? 4080);
     const baseUrl = `http://127.0.0.1:${port}`;
-    return { state: "healthy", port, baseUrl, mcpUrl: `${baseUrl}/mcp`, sessionToken: import.meta.env.VITE_DEV_SESSION_TOKEN ?? "dev", version: "0.1.0", lastError: null, restarts: 0 } satisfies ServerInfo;
+    return { state: "healthy", port, baseUrl, mcpUrl: `${baseUrl}/mcp`, sessionToken: import.meta.env.VITE_DEV_SESSION_TOKEN ?? "dev", version: "0.1.0", lastError: null, restarts: 0, mode: "embedded", attached: false, pid: null } satisfies ServerInfo;
   },
   async restartServer() { return this.getServerInfo(); },
   async readServerLogs(lines) {
@@ -73,5 +74,9 @@ export const devPreviewPlatform: Platform = {
   async installAiClient(id) { return { configPath: sampleClients.find((client) => client.id === id)?.configPath ?? "~/.config/ai-client/config.json", backupPath: null }; },
   async uninstallAiClient(id) { return { configPath: sampleClients.find((client) => client.id === id)?.configPath ?? "~/.config/ai-client/config.json", backupPath: null }; },
   async resetAllData() { localStorage.removeItem(SETTINGS_KEY); },
+  async getBackgroundServer() { return { enabled: readSettings().backgroundServer, installed: false, running: false, pid: null, port: null, error: "Background server controls are available in the desktop app." }; },
+  async setBackgroundServer(enabled) { const settings = await this.updateSettings({ backgroundServer: enabled }); return { enabled: settings.backgroundServer, installed: false, running: false, pid: null, port: null, error: "Background server controls are available in the desktop app." }; },
+  async restartBackgroundServer() { return this.getBackgroundServer(); },
+  async stopBackgroundServer() { return this.getBackgroundServer(); },
   async onServerState() { return () => undefined; },
 };

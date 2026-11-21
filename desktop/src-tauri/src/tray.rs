@@ -96,6 +96,9 @@ pub fn install(
 
 pub fn update_status(app: &AppHandle, info: &ServerInfo) {
     let status = match info.state {
+        ServerState::Healthy if info.mode == crate::supervisor::ServerMode::Background => {
+            format!("● Background server — 127.0.0.1:{}", info.port)
+        }
         ServerState::Healthy => format!("● Server running — 127.0.0.1:{}", info.port),
         ServerState::Starting => format!("● Server starting — 127.0.0.1:{}", info.port),
         ServerState::Unhealthy => format!("● Server unhealthy — 127.0.0.1:{}", info.port),

@@ -7,6 +7,7 @@ use tokio::sync::Mutex;
 
 use crate::{
     ai_clients,
+    background::{self, BackgroundServerStatus},
     settings::{AppSettings, SettingsPatch, SettingsStore},
     supervisor::{ServerInfo, Supervisor},
 };
@@ -24,10 +25,40 @@ pub async fn get_server_info(state: State<'_, SupervisorState>) -> Result<Server
 
 #[tauri::command]
 pub async fn restart_server(
+    app: AppHandle,
     state: State<'_, SupervisorState>,
     settings: State<'_, SettingsStore>,
 ) -> Result<ServerInfo, String> {
     let port = settings.get().port;
+    let is_attached = state
+        .lock()
+        .await
+        .as_ref()
+        .is_some_and(Supervisor::is_attached);
+    if is_attached {
+        background::restart()?;
+        if let Err(error) = wait_and_attach(&app, &state, port).await {
+            let _ = background::unregister();
+            let _ = settings.update(SettingsPatch {
+                background_server: Some(false),
+                ..SettingsPatch::default()
+            });
+            {
+                let mut supervisor = state.lock().await;
+                if let Some(supervisor) = supervisor.as_mut() {
+                    let _ = supervisor.start(port).await;
+                }
+            }
+            return Err(error);
+        }
+        let supervisor = state.lock().await;
+        let info = supervisor
+            .as_ref()
+            .ok_or_else(|| "Backend supervisor is not initialized".to_owned())?
+            .info()
+            .await;
+        return Ok(info);
+    }
     let mut supervisor = state.lock().await;
     supervisor
         .as_mut()
@@ -204,7 +235,12 @@ pub async fn update_settings(
     }
     let old = settings.get();
     let restart = patch.port.is_some_and(|port| port != old.port);
+    let background_change = patch.background_server;
     let autostart_change = patch.launch_at_login;
+    if let Some(enabled) = background_change.filter(|enabled| *enabled != old.background_server) {
+        set_background_server(app, enabled, settings.clone(), state).await?;
+        return Ok(settings.get());
+    }
     let updated = settings.update(patch)?;
     if let Some(enabled) = autostart_change {
         let autostart = app.autolaunch();
@@ -215,7 +251,31 @@ pub async fn update_settings(
         };
         result.map_err(|error| format!("Could not update launch-at-login setting: {error}"))?;
     }
-    if restart {
+    if restart && updated.background_server {
+        background::restart()?;
+        if let Err(error) = wait_and_attach(&app, &state, updated.port).await {
+            let _ = background::unregister();
+            let _ = settings.update(SettingsPatch {
+                background_server: Some(false),
+                ..SettingsPatch::default()
+            });
+            let mut supervisor = state.lock().await;
+            if let Some(supervisor) = supervisor.as_mut() {
+                let _ = supervisor.start(updated.port).await;
+            }
+            return Err(error);
+        }
+    } else if restart {
+        let is_attached = state
+            .lock()
+            .await
+            .as_ref()
+            .is_some_and(Supervisor::is_attached);
+        if is_attached {
+            background::restart()?;
+            wait_and_attach(&app, &state, updated.port).await?;
+            return Ok(updated);
+        }
         let mut supervisor = state.lock().await;
         supervisor
             .as_mut()
@@ -224,6 +284,198 @@ pub async fn update_settings(
             .await?;
     }
     Ok(updated)
+}
+
+#[tauri::command]
+pub async fn get_background_server(
+    app: AppHandle,
+    settings: State<'_, SettingsStore>,
+    state: State<'_, SupervisorState>,
+) -> Result<BackgroundServerStatus, String> {
+    let supervisor = state.lock().await;
+    let info = match supervisor.as_ref() {
+        Some(value) => Some(value.info().await),
+        None => None,
+    };
+    let data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|error| error.to_string())?;
+    let record = crate::supervisor::read_server_record(&data_dir.join("server.json"))?;
+    let server_info = info.as_ref();
+    Ok(BackgroundServerStatus {
+        enabled: settings.get().background_server,
+        installed: background::service_enabled(),
+        running: background::running(),
+        pid: record.as_ref().map(|item| item.pid),
+        port: record.as_ref().map(|item| item.port),
+        error: background::permanent_executable()
+            .err()
+            .or_else(|| server_info.and_then(|server| server.last_error.clone())),
+    })
+}
+
+#[tauri::command]
+pub async fn set_background_server(
+    app: AppHandle,
+    enabled: bool,
+    settings: State<'_, SettingsStore>,
+    state: State<'_, SupervisorState>,
+) -> Result<BackgroundServerStatus, String> {
+    if enabled {
+        background::permanent_executable()?;
+        let port = settings.get().port;
+        {
+            let mut supervisor = state.lock().await;
+            supervisor
+                .as_mut()
+                .ok_or_else(|| "Backend supervisor is not initialized".to_owned())?
+                .stop()
+                .await?;
+        }
+        let log_dir = app
+            .path()
+            .app_log_dir()
+            .map_err(|error| error.to_string())?;
+        if !background::installed() {
+            background::install(&log_dir)?;
+        } else {
+            background::enable_installed_service()?;
+        }
+        settings.update(SettingsPatch {
+            background_server: Some(true),
+            ..SettingsPatch::default()
+        })?;
+        if !background::running() {
+            if let Err(error) = background::enable_installed_service() {
+                let _ = settings.update(SettingsPatch {
+                    background_server: Some(false),
+                    ..SettingsPatch::default()
+                });
+                let mut supervisor = state.lock().await;
+                if let Some(supervisor) = supervisor.as_mut() {
+                    let _ = supervisor.start(port).await;
+                }
+                return Err(error);
+            }
+        }
+        wait_and_attach(&app, &state, port).await?;
+    } else {
+        background::unregister()?;
+        wait_for_background_stop(settings.get().port).await?;
+        settings.update(SettingsPatch {
+            background_server: Some(false),
+            ..SettingsPatch::default()
+        })?;
+        {
+            let mut supervisor = state.lock().await;
+            let supervisor = supervisor
+                .as_mut()
+                .ok_or_else(|| "Backend supervisor is not initialized".to_owned())?;
+            supervisor.stop().await?;
+            supervisor.start(settings.get().port).await?;
+        }
+    }
+    get_background_server(app, settings, state).await
+}
+
+#[tauri::command]
+pub async fn restart_background_server(
+    app: AppHandle,
+    settings: State<'_, SettingsStore>,
+    state: State<'_, SupervisorState>,
+) -> Result<BackgroundServerStatus, String> {
+    if !settings.get().background_server {
+        return Err("Background server is not enabled".to_owned());
+    }
+    background::restart()?;
+    if let Err(error) = wait_and_attach(&app, &state, settings.get().port).await {
+        let _ = background::unregister();
+        let _ = settings.update(SettingsPatch {
+            background_server: Some(false),
+            ..SettingsPatch::default()
+        });
+        {
+            let mut supervisor = state.lock().await;
+            if let Some(supervisor) = supervisor.as_mut() {
+                let _ = supervisor.start(settings.get().port).await;
+            }
+        }
+        return Err(error);
+    }
+    get_background_server(app, settings, state).await
+}
+
+#[tauri::command]
+pub async fn stop_background_server(
+    app: AppHandle,
+    settings: State<'_, SettingsStore>,
+    state: State<'_, SupervisorState>,
+) -> Result<BackgroundServerStatus, String> {
+    settings.update(SettingsPatch {
+        background_server: Some(false),
+        ..SettingsPatch::default()
+    })?;
+    background::unregister()?;
+    wait_for_background_stop(settings.get().port).await?;
+    {
+        let mut supervisor = state.lock().await;
+        let supervisor = supervisor
+            .as_mut()
+            .ok_or_else(|| "Backend supervisor is not initialized".to_owned())?;
+        supervisor.stop().await?;
+        supervisor.start(settings.get().port).await?;
+    }
+    get_background_server(app, settings, state).await
+}
+
+async fn wait_and_attach(
+    app: &AppHandle,
+    state: &SupervisorState,
+    port: u16,
+) -> Result<(), String> {
+    let path = app
+        .path()
+        .app_data_dir()
+        .map_err(|error| error.to_string())?
+        .join("server.json");
+    let deadline = tokio::time::Instant::now() + std::time::Duration::from_secs(15);
+    loop {
+        if let Some(record) = crate::supervisor::read_server_record(&path)? {
+            if record.port == port {
+                let mut supervisor = state.lock().await;
+                if let Some(supervisor) = supervisor.as_mut() {
+                    if supervisor.attach(record).await.is_ok() {
+                        return Ok(());
+                    }
+                }
+            }
+        }
+        if tokio::time::Instant::now() >= deadline {
+            return Err("Background server did not become healthy within 15 seconds".to_owned());
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(250)).await;
+    }
+}
+
+async fn wait_for_background_stop(port: u16) -> Result<(), String> {
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_millis(300))
+        .build()
+        .map_err(|error| error.to_string())?;
+    let deadline = tokio::time::Instant::now() + std::time::Duration::from_secs(5);
+    while tokio::time::Instant::now() < deadline {
+        if client
+            .get(format!("http://127.0.0.1:{port}/api/health"))
+            .send()
+            .await
+            .is_err()
+        {
+            return Ok(());
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    }
+    Err("Background server did not stop within 5 seconds".to_owned())
 }
 
 #[tauri::command]
@@ -243,15 +495,34 @@ pub fn get_app_info() -> Result<AppInfo, String> {
 
 #[tauri::command]
 pub async fn reset_all_data(
+    app: AppHandle,
     state: State<'_, SupervisorState>,
     settings: State<'_, SettingsStore>,
 ) -> Result<(), String> {
-    let mut supervisor = state.lock().await;
-    supervisor
-        .as_mut()
-        .ok_or_else(|| "Backend supervisor is not initialized".to_owned())?
-        .reset(settings.get().port)
-        .await?;
+    if settings.get().background_server {
+        background::stop()?;
+        {
+            let mut supervisor = state.lock().await;
+            supervisor
+                .as_mut()
+                .ok_or_else(|| "Backend supervisor is not initialized".to_owned())?
+                .stop()
+                .await?;
+            supervisor
+                .as_mut()
+                .expect("supervisor remains initialized")
+                .reset_data()?;
+        }
+        background::restart()?;
+        wait_and_attach(&app, &state, settings.get().port).await?;
+    } else {
+        let mut supervisor = state.lock().await;
+        supervisor
+            .as_mut()
+            .ok_or_else(|| "Backend supervisor is not initialized".to_owned())?
+            .reset(settings.get().port)
+            .await?;
+    }
     Ok(())
 }
 

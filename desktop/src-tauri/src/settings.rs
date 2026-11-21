@@ -26,6 +26,8 @@ pub struct AppSettings {
     pub font_size: u8,
     #[serde(default)]
     pub onboarding_completed: bool,
+    #[serde(default)]
+    pub background_server: bool,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
@@ -71,6 +73,7 @@ impl Default for AppSettings {
             density: Density::Default,
             font_size: default_font_size(),
             onboarding_completed: false,
+            background_server: false,
         }
     }
 }
@@ -88,6 +91,7 @@ pub struct SettingsPatch {
     pub density: Option<Density>,
     pub font_size: Option<u8>,
     pub onboarding_completed: Option<bool>,
+    pub background_server: Option<bool>,
 }
 
 impl AppSettings {
@@ -121,6 +125,9 @@ impl AppSettings {
         }
         if let Some(value) = patch.onboarding_completed {
             self.onboarding_completed = value;
+        }
+        if let Some(value) = patch.background_server {
+            self.background_server = value;
         }
     }
 }
@@ -235,6 +242,7 @@ mod tests {
         assert_eq!(AppSettings::default().density, Density::Default);
         assert_eq!(AppSettings::default().font_size, 13);
         assert!(!AppSettings::default().onboarding_completed);
+        assert!(!AppSettings::default().background_server);
     }
 
     #[test]
@@ -256,6 +264,7 @@ mod tests {
         assert_eq!(settings.density, Density::Comfortable);
         assert_eq!(settings.font_size, 14);
         assert!(settings.close_to_tray);
+        assert!(!settings.background_server);
     }
 
     #[test]
@@ -280,6 +289,20 @@ mod tests {
         assert_eq!(settings.theme_id, "default");
         assert_eq!(settings.density, Density::Default);
         assert_eq!(settings.font_size, 13);
+        assert!(!settings.background_server);
+    }
+
+    #[test]
+    fn background_server_setting_patches_and_round_trips() {
+        let mut settings = AppSettings::default();
+        settings.apply(SettingsPatch {
+            background_server: Some(true),
+            ..SettingsPatch::default()
+        });
+        assert!(settings.background_server);
+        let json = serde_json::to_string(&settings).expect("serialize settings");
+        let restored: AppSettings = serde_json::from_str(&json).expect("deserialize settings");
+        assert!(restored.background_server);
     }
 
     #[test]

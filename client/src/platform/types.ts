@@ -16,6 +16,18 @@ export interface ServerInfo {
   version: string | null;
   lastError: string | null;
   restarts: number;
+  mode: "embedded" | "background";
+  attached: boolean;
+  pid: number | null;
+}
+
+export interface BackgroundServerStatus {
+  enabled: boolean;
+  installed: boolean;
+  running: boolean;
+  pid: number | null;
+  port: number | null;
+  error: string | null;
 }
 
 export interface AppSettings {
@@ -29,6 +41,7 @@ export interface AppSettings {
   density: "compact" | "default" | "comfortable";
   fontSize: 12 | 13 | 14;
   onboardingCompleted: boolean;
+  backgroundServer: boolean;
 }
 
 export type AiClientId =
@@ -82,5 +95,9 @@ export interface Platform {
   installAiClient(id: AiClientId): Promise<InstallResult>;
   uninstallAiClient(id: AiClientId): Promise<InstallResult>;
   resetAllData(): Promise<void>;
+  getBackgroundServer(): Promise<BackgroundServerStatus>;
+  setBackgroundServer(enabled: boolean): Promise<BackgroundServerStatus>;
+  restartBackgroundServer(): Promise<BackgroundServerStatus>;
+  stopBackgroundServer(): Promise<BackgroundServerStatus>;
   onServerState(callback: (info: ServerInfo) => void): Promise<() => void>;
 }

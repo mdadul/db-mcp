@@ -83,6 +83,7 @@ export function SettingsPage() {
         <SettingRow title="Launch at login" description="Start DB MCP when you sign in to this computer." control={<Switch checked={settings?.launchAtLogin ?? false} disabled={!settings || updateSettings.isPending} onCheckedChange={(checked) => update({ launchAtLogin: checked })} aria-label="Launch at login" />} />
         <SettingRow title="Start hidden" description={settings?.launchAtLogin ? "Open in the menu bar or system tray when launched at login." : "Turn on Launch at login to use this option."} disabled={!settings?.launchAtLogin} control={<Switch checked={settings?.startHidden ?? true} disabled={!settings?.launchAtLogin || updateSettings.isPending} onCheckedChange={(checked) => update({ startHidden: checked })} aria-label="Start hidden" />} />
         <SettingRow title="Keep running when closed" description="Hide the window and keep the server available from the system tray." control={<Switch checked={settings?.closeToTray ?? true} disabled={!settings || updateSettings.isPending} onCheckedChange={(checked) => update({ closeToTray: checked })} aria-label="Keep running when the window is closed" />} />
+        <BackgroundServerSetting />
       </SettingsGroup>
     </Section>
 
@@ -112,4 +113,36 @@ export function SettingsPage() {
   <ConfirmDialog open={portConfirm} onOpenChange={setPortConfirm} title="Change the server port?" description={`The server will restart on port ${portNumber}. Update the MCP URL in each AI client that uses DB MCP.`} confirmLabel="Save and restart" pending={updateSettings.isPending} onConfirm={() => { setPortConfirm(false); void savePort(); }} />
   <ConfirmDialog open={resetOpen} onOpenChange={setResetOpen} title="Reset all local data?" description="This permanently removes saved database connections and credentials, then returns DB MCP to first-run setup." confirmLabel="Reset everything" confirmationText="reset" pending={resetting} onConfirm={() => void resetData()} />
   </div>;
+}
+
+function BackgroundServerSetting() {
+  const queryClient = useQueryClient();
+  const { data: settings } = useSettings();
+  const { data: status, refetch } = useQuery({ queryKey: ["platform", "background-server"], queryFn: platform.getBackgroundServer, refetchInterval: 3000 });
+  const [pending, setPending] = useState(false);
+  const toggle = async (enabled: boolean) => {
+    setPending(true);
+    try {
+      await platform.setBackgroundServer(enabled);
+      await queryClient.invalidateQueries({ queryKey: ["platform", "background-server"] });
+      await Promise.all([queryClient.invalidateQueries({ queryKey: ["platform", "background-server"] }), queryClient.invalidateQueries({ queryKey: ["platform", "settings"] }), queryClient.invalidateQueries({ queryKey: ["platform", "server-info"] })]);
+      toast.success(enabled ? "Background server started" : "Background server stopped");
+    } catch (error: unknown) { toast.error(error instanceof Error ? error.message : "Could not update background server"); }
+    finally { setPending(false); }
+  };
+  const action = async (restart: boolean) => {
+    setPending(true);
+    try {
+      if (restart) await platform.restartBackgroundServer(); else await platform.stopBackgroundServer();
+      await Promise.all([refetch(), queryClient.invalidateQueries({ queryKey: ["platform", "settings"] }), queryClient.invalidateQueries({ queryKey: ["platform", "server-info"] })]);
+      toast.success(restart ? "Background server restarted" : "Background server stopped");
+    } catch (error: unknown) { toast.error(error instanceof Error ? error.message : "Could not update background server"); }
+    finally { setPending(false); }
+  };
+  const locationError = status?.error?.includes("Applications") === true;
+  return <>
+    <SettingRow title="Keep the MCP server running when DB MCP is closed" description="AI clients can keep using your databases after you quit. Starts when you log in." disabled={locationError} control={<Switch checked={settings?.backgroundServer ?? false} disabled={!settings || pending || locationError} onCheckedChange={(checked) => void toggle(checked)} aria-label="Keep the MCP server running when DB MCP is closed" />} />
+    {locationError && <p className="border-t border-border px-3.5 py-2 text-[12px] text-muted-foreground">{status?.error}</p>}
+    <div className="flex items-center justify-between gap-3 border-t border-border px-3.5 py-2.5"><p className="text-[12px] text-muted-foreground">{status?.running ? `Running in background · pid ${status.pid} · port ${status.port}` : status?.error ?? (status?.enabled ? "Starting background server…" : "Stopped")}</p>{status?.enabled && <div className="flex gap-2"><Button size="sm" variant="outline" disabled={pending} onClick={() => void action(false)}>Stop</Button><Button size="sm" variant="outline" disabled={pending} onClick={() => void action(true)}><RotateCw data-icon="inline-start" />Restart</Button></div>}</div>
+  </>;
 }

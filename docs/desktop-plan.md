@@ -83,6 +83,9 @@ interface ServerInfo {
   version: string | null; // backend version from /api/health
   lastError: string | null;
   restarts: number;
+  mode: "embedded" | "background";
+  attached: boolean;
+  pid: number | null;
 }
 
 interface AppSettings {
@@ -96,6 +99,7 @@ interface AppSettings {
   density: "compact" | "default" | "comfortable"; // default "default"
   fontSize: 12 | 13 | 14;  // default 13 px
   onboardingCompleted: boolean;       // default false
+  backgroundServer: boolean;         // default false
 }
 
 interface AiClient {
@@ -130,6 +134,10 @@ interface InstallResult  { configPath: string; backupPath: string | null; }
 | `list_custom_themes` | — | `string[]` (theme JSON documents from `app_config_dir/themes/`) |
 | `install_custom_theme` | `{ json: string }` | `string` (theme id; JSON limited to 256 KB, id must be safe and not built-in) |
 | `delete_custom_theme` | `{ id: string }` | `void` (removes an imported theme) |
+| `get_background_server` | — | `{ enabled, installed, running, pid, port, error }` (nullable fields when unavailable) |
+| `set_background_server` | `{ enabled: boolean }` | Background-server status |
+| `restart_background_server` | — | Background-server status |
+| `stop_background_server` | — | Background-server status |
 
 Theme imports are validated by the UI against the version-1 theme schema before IPC.
 The shell independently checks JSON shape, id format, built-in id collisions and file
@@ -170,9 +178,11 @@ no browser fallback: the UI only runs inside the Tauri webview. Development uses
 
 ## Background server (D9)
 
-- `db-mcp-desktop --server`: headless mode. No window or tray. Loads settings and the encryption key, runs the same supervisor (health checks, crash backoff), writes `server.log`, and serves `/mcp` and `/api` on the configured port. Single-instance per mode.
+- `db-mcp-desktop --server`: headless mode. No window or tray. Loads settings and the encryption key, runs the same supervisor (health checks, crash backoff), writes `server.log`, and serves `/mcp` and `/api` on the configured port. A private `server.lock` tracks the Node sidecar PID and prevents duplicate background instances; the GUI uses its existing Tauri single-instance plugin.
 - **Attach protocol.** The headless server writes `app_data_dir/server.json` (`{ pid, port, sessionToken, version, startedAt }`, file mode 0600, removed on clean exit). The UI app reads it on launch; if `/api/health` reports `app: "db-mcp"` with the same pid, it uses that `sessionToken` instead of spawning a sidecar. Otherwise it treats the file as stale.
 - **Service definitions** (per user, never system-wide): macOS `~/Library/LaunchAgents/dev.dbmcp.desktop.server.plist` with `RunAtLoad` + `KeepAlive`; Linux `~/.config/systemd/user/db-mcp-server.service` with `Restart=on-failure`; Windows a Task Scheduler task "DB MCP server" triggered at log on with restart on failure. The service runs the installed app binary path. Secrets are never written into service files.
 - **UI.** Settings → General: "Keep the MCP server running when DB MCP is closed" with status (Running in background / Stopped), Stop and Restart. Tray and status bar show "Background server". Quit closes the UI only while it is enabled.
 - **Commands.** `get_background_server`, `set_background_server { enabled }`, `restart_background_server`, `stop_background_server`.
 - Changing the port or resetting data restarts the background server.
+- `ServerInfo.mode` is `embedded` or `background`; `attached` identifies a GUI that observes the service-owned process. The background service writes `server.json` atomically with mode 0600 on Unix; the file contains the session token and must stay private.
+- Task Scheduler uses an imported XML task with three restart attempts at two-minute intervals.

@@ -8,7 +8,7 @@ use std::{
     sync::atomic::{AtomicBool, Ordering},
     sync::{Arc, Mutex as StdMutex},
     thread,
-    time::{Duration, Instant},
+    time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
 use log::warn;
@@ -47,6 +47,36 @@ pub struct ServerInfo {
     pub version: Option<String>,
     pub last_error: Option<String>,
     pub restarts: u32,
+    pub mode: ServerMode,
+    pub attached: bool,
+    pub pid: Option<u32>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ServerMode {
+    Embedded,
+    Background,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ServerRecord {
+    pub pid: u32,
+    pub port: u16,
+    pub session_token: String,
+    pub version: String,
+    pub started_at: u64,
+}
+
+impl PartialEq for ServerRecord {
+    fn eq(&self, other: &Self) -> bool {
+        self.pid == other.pid
+            && self.port == other.port
+            && self.session_token == other.session_token
+            && self.version == other.version
+            && self.started_at == other.started_at
+    }
 }
 
 #[derive(Clone)]
@@ -65,6 +95,8 @@ pub struct Supervisor {
     encryption_key: String,
     database_path: PathBuf,
     app_data_dir: PathBuf,
+    mode: ServerMode,
+    attached: Arc<AtomicBool>,
 }
 
 impl Supervisor {
@@ -92,6 +124,9 @@ impl Supervisor {
                 None,
                 None,
                 0,
+                ServerMode::Embedded,
+                false,
+                None,
             ))),
             child: Arc::new(Mutex::new(None)),
             stopping: Arc::new(AtomicBool::new(false)),
@@ -99,6 +134,8 @@ impl Supervisor {
             encryption_key,
             database_path: app_data_dir.join("db-mcp.sqlite"),
             app_data_dir,
+            mode: ServerMode::Embedded,
+            attached: Arc::new(AtomicBool::new(false)),
         })
     }
 
@@ -106,11 +143,27 @@ impl Supervisor {
         self.info.lock().await.clone()
     }
 
+    pub fn is_attached(&self) -> bool {
+        self.attached.load(Ordering::SeqCst)
+    }
+
     pub async fn logs(&self, count: usize) -> Vec<String> {
         self.log.last(count).await
     }
 
     pub async fn start(&mut self, port: u16) -> Result<ServerInfo, String> {
+        self.mode = ServerMode::Embedded;
+        self.attached.store(false, Ordering::SeqCst);
+        self.start_inner(port).await
+    }
+
+    pub async fn start_background(&mut self, port: u16) -> Result<ServerInfo, String> {
+        self.mode = ServerMode::Background;
+        self.attached.store(false, Ordering::SeqCst);
+        self.start_inner(port).await
+    }
+
+    async fn start_inner(&mut self, port: u16) -> Result<ServerInfo, String> {
         validate_port(port)?;
         if self.child.lock().await.is_some() {
             self.stop().await?;
@@ -148,7 +201,7 @@ impl Supervisor {
         }
 
         let mut crash_times = VecDeque::new();
-        let (child, mut version, restarts) = loop {
+        let (child, server_pid, mut version, restarts) = loop {
             let mut child = match self.spawn_child(port, &token) {
                 Ok(child) => child,
                 Err(error) => {
@@ -173,8 +226,8 @@ impl Supervisor {
             self.attach_output(child.stdout.take(), child.stderr.take());
             let startup_started = Instant::now();
             let startup_result = loop {
-                if let Some((_, version)) = probe_db_mcp(port).await {
-                    break Ok(version);
+                if let Some((pid, version)) = probe_db_mcp(port).await {
+                    break Ok((pid, version));
                 }
                 if let Some(status) = child
                     .try_wait()
@@ -193,7 +246,7 @@ impl Supervisor {
                 sleep(HEALTH_INTERVAL).await;
             };
             match startup_result {
-                Ok(version) => break (child, Some(version), crash_times.len() as u32),
+                Ok((pid, version)) => break (child, pid, Some(version), crash_times.len() as u32),
                 Err(error) => {
                     if record_crash(&mut crash_times, Instant::now()) {
                         self.set_state(port, token, ServerState::Failed, Some(error.clone()), None)
@@ -223,16 +276,45 @@ impl Supervisor {
             version.take(),
         )
         .await;
+        self.info.lock().await.pid = Some(server_pid);
+        let version = self.info.lock().await.version.clone();
+        self.write_server_record(server_pid, port, &token, version.as_deref())?;
         self.start_monitor(port, token);
         Ok(self.info().await)
     }
 
     pub async fn stop(&mut self) -> Result<ServerInfo, String> {
+        self.attached.store(false, Ordering::SeqCst);
         self.stop_inner(true).await
     }
 
     pub async fn stop_for_exit(&mut self) -> Result<ServerInfo, String> {
+        self.attached.store(false, Ordering::SeqCst);
         self.stop_inner(false).await
+    }
+
+    pub async fn attach(&mut self, record: ServerRecord) -> Result<ServerInfo, String> {
+        self.stop().await?;
+        self.mode = ServerMode::Background;
+        self.attached.store(true, Ordering::SeqCst);
+        let health = probe_db_mcp(record.port)
+            .await
+            .filter(|(pid, _)| *pid == record.pid)
+            .ok_or_else(|| "Background server is no longer available".to_owned())?;
+        *self.info.lock().await = make_server_info(
+            record.port,
+            record.session_token.clone(),
+            ServerState::Healthy,
+            None,
+            Some(health.1),
+            0,
+            ServerMode::Background,
+            true,
+            Some(record.pid),
+        );
+        self.emit().await;
+        self.start_attached_monitor(record.port);
+        Ok(self.info().await)
     }
 
     pub(crate) fn kill_now(&mut self) {
@@ -246,6 +328,7 @@ impl Supervisor {
 
     async fn stop_inner(&mut self, notify_ui: bool) -> Result<ServerInfo, String> {
         self.stopping.store(true, Ordering::SeqCst);
+        let owned_process = self.child.lock().await.is_some();
         let mut info = self.info.lock().await;
         info.state = ServerState::Stopped;
         info.version = None;
@@ -276,6 +359,12 @@ impl Supervisor {
                 sleep(Duration::from_millis(100)).await;
             }
         }
+        // Only the process that owns the backend child (the headless server)
+        // removes server.json. A UI attached to a background server must leave
+        // it in place, or the next launch can no longer find that server.
+        if self.mode == ServerMode::Background && owned_process {
+            let _ = fs::remove_file(self.app_data_dir.join("server.json"));
+        }
         if notify_ui {
             self.set_state(port, token, ServerState::Stopped, None, None)
                 .await;
@@ -290,6 +379,11 @@ impl Supervisor {
 
     pub async fn reset(&mut self, port: u16) -> Result<ServerInfo, String> {
         self.stop().await?;
+        self.reset_data()?;
+        self.start(port).await
+    }
+
+    pub fn reset_data(&mut self) -> Result<(), String> {
         for suffix in ["", "-wal", "-shm"] {
             let mut file_name = self.database_path.as_os_str().to_os_string();
             file_name.push(suffix);
@@ -302,7 +396,7 @@ impl Supervisor {
         }
         secrets::delete_encryption_key(&self.app_data_dir)?;
         self.encryption_key = secrets::encryption_key(&self.app_data_dir)?;
-        self.start(port).await
+        Ok(())
     }
 
     fn spawn_child(&self, port: u16, token: &str) -> Result<Child, String> {
@@ -345,6 +439,8 @@ impl Supervisor {
         let encryption_key = self.encryption_key.clone();
         let database_path = self.database_path.clone();
         let log = self.log.clone();
+        let app_data_dir = self.app_data_dir.clone();
+        let mode = self.mode.clone();
         tauri::async_runtime::spawn(async move {
             let mut consecutive_failures = 0_u8;
             let mut crash_times = VecDeque::new();
@@ -361,6 +457,12 @@ impl Supervisor {
                 match process.try_wait() {
                     Ok(Some(status)) => {
                         child_guard.take();
+                        if mode == ServerMode::Background {
+                            let _ = fs::remove_file(app_data_dir.join("server.json"));
+                        }
+                        if mode == ServerMode::Background {
+                            let _ = fs::remove_file(app_data_dir.join("server.json"));
+                        }
                         let stop_retrying = record_crash(&mut crash_times, Instant::now());
                         let current = info.lock().await.clone();
                         let count = current.restarts + 1;
@@ -408,6 +510,34 @@ impl Supervisor {
                             &log,
                         ) {
                             Ok(restarted) => {
+                                let pid = loop {
+                                    if let Some((pid, _)) = probe_db_mcp(port).await {
+                                        break pid;
+                                    }
+                                    if stopping.load(Ordering::SeqCst) {
+                                        break restarted.id();
+                                    }
+                                    sleep(HEALTH_INTERVAL).await;
+                                };
+                                info.lock().await.pid = Some(pid);
+                                if mode == ServerMode::Background {
+                                    let record = ServerRecord {
+                                        pid,
+                                        port,
+                                        session_token: token.clone(),
+                                        version: env!("CARGO_PKG_VERSION").to_owned(),
+                                        started_at: SystemTime::now()
+                                            .duration_since(UNIX_EPOCH)
+                                            .unwrap_or_default()
+                                            .as_secs(),
+                                    };
+                                    if let Err(error) = write_server_record(
+                                        &app_data_dir.join("server.json"),
+                                        &record,
+                                    ) {
+                                        warn!("Could not update background server record: {error}");
+                                    }
+                                }
                                 *child.lock().await = Some(restarted);
                                 consecutive_failures = 0;
                                 update_info(
@@ -493,11 +623,117 @@ impl Supervisor {
         error: Option<String>,
         version: Option<String>,
     ) {
+        let pid = self
+            .child
+            .lock()
+            .await
+            .as_ref()
+            .map(Child::id)
+            .or(self.info.lock().await.pid);
         let mut info = self.info.lock().await;
         let restarts = info.restarts;
-        *info = make_server_info(port, token, state, error, version, restarts);
+        let attached = self.attached.load(Ordering::SeqCst);
+        *info = make_server_info(
+            port,
+            token,
+            state,
+            error,
+            version,
+            restarts,
+            self.mode.clone(),
+            attached,
+            pid,
+        );
         drop(info);
         self.emit().await;
+    }
+
+    fn write_server_record(
+        &self,
+        pid: u32,
+        port: u16,
+        token: &str,
+        version: Option<&str>,
+    ) -> Result<(), String> {
+        if self.mode != ServerMode::Background {
+            return Ok(());
+        }
+        let record = ServerRecord {
+            pid,
+            port,
+            session_token: token.to_owned(),
+            version: version.unwrap_or(env!("CARGO_PKG_VERSION")).to_owned(),
+            started_at: SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs(),
+        };
+        write_server_record(&self.app_data_dir.join("server.json"), &record)
+    }
+
+    fn start_attached_monitor(&self, port: u16) {
+        let app = self.app.clone();
+        let info = Arc::clone(&self.info);
+        let attached = Arc::clone(&self.attached);
+        let server_file = self.app_data_dir.join("server.json");
+        tauri::async_runtime::spawn(async move {
+            let mut failed = 0_u8;
+            while attached.load(Ordering::SeqCst) {
+                sleep(HEALTH_INTERVAL).await;
+                let current = info.lock().await.clone();
+                let health = probe_db_mcp(current.port).await;
+                if health
+                    .as_ref()
+                    .is_some_and(|(pid, _)| Some(*pid) == current.pid)
+                {
+                    failed = 0;
+                    continue;
+                }
+                failed = failed.saturating_add(1);
+                if failed == 1 {
+                    update_attached_info(
+                        &app,
+                        &info,
+                        ServerState::Restarting,
+                        Some("Background server is restarting".to_owned()),
+                        None,
+                    )
+                    .await;
+                }
+                if let Ok(Some(record)) = read_server_record(&server_file) {
+                    if let Some((pid, version)) = probe_db_mcp(record.port)
+                        .await
+                        .filter(|(pid, _)| *pid == record.pid)
+                    {
+                        *info.lock().await = make_server_info(
+                            record.port,
+                            record.session_token,
+                            ServerState::Healthy,
+                            None,
+                            Some(version),
+                            0,
+                            ServerMode::Background,
+                            true,
+                            Some(pid),
+                        );
+                        let updated = info.lock().await.clone();
+                        let _ = app.emit("server://state", updated.clone());
+                        tray::update_status(&app, &updated);
+                        failed = 0;
+                    }
+                } else if failed > 5 {
+                    update_attached_info(
+                        &app,
+                        &info,
+                        ServerState::Failed,
+                        Some("Background server stopped".to_owned()),
+                        None,
+                    )
+                    .await;
+                }
+                let _ = port;
+            }
+        });
     }
 
     async fn emit(&self) {
@@ -629,6 +865,7 @@ fn record_crash(crash_times: &mut VecDeque<Instant>, now: Instant) -> bool {
     crash_times.len() >= 5
 }
 
+#[allow(clippy::too_many_arguments)]
 fn make_server_info(
     port: u16,
     token: String,
@@ -636,6 +873,9 @@ fn make_server_info(
     last_error: Option<String>,
     version: Option<String>,
     restarts: u32,
+    mode: ServerMode,
+    attached: bool,
+    pid: Option<u32>,
 ) -> ServerInfo {
     ServerInfo {
         state,
@@ -646,6 +886,9 @@ fn make_server_info(
         version,
         last_error,
         restarts,
+        mode,
+        attached,
+        pid,
     }
 }
 
@@ -682,6 +925,68 @@ async fn probe_db_mcp(port: u16) -> Option<(u32, String)> {
 fn is_port_bound(port: u16) -> bool {
     let address = SocketAddr::from(([127, 0, 0, 1], port));
     TcpStream::connect_timeout(&address, Duration::from_millis(150)).is_ok()
+}
+
+pub fn read_server_record(path: &Path) -> Result<Option<ServerRecord>, String> {
+    let content = match fs::read(path) {
+        Ok(content) => content,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(error) => return Err(format!("Could not read background server record: {error}")),
+    };
+    let record: ServerRecord = serde_json::from_slice(&content)
+        .map_err(|error| format!("Background server record is invalid: {error}"))?;
+    Ok(Some(record))
+}
+
+fn write_server_record(path: &Path, record: &ServerRecord) -> Result<(), String> {
+    let parent = path
+        .parent()
+        .ok_or_else(|| "Background server record has no parent directory".to_owned())?;
+    fs::create_dir_all(parent)
+        .map_err(|error| format!("Could not create app data directory: {error}"))?;
+    let temporary = path.with_extension("json.tmp");
+    let contents = serde_json::to_vec(record)
+        .map_err(|error| format!("Could not encode background server record: {error}"))?;
+    let mut options = OpenOptions::new();
+    options.write(true).create(true).truncate(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        options.mode(0o600);
+    }
+    let mut file = options
+        .open(&temporary)
+        .map_err(|error| format!("Could not write background server record: {error}"))?;
+    file.write_all(&contents)
+        .map_err(|error| format!("Could not write background server record: {error}"))?;
+    file.sync_all()
+        .map_err(|error| format!("Could not sync background server record: {error}"))?;
+    fs::rename(&temporary, path)
+        .map_err(|error| format!("Could not publish background server record: {error}"))
+}
+
+async fn update_attached_info(
+    app: &AppHandle,
+    target: &Arc<Mutex<ServerInfo>>,
+    state: ServerState,
+    error: Option<String>,
+    version: Option<String>,
+) {
+    let current = target.lock().await.clone();
+    *target.lock().await = make_server_info(
+        current.port,
+        current.session_token,
+        state,
+        error,
+        version,
+        current.restarts,
+        ServerMode::Background,
+        true,
+        current.pid,
+    );
+    let info = target.lock().await.clone();
+    let _ = app.emit("server://state", info.clone());
+    tray::update_status(app, &info);
 }
 
 fn node_binary_path(app: &AppHandle) -> Result<PathBuf, String> {
@@ -802,7 +1107,18 @@ async fn update_info(
     version: Option<String>,
     restarts: u32,
 ) {
-    *target.lock().await = make_server_info(port, token, state, error, version, restarts);
+    let current = target.lock().await.clone();
+    *target.lock().await = make_server_info(
+        port,
+        token,
+        state,
+        error,
+        version,
+        restarts,
+        current.mode,
+        current.attached,
+        current.pid,
+    );
     let info = target.lock().await.clone();
     let _ = app.emit("server://state", info.clone());
     tray::update_status(app, &info);
@@ -866,5 +1182,74 @@ mod tests {
             };
             let _ = fs::remove_file(candidate);
         }
+    }
+
+    #[test]
+    fn server_record_round_trips_and_missing_records_are_stale() {
+        let path =
+            std::env::temp_dir().join(format!("db-mcp-server-record-{}.json", std::process::id()));
+        let record = ServerRecord {
+            pid: 123,
+            port: 4321,
+            session_token: "secret-token".to_owned(),
+            version: "0.1.0".to_owned(),
+            started_at: 42,
+        };
+        write_server_record(&path, &record).expect("write record");
+        assert_eq!(
+            read_server_record(&path).expect("read record"),
+            Some(record)
+        );
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            assert_eq!(
+                fs::metadata(&path)
+                    .expect("record metadata")
+                    .permissions()
+                    .mode()
+                    & 0o777,
+                0o600
+            );
+        }
+        fs::remove_file(&path).expect("remove record");
+        assert_eq!(
+            read_server_record(&path).expect("missing record is stale"),
+            None
+        );
+    }
+
+    #[test]
+    fn writes_replace_a_preexisting_record_without_changing_private_mode() {
+        let path = std::env::temp_dir().join(format!(
+            "db-mcp-server-record-replace-{}.json",
+            std::process::id()
+        ));
+        fs::write(&path, "old record").expect("create prior record");
+        let record = ServerRecord {
+            pid: 321,
+            port: 4322,
+            session_token: "new-token".to_owned(),
+            version: "0.1.1".to_owned(),
+            started_at: 43,
+        };
+        write_server_record(&path, &record).expect("replace record");
+        assert_eq!(
+            read_server_record(&path).expect("read replacement"),
+            Some(record)
+        );
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            assert_eq!(
+                fs::metadata(&path)
+                    .expect("record metadata")
+                    .permissions()
+                    .mode()
+                    & 0o777,
+                0o600
+            );
+        }
+        fs::remove_file(path).expect("remove record");
     }
 }

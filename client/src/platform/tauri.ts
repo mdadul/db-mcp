@@ -19,6 +19,10 @@ export const tauriPlatform: Platform = {
   installAiClient: (id: AiClientId) => invoke("install_ai_client", { id }),
   uninstallAiClient: (id: AiClientId) => invoke("uninstall_ai_client", { id }),
   resetAllData: () => invoke("reset_all_data"),
+  getBackgroundServer: () => invoke("get_background_server"),
+  setBackgroundServer: (enabled) => invoke("set_background_server", { enabled }),
+  restartBackgroundServer: () => invoke("restart_background_server"),
+  stopBackgroundServer: () => invoke("stop_background_server"),
   async onServerState(callback) {
     return listen<ServerInfo>("server://state", (event) => callback(event.payload));
   },
