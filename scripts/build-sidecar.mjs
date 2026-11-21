@@ -4,6 +4,7 @@ import { chmod, copyFile, mkdir, readFile, readdir, rm, stat, writeFile } from "
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
+import { resolveNpmInvocation } from "./npm-cli.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const tauriDir = join(root, "desktop", "src-tauri");
@@ -35,7 +36,7 @@ const optionalExternal = [
   "aws4",
   "mongodb-client-encryption",
 ];
-const target = parseArgument("--target") ?? process.env.TAURI_ENV_TARGET_TRIPLE ?? process.env.CARGO_BUILD_TARGET ?? rustHostTriple();
+const target = parseArgument("--target") ?? process.env.TAURI_ENV_TARGET_TRIPLE ?? rustHostTriple();
 const targetInfo = targets[target];
 if (!targetInfo) throw new Error(`Unsupported Node ${NODE_MAJOR} sidecar target: ${target}`);
 
@@ -65,24 +66,28 @@ const runtimeManifest = {
 };
 await writeFile(join(serverDir, "package.json"), `${JSON.stringify(runtimeManifest, null, 2)}\n`);
 
-const requestedArch = parseArgument("--arch") ?? process.env.npm_config_arch ?? process.env.NPM_CONFIG_ARCH ?? targetInfo.npmArch;
 const release = await latestNodeRelease();
 const npmEnv = { ...process.env };
-npmEnv.npm_config_arch = requestedArch;
-npmEnv.NPM_CONFIG_ARCH = requestedArch;
+npmEnv.npm_config_arch = targetInfo.npmArch;
+npmEnv.NPM_CONFIG_ARCH = targetInfo.npmArch;
+npmEnv.npm_config_target_arch = targetInfo.npmArch;
+npmEnv.NPM_CONFIG_TARGET_ARCH = targetInfo.npmArch;
+npmEnv.npm_config_platform = targetInfo.npmPlatform;
+npmEnv.NPM_CONFIG_PLATFORM = targetInfo.npmPlatform;
 npmEnv.npm_config_target = release.slice(1);
 npmEnv.NPM_CONFIG_TARGET = release.slice(1);
-npmEnv.npm_config_build_from_source = "true";
-npmEnv.NPM_CONFIG_BUILD_FROM_SOURCE = "true";
 await rm(join(serverDir, "node_modules"), { recursive: true, force: true });
 await rm(join(serverDir, "package-lock.json"), { force: true });
-run("npm", ["install", "--omit=dev", "--no-audit", "--no-fund"], { cwd: serverDir, env: npmEnv });
+const npmInvocation = await resolveNpmInvocation();
+run(npmInvocation.command, [...npmInvocation.argsPrefix, "install", "--omit=dev", "--no-audit", "--no-fund"], { cwd: serverDir, env: npmEnv });
 
 const nodeBinary = await fetchNodeBinary(target, release);
 const nodeStat = await stat(nodeBinary);
 const bundleStat = await stat(join(serverDir, "index.mjs"));
 const nativeAddon = await findFile(join(serverDir, "node_modules", "better-sqlite3"), "better_sqlite3.node");
-const nativeSize = nativeAddon ? (await stat(nativeAddon)).size : 0;
+if (!nativeAddon) throw new Error("better-sqlite3 native addon was not installed");
+const nativeSize = (await stat(nativeAddon)).size;
+await verifyNativeAddonArchitecture(nativeAddon, targetInfo);
 console.log(`Sidecar build complete for ${target}`);
 console.log(`  Node ${NODE_MAJOR} binary: ${nodeBinary} (${formatBytes(nodeStat.size)})`);
 console.log(`  Server bundle:   ${join(serverDir, "index.mjs")} (${formatBytes(bundleStat.size)})`);
@@ -147,18 +152,68 @@ async function fetchNodeBinary(triple, release) {
   await mkdir(extractedPath, { recursive: true });
 
   if (targetInfo.archiveExt === "zip") {
-    const extractPath = `${archiveRoot}/node.exe`;
-    const result = spawnSync("unzip", ["-p", archivePath, extractPath], { encoding: null, maxBuffer: 128 * 1024 * 1024 });
-    if (result.status !== 0) throw new Error(`Could not extract Node executable: ${result.stderr?.toString()}`);
-    const { writeFile: writeBinary } = await import("node:fs/promises");
-    await writeBinary(outputPath, result.stdout);
+    const archiveMember = join(archiveRoot, "node.exe").replaceAll("\\", "/");
+    run("tar", ["-xf", archivePath, "-C", extractedPath, archiveMember]);
+    await copyFile(join(extractedPath, archiveRoot, "node.exe"), outputPath);
   } else {
     run("tar", ["-xf", archivePath, "-C", extractedPath, `${archiveRoot}/bin/node`]);
     await copyFile(join(extractedPath, archiveRoot, "bin", "node"), outputPath);
   }
 
   if (targetInfo.executableExt !== ".exe") await chmod(outputPath, 0o755);
+  await maybeStripNodeBinary(outputPath, targetInfo, extractedPath);
   return outputPath;
+}
+
+async function maybeStripNodeBinary(binaryPath, targetInfo, scratchDir) {
+  if (
+    process.platform !== "darwin" ||
+    targetInfo.npmPlatform !== "darwin" ||
+    targetInfo.npmArch !== process.arch
+  ) {
+    return;
+  }
+
+  const originalSize = (await stat(binaryPath)).size;
+  const backupPath = join(scratchDir, "node-before-strip");
+  await copyFile(binaryPath, backupPath);
+  const result = spawnSync("strip", ["-x", binaryPath], { encoding: "utf8" });
+  const strippedSize = result.status === 0 ? (await stat(binaryPath)).size : originalSize;
+  const versionCheck = result.status === 0
+    ? spawnSync(binaryPath, ["--version"], { encoding: "utf8" })
+    : null;
+
+  if (result.status === 0 && strippedSize < originalSize && versionCheck?.status === 0) {
+    console.log(`  Node strip:      ${formatBytes(originalSize)} -> ${formatBytes(strippedSize)}`);
+    return;
+  }
+
+  await copyFile(backupPath, binaryPath);
+  if (result.error) {
+    console.log(`  Node strip:      skipped (${result.error.message})`);
+  } else if (result.status !== 0) {
+    console.log(`  Node strip:      skipped (strip exited with status ${result.status})`);
+  } else if (strippedSize >= originalSize) {
+    console.log(`  Node strip:      no size reduction (${formatBytes(originalSize)} -> ${formatBytes(strippedSize)})`);
+  } else {
+    console.log(`  Node strip:      reverted; --version failed (${formatBytes(originalSize)} -> ${formatBytes(strippedSize)})`);
+  }
+}
+
+async function verifyNativeAddonArchitecture(addonPath, targetInfo) {
+  if (process.platform === "win32") return;
+  const result = spawnSync("file", ["-b", addonPath], { encoding: "utf8" });
+  if (result.error) throw new Error(`Could not inspect better-sqlite3 architecture: ${result.error.message}`);
+  if (result.status !== 0) throw new Error(`Could not inspect better-sqlite3 architecture: ${result.stderr}`);
+
+  const architecture = result.stdout.trim();
+  const isExpected = targetInfo.npmArch === "x64"
+    ? /\b(x86_64|x86-64|x64)\b/i.test(architecture)
+    : /\b(arm64|aarch64)\b/i.test(architecture);
+  if (!isExpected) {
+    throw new Error(`better-sqlite3 architecture mismatch for ${targetInfo.npmPlatform}-${targetInfo.npmArch}: ${architecture}`);
+  }
+  console.log(`  SQLite arch:     ${architecture}`);
 }
 
 async function download(url, destination) {

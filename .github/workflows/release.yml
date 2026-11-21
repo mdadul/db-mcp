@@ -71,9 +71,6 @@ jobs:
       - name: Install JavaScript dependencies
         run: bun install --frozen-lockfile
 
-      - name: Build Node sidecar for target
-        run: node scripts/build-sidecar.mjs --target ${{ matrix.target }}
-
       # Signing secrets are optional. Only non-empty values are exported, so
       # unsigned builds still work when the secrets are not configured.
       - name: Export optional signing secrets
