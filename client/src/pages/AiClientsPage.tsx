@@ -2,7 +2,7 @@ import { Copy, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { AiClientList } from "@/features/ai-clients/components/AiClientList";
 import { Button } from "@/components/ui/Button";
-import { PageHeader } from "@/components/ui/primitives";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { useServerInfo } from "@/platform/hooks";
 
 export function AiClientsPage() {

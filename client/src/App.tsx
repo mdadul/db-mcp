@@ -1,11 +1,14 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, FolderOpen, RotateCw, Server } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { AppShell } from "@/components/layout/AppShell";
-import { PageHeader, Skeleton } from "@/components/ui/primitives";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { platform } from "@/platform";
 import { useRestartServer, useServerInfo, useSettings } from "@/platform/hooks";
+import { useUpdateSettings } from "@/platform/hooks";
+import { databaseApi } from "@/features/databases/api/databaseApi";
 import type { ServerState } from "@/platform/types";
 
 const DatabaseListPage = lazy(() => import("@/pages/DatabaseListPage").then((module) => ({ default: module.DatabaseListPage })));
@@ -40,10 +43,10 @@ function ServerStateGate() {
   const state = serverInfo.state;
   const { title, description } = stateCopy[state];
 
-  return <main className="flex min-h-screen items-center justify-center bg-background px-6 py-10"><section className="w-full max-w-xl rounded-2xl border border-border bg-card p-7 shadow-lg">
-    <div className="mb-5 flex size-11 items-center justify-center rounded-xl bg-destructive/10 text-destructive"><AlertTriangle className="size-5" /></div>
-    <PageHeader title={title} description={description} />
-    {state === "failed" && <div className="mb-5"><div className="mb-2 flex items-center justify-between"><h2 className="text-xs font-semibold">Recent server logs</h2><Button variant="ghost" size="sm" onClick={() => void platform.readServerLogs(200).then(setLogs)}>Refresh logs</Button></div><pre className="max-h-64 overflow-auto rounded-lg border border-border bg-muted p-3 font-mono text-[11px] leading-5 text-muted-foreground">{logs.length ? logs.slice(-200).join("\n") : "Select Refresh logs to load recent output."}</pre></div>}
+  return <main className="flex h-full items-center justify-center overflow-auto bg-background px-6 py-8"><section className="w-full max-w-xl rounded-lg border border-border bg-card p-6">
+    <div className="mb-4 flex size-9 items-center justify-center rounded-md bg-danger-subtle text-danger"><AlertTriangle className="size-4" /></div>
+    <h1 className="text-[15px] font-semibold">{title}</h1><p className="mt-1 mb-4 text-[12px] text-muted-foreground">{description}</p>
+    {state === "failed" && <div className="mb-5"><div className="mb-2 flex items-center justify-between"><h2 className="text-[12px] font-semibold">Recent server logs</h2><Button variant="ghost" size="sm" onClick={() => void platform.readServerLogs(200).then(setLogs)}>Refresh logs</Button></div><pre data-selectable="true" className="max-h-64 overflow-auto rounded-md border border-border bg-muted p-3 font-mono text-[11px] leading-5 text-muted-foreground">{logs.length ? logs.slice(-200).join("\n") : "Select Refresh logs to load recent output."}</pre></div>}
     <div className="flex flex-wrap gap-2">
       <Button onClick={() => restart.mutate()} disabled={restart.isPending}><RotateCw data-icon="inline-start" />Restart server</Button>
       {state === "failed" && <Button variant="outline" onClick={() => void platform.openLogsDir()}><FolderOpen data-icon="inline-start" />Open logs folder</Button>}
@@ -58,8 +61,8 @@ export function App() {
     <Route element={<ServerStateGate />}>
       <Route element={<AppShell />}>
         <Route path="/" element={<HomeRedirect />} />
-        <Route path="/onboarding" element={<LazyPage><OnboardingPage /></LazyPage>} />
         <Route element={<OnboardingGate />}>
+          <Route path="/onboarding" element={<LazyPage><OnboardingPage /></LazyPage>} />
           <Route path="/connections" element={<LazyPage><DatabaseListPage /></LazyPage>} />
           <Route path="/connections/new" element={<LazyPage><DatabaseFormPage /></LazyPage>} />
           <Route path="/connections/:id/edit" element={<LazyPage><DatabaseFormPage /></LazyPage>} />
@@ -81,11 +84,21 @@ function LazyPage({ children }: { children: React.ReactNode }) {
 function HomeRedirect() {
   const { data: settings } = useSettings();
   if (!settings) return <div className="p-8"><Skeleton className="h-8 w-40" /></div>;
-  return <Navigate to={settings.onboardingCompleted ? "/connections" : "/onboarding"} replace />;
+  return <Navigate to="/connections" replace />;
 }
 
 function OnboardingGate() {
   const { data: settings } = useSettings();
+  const location = useLocation();
+  const connections = useQuery({ queryKey: ["databases"], queryFn: databaseApi.list, enabled: settings !== undefined && !settings.onboardingCompleted });
+  const updateSettings = useUpdateSettings();
+  useEffect(() => {
+    if (settings && !settings.onboardingCompleted && connections.data?.length) updateSettings.mutate({ onboardingCompleted: true });
+  }, [connections.data, settings?.onboardingCompleted, updateSettings.mutate]);
   if (!settings) return <div className="p-8"><Skeleton className="h-8 w-40" /></div>;
-  return settings.onboardingCompleted ? <Outlet /> : <Navigate to="/onboarding" replace />;
+  if (settings.onboardingCompleted) return location.pathname === "/onboarding" ? <Navigate to="/connections" replace /> : <Outlet />;
+  if (connections.data?.length) return location.pathname === "/onboarding" ? <Navigate to="/connections" replace /> : <Outlet />;
+  if (connections.isLoading) return <div className="flex h-full items-center justify-center" role="status" aria-label="Checking local setup"><Skeleton className="h-4 w-40" /></div>;
+  if (connections.isError) return <Outlet />;
+  return location.pathname === "/onboarding" ? <Outlet /> : <Navigate to="/onboarding" replace />;
 }

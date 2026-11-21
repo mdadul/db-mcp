@@ -62,7 +62,7 @@ export const databaseApi = {
 
   async getSchema(id: string): Promise<SchemaResponse> {
     const client = await getApiClient();
-    const res = await client.api.databases[":id"].schema.$get({ param: { id } });
+    const res = await client.api.databases[":id"].schema.$get({ param: { id }, query: {} });
     return unwrap<SchemaResponse>(res);
   },
 
@@ -70,6 +70,7 @@ export const databaseApi = {
     const client = await getApiClient();
     const res = await client.api.databases[":id"].tables[":tableName"].schema.$get({
       param: { id, tableName },
+      query: {},
     });
     return unwrap<TableSchema>(res);
   },

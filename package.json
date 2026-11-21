@@ -34,7 +34,8 @@
     "db:studio": "drizzle-kit studio",
     "type-check": "tsc --noEmit",
     "test": "node --test src/**/*.test.ts",
-    "build:client": "cd client && bun install && bun run build"
+    "build:client": "cd client && bun install && bun run build",
+    "ui:preview": "node scripts/ui-preview.mjs"
   },
   "engines": {
     "node": ">=26.0.0"

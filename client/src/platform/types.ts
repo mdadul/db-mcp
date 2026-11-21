@@ -24,6 +24,7 @@ export interface AppSettings {
   startHidden: boolean;
   closeToTray: boolean;
   theme: "system" | "light" | "dark";
+  accent: "blue" | "violet" | "green" | "orange" | "pink" | "graphite";
   onboardingCompleted: boolean;
 }
 

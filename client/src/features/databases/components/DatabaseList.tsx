@@ -10,22 +10,15 @@ import { Button } from "@/components/ui/Button";
 import { toast } from "sonner";
 import {
   Database,
-  Plus,
-  RefreshCw,
-  Eye,
-  EyeOff,
 } from "@/components/ui/Icons";
 
 import { databaseApi } from "../api/databaseApi";
 import type { TestResult } from "../types";
 import { DatabaseTable } from "./DatabaseTable";
-import { DatabaseStatsBar } from "./DatabaseStatsBar";
-import { McpUsageStats } from "./McpUsageStats";
 import { DatabaseToolbar } from "./DatabaseToolbar";
 import { BulkActionBar } from "./BulkActionBar";
-import { McpSnippetCard } from "./McpSnippetCard";
 import { useBulkActions } from "../hooks/useBulkActions";
-import { PageHeader, Skeleton } from "@/components/ui/primitives";
+import { Skeleton } from "@/components/ui/Skeleton";
 import type { DatabaseConnection } from "../types";
 import { useMcpStats } from "../hooks/useMcpStats";
 
@@ -33,7 +26,6 @@ const STORAGE_KEYS = {
   searchQuery: "dbmcp.searchQuery",
   envFilter: "dbmcp.envFilter",
   statusFilter: "dbmcp.statusFilter",
-  showInsights: "dbmcp.showInsights",
 };
 
 export function DatabaseList() {
@@ -63,14 +55,11 @@ export function DatabaseList() {
   const [envFilter, setEnvFilter] = useLocalStorage(STORAGE_KEYS.envFilter, "all");
   const [statusFilter, setStatusFilter] = useLocalStorage(STORAGE_KEYS.statusFilter, "all");
   const [engineFilter, setEngineFilter] = useLocalStorage("dbmcp.engineFilter", "all");
-  const [showInsights, setShowInsights] = useLocalStorage(STORAGE_KEYS.showInsights, false);
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [deleteTarget, setDeleteTarget] = useState<DatabaseConnection | null>(null);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const isDeleting = deleteDatabase.isPending;
-
-  const fetchDatabases = () => queryClient.invalidateQueries({ queryKey: ["databases"] });
 
   const availableEnvironments = useMemo(() => {
     const set = new Set<string>();
@@ -126,28 +115,13 @@ export function DatabaseList() {
   }
 
   return (
-    <PageLayout maxWidth="6xl" className="space-y-6">
-      <PageHeader
-        title="Connections"
-        description="Manage the databases available to your AI clients. Credentials are encrypted locally."
-        actions={<>
-          <Button variant="ghost" size="sm" onClick={() => setShowInsights((prev) => !prev)} title="Toggle usage and MCP snippets">
-            {showInsights ? <EyeOff data-icon="inline-start" /> : <Eye data-icon="inline-start" />}{showInsights ? "Hide insights" : "Insights"}
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => fetchDatabases()}><RefreshCw data-icon="inline-start" />Refresh</Button>
-          <Link to="/connections/new"><Button size="sm"><Plus data-icon="inline-start" />New connection</Button></Link>
-        </>}
-      />
+    <PageLayout maxWidth="full" className="space-y-3">
 
       <div className="flex flex-col gap-5">
         {databasesQuery.error && <Alert variant="destructive">{databasesQuery.error instanceof Error ? databasesQuery.error.message : "Failed to load connections"}</Alert>}
 
-        {databases.length > 0 && <DatabaseStatsBar databases={databases} />}
-
-        <McpUsageStats />
-
         {databases.length > 0 && (
-          <div className="sticky top-16 z-20">
+          <div className="sticky top-0 z-20">
             <DatabaseToolbar
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
@@ -217,7 +191,6 @@ export function DatabaseList() {
           />
         )}
 
-        {showInsights && <div className="space-y-5"><McpSnippetCard /></div>}
       </div>
 
     <ConfirmModal

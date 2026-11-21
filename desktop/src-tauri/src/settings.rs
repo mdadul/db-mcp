@@ -17,6 +17,8 @@ pub struct AppSettings {
     #[serde(default)]
     pub theme: Theme,
     #[serde(default)]
+    pub accent: Accent,
+    #[serde(default)]
     pub onboarding_completed: bool,
 }
 
@@ -29,6 +31,18 @@ pub enum Theme {
     Dark,
 }
 
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Accent {
+    #[default]
+    Blue,
+    Violet,
+    Green,
+    Orange,
+    Pink,
+    Graphite,
+}
+
 impl Default for AppSettings {
     fn default() -> Self {
         Self {
@@ -37,6 +51,7 @@ impl Default for AppSettings {
             start_hidden: true,
             close_to_tray: true,
             theme: Theme::System,
+            accent: Accent::Blue,
             onboarding_completed: false,
         }
     }
@@ -50,6 +65,7 @@ pub struct SettingsPatch {
     pub start_hidden: Option<bool>,
     pub close_to_tray: Option<bool>,
     pub theme: Option<Theme>,
+    pub accent: Option<Accent>,
     pub onboarding_completed: Option<bool>,
 }
 
@@ -69,6 +85,9 @@ impl AppSettings {
         }
         if let Some(theme) = patch.theme {
             self.theme = theme;
+        }
+        if let Some(accent) = patch.accent {
+            self.accent = accent;
         }
         if let Some(value) = patch.onboarding_completed {
             self.onboarding_completed = value;
@@ -161,6 +180,7 @@ mod tests {
         assert!(AppSettings::default().start_hidden);
         assert!(AppSettings::default().close_to_tray);
         assert_eq!(AppSettings::default().theme, Theme::System);
+        assert_eq!(AppSettings::default().accent, Accent::Blue);
         assert!(!AppSettings::default().onboarding_completed);
     }
 
@@ -170,11 +190,24 @@ mod tests {
         settings.apply(SettingsPatch {
             port: Some(4321),
             theme: Some(Theme::Dark),
+            accent: Some(Accent::Violet),
             ..SettingsPatch::default()
         });
         assert_eq!(settings.port, 4321);
         assert_eq!(settings.theme, Theme::Dark);
+        assert_eq!(settings.accent, Accent::Violet);
         assert!(settings.close_to_tray);
+    }
+
+    #[test]
+    fn accent_serializes_as_lowercase_and_defaults_when_missing() {
+        let settings: AppSettings =
+            serde_json::from_str(r#"{"port":4080}"#).expect("deserialize old settings");
+        assert_eq!(settings.accent, Accent::Blue);
+        assert_eq!(
+            serde_json::to_string(&Accent::Graphite).expect("serialize accent"),
+            "\"graphite\""
+        );
     }
 
     #[test]

@@ -90,6 +90,7 @@ interface AppSettings {
   startHidden: boolean;    // default true (only applies on autostart)
   closeToTray: boolean;    // default true
   theme: "system" | "light" | "dark"; // default "system"
+  accent: "blue" | "violet" | "green" | "orange" | "pink" | "graphite"; // default "blue"
   onboardingCompleted: boolean;       // default false
 }
 

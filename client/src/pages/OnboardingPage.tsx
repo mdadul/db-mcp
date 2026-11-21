@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Check, ChevronLeft, ChevronRight, Database, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
-import { PageHeader } from "@/components/ui/primitives";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { DatabaseForm } from "@/features/databases/components/DatabaseForm";
 import { AiClientList } from "@/features/ai-clients/components/AiClientList";
 import { useUpdateSettings } from "@/platform/hooks";

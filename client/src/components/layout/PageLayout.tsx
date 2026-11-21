@@ -19,7 +19,6 @@ export function PageLayout({
     full: "max-w-full",
   };
 
-  return (
-    <div className={`mx-auto w-full ${widthStyles[maxWidth]} px-6 py-7 ${className}`}>{children}</div>
-  );
+  const padding = maxWidth === "full" ? "" : "px-4 py-4";
+  return <div className={`mx-auto w-full ${widthStyles[maxWidth]} ${padding} ${className}`}>{children}</div>;
 }

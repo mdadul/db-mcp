@@ -19,7 +19,7 @@ import { ConnectionStringParser } from "./ConnectionStringParser";
 import { PresetSelector } from "./PresetSelector";
 import { DB_ENGINES } from "../types";
 import { useDatabaseForm } from "../hooks/useDatabaseForm";
-import { Skeleton } from "@/components/ui/primitives";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { Spinner } from "@/components/ui/Spinner";
 
 export function DatabaseForm({ onCreated }: { onCreated?: (connection: import("../types").DatabaseConnection) => void } = {}) {
@@ -65,7 +65,7 @@ export function DatabaseForm({ onCreated }: { onCreated?: (connection: import(".
           <Button type="button" variant="ghost" size="sm" onClick={copyUriToClipboard}
             className="text-xs shrink-0 self-start sm:self-auto gap-1 text-muted-foreground hover:text-foreground">
             {copiedUri ? (
-              <><Check className="w-3.5 h-3.5 text-emerald-500" /><span className="text-emerald-500">Copied</span></>
+              <><Check className="w-3.5 h-3.5 text-success" /><span className="text-success">Copied</span></>
             ) : (
               <><Copy className="w-3.5 h-3.5" /><span>Copy URI</span></>
             )}
@@ -279,7 +279,7 @@ export function DatabaseForm({ onCreated }: { onCreated?: (connection: import(".
                   <label htmlFor="ssl" className="text-sm font-semibold text-foreground cursor-pointer flex items-center gap-2">
                     <span>Require SSL Connection</span>
                     {form.ssl && (
-                      <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
+                      <Badge variant="outline" className="text-[11px] bg-success-subtle text-success border-success/30">
                         {currentEngine.sslRequired ? "Required by engine" : "Encrypted"}
                       </Badge>
                     )}
@@ -356,12 +356,12 @@ export function DatabaseForm({ onCreated }: { onCreated?: (connection: import(".
             {testResult && (
               <div className={`mt-4 px-4 py-3 rounded-xl text-xs font-medium border ${
                 testResult.success
-                  ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/30"
+                   ? "bg-success-subtle text-success border-success/30"
                   : "bg-destructive/10 text-destructive border-destructive/30"
               }`}>
                 <div className="flex items-start gap-2.5">
                   {testResult.success
-                    ? <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    ? <CheckCircle2 className="w-4 h-4 text-success shrink-0 mt-0.5" />
                     : <AlertTriangle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />}
                   <div className="space-y-1">
                     <p className="font-semibold">{testResult.message}</p>
@@ -381,7 +381,7 @@ export function DatabaseForm({ onCreated }: { onCreated?: (connection: import(".
         <div className="fixed bottom-0 left-0 right-0 z-40 bg-background/80 backdrop-blur-xl border-t border-border/80 py-3.5 px-4 sm:px-6 shadow-2xl">
           <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
             <div className="hidden sm:flex items-center gap-2 text-xs text-muted-foreground">
-              <ShieldCheck className="w-4 h-4 text-emerald-500" />
+              <ShieldCheck className="w-4 h-4 text-success" />
               <span>Encrypted & secure. AI agents receive read-only query access.</span>
             </div>
             <div className="flex items-center gap-3 w-full sm:w-auto justify-end">

@@ -41,6 +41,7 @@ bun run dev                    # alias of desktop:dev
 bun run desktop:dev            # rebuild sidecar, then `tauri dev`
 bun run desktop:sidecar        # build only the Node sidecar bundle (optional: -- --target <triple>)
 bun run desktop:build          # production bundle (tauri.conf.json runs the client and sidecar builds)
+node scripts/ui-preview.mjs    # dev-only browser preview; starts the local backend and Vite
 
 # Testing and checks
 bun run test                   # node --test unit tests (no DB required)
