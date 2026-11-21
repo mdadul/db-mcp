@@ -6,6 +6,7 @@ use tauri_plugin_opener::OpenerExt;
 use tokio::sync::Mutex;
 
 use crate::{
+    ai_clients,
     settings::{AppSettings, SettingsPatch, SettingsStore},
     supervisor::{ServerInfo, Supervisor},
 };
@@ -131,4 +132,76 @@ pub async fn reset_all_data(
 pub struct AppInfo {
     version: String,
     platform: String,
+}
+
+/// Runs an AI-client operation against the current user's config locations,
+/// using the MCP URL for the configured port. File I/O runs off the async
+/// runtime's worker threads.
+async fn with_ai_client_env<T, F>(
+    app: AppHandle,
+    settings: &SettingsStore,
+    op: F,
+) -> Result<T, String>
+where
+    T: Send + 'static,
+    F: FnOnce(&ai_clients::Env<'_>, &str) -> Result<T, String> + Send + 'static,
+{
+    let mcp_url = format!("http://127.0.0.1:{}/mcp", settings.get().port);
+    let (home, config_dir) = ai_clients::env_paths(&app)?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let env = ai_clients::Env {
+            home: &home,
+            config_dir: &config_dir,
+        };
+        op(&env, &mcp_url)
+    })
+    .await
+    .map_err(|error| format!("AI client task failed: {error}"))?
+}
+
+#[tauri::command]
+pub async fn list_ai_clients(
+    app: AppHandle,
+    settings: State<'_, SettingsStore>,
+) -> Result<Vec<ai_clients::AiClient>, String> {
+    with_ai_client_env(app, &settings, |env, url| {
+        Ok(ai_clients::list_clients(env, url))
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn preview_ai_client_install(
+    id: String,
+    app: AppHandle,
+    settings: State<'_, SettingsStore>,
+) -> Result<ai_clients::InstallPreview, String> {
+    with_ai_client_env(app, &settings, move |env, url| {
+        ai_clients::preview_install(env, &id, url)
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn install_ai_client(
+    id: String,
+    app: AppHandle,
+    settings: State<'_, SettingsStore>,
+) -> Result<ai_clients::InstallResult, String> {
+    with_ai_client_env(app, &settings, move |env, url| {
+        ai_clients::install(env, &id, url)
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn uninstall_ai_client(
+    id: String,
+    app: AppHandle,
+    settings: State<'_, SettingsStore>,
+) -> Result<ai_clients::InstallResult, String> {
+    with_ai_client_env(app, &settings, move |env, _url| {
+        ai_clients::uninstall(env, &id)
+    })
+    .await
 }

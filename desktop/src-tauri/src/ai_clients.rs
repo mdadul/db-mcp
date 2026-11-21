@@ -2,9 +2,7 @@
 //!
 //! The pure core (`list_clients`, `preview_install`, `install`, `uninstall`) takes an
 //! explicit `Env`, so it runs against a temp directory in tests. Only `env_paths`
-//! touches Tauri. Commands are wired in lib.rs by the lead, so the file allows dead code
-//! until then.
-#![allow(dead_code)]
+//! touches Tauri. The IPC commands live in commands.rs.
 
 use std::fs;
 use std::io::{ErrorKind, Write};
@@ -19,18 +17,10 @@ const SERVER_NAME: &str = "db-mcp";
 const BACKUP_MARKER: &str = ".db-mcp-backup-";
 const TEMP_SUFFIX: &str = ".tmp-db-mcp";
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Platform {
-    MacOs,
-    Windows,
-    Linux,
-}
-
 pub struct Env<'a> {
     pub home: &'a Path,
     /// mac: ~/Library/Application Support, win: %APPDATA% (Roaming), linux: ~/.config
     pub config_dir: &'a Path,
-    pub platform: Platform,
 }
 
 #[derive(Serialize, Debug, Clone)]
@@ -126,25 +116,20 @@ pub fn uninstall(env: &Env<'_>, id: &str) -> Result<InstallResult, String> {
     apply(plan(env, id, Op::Uninstall)?)
 }
 
-/// Resolves `(home, config_dir, platform)` for the running app.
-pub fn env_paths(app: &tauri::AppHandle) -> Result<(PathBuf, PathBuf, Platform), String> {
+/// Resolves `(home, config_dir)` for the running app.
+pub fn env_paths(app: &tauri::AppHandle) -> Result<(PathBuf, PathBuf), String> {
     let home = app
         .path()
         .home_dir()
         .map_err(|e| format!("Could not locate the home directory: {e}"))?;
-    let (config_dir, platform) = if cfg!(target_os = "macos") {
-        (
-            home.join("Library").join("Application Support"),
-            Platform::MacOs,
-        )
+    let config_dir = if cfg!(target_os = "macos") {
+        home.join("Library").join("Application Support")
     } else if cfg!(target_os = "windows") {
-        let dir = non_empty_env("APPDATA").unwrap_or_else(|| home.join("AppData").join("Roaming"));
-        (dir, Platform::Windows)
+        non_empty_env("APPDATA").unwrap_or_else(|| home.join("AppData").join("Roaming"))
     } else {
-        let dir = non_empty_env("XDG_CONFIG_HOME").unwrap_or_else(|| home.join(".config"));
-        (dir, Platform::Linux)
+        non_empty_env("XDG_CONFIG_HOME").unwrap_or_else(|| home.join(".config"))
     };
-    Ok((home, config_dir, platform))
+    Ok((home, config_dir))
 }
 
 fn non_empty_env(name: &str) -> Option<PathBuf> {
@@ -509,7 +494,6 @@ mod tests {
             Env {
                 home: &self.home,
                 config_dir: &self.config,
-                platform: Platform::MacOs,
             }
         }
 

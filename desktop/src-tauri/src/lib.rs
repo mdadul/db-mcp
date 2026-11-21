@@ -76,6 +76,10 @@ pub fn run() {
             commands::update_settings,
             commands::get_app_info,
             commands::reset_all_data,
+            commands::list_ai_clients,
+            commands::preview_ai_client_install,
+            commands::install_ai_client,
+            commands::uninstall_ai_client,
         ])
         .setup(move |app| {
             let settings_path = app.path().app_config_dir()?.join("settings.json");
