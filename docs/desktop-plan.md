@@ -15,7 +15,8 @@ contract below, change it here first.
 | D5 | macOS ships separate arm64 and x64 builds (no universal binary — native `.node` modules make lipo fragile). |
 | D6 | Code signing is configured via CI secrets; unsigned builds must still work. |
 | D7 | Schema browser is out of scope for v1. |
-| D8 | Close window → hide to tray. Quit (tray/menu) → stop sidecar. Autostart optional. OS background service is out of scope for v1. |
+| D8 | Close window → hide to tray. Quit (tray/menu) → stop sidecar, unless the background server is enabled (D9). Autostart optional. |
+| D9 | Optional **background server** (setting `backgroundServer`, default off): a per-user OS service (macOS LaunchAgent, Linux `systemd --user`, Windows Task Scheduler "at log on") runs the app binary with `--server` (no window, no tray) so MCP keeps working after Quit. The app attaches to a running background server instead of spawning its own sidecar. Disabling or uninstalling removes the service. See "Background server" below. |
 
 ## Architecture
 
@@ -166,3 +167,12 @@ no browser fallback: the UI only runs inside the Tauri webview. Development uses
 | 4b | UI pages: Connections, AI Clients, Activity, Settings, Onboarding | `client/src/pages`, `client/src/features` |
 | 6 | CI release workflow (matrix build, signing hooks, updater manifest) | `.github/workflows/` |
 | 7 | Docs + Docker removal | README, CLAUDE.md, Dockerfile, compose, setup.sh |
+
+## Background server (D9)
+
+- `db-mcp-desktop --server`: headless mode. No window or tray. Loads settings and the encryption key, runs the same supervisor (health checks, crash backoff), writes `server.log`, and serves `/mcp` and `/api` on the configured port. Single-instance per mode.
+- **Attach protocol.** The headless server writes `app_data_dir/server.json` (`{ pid, port, sessionToken, version, startedAt }`, file mode 0600, removed on clean exit). The UI app reads it on launch; if `/api/health` reports `app: "db-mcp"` with the same pid, it uses that `sessionToken` instead of spawning a sidecar. Otherwise it treats the file as stale.
+- **Service definitions** (per user, never system-wide): macOS `~/Library/LaunchAgents/dev.dbmcp.desktop.server.plist` with `RunAtLoad` + `KeepAlive`; Linux `~/.config/systemd/user/db-mcp-server.service` with `Restart=on-failure`; Windows a Task Scheduler task "DB MCP server" triggered at log on with restart on failure. The service runs the installed app binary path. Secrets are never written into service files.
+- **UI.** Settings → General: "Keep the MCP server running when DB MCP is closed" with status (Running in background / Stopped), Stop and Restart. Tray and status bar show "Background server". Quit closes the UI only while it is enabled.
+- **Commands.** `get_background_server`, `set_background_server { enabled }`, `restart_background_server`, `stop_background_server`.
+- Changing the port or resetting data restarts the background server.
