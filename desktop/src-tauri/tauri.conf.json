@@ -25,7 +25,8 @@
         "minWidth": 960,
         "minHeight": 640,
         "titleBarStyle": "Overlay",
-        "hiddenTitle": true
+        "hiddenTitle": true,
+        "visible": false
       }
     ],
     "security": {
@@ -49,6 +50,14 @@
     "macOS": {
       "entitlements": "Entitlements.plist",
       "hardenedRuntime": true
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "",
+      "endpoints": [
+        "https://github.com/mdadul/db-mcp/releases/latest/download/latest.json"
+      ]
     }
   }
 }

@@ -3,5 +3,9 @@
   "identifier": "default",
   "description": "Minimal permissions for the DB MCP desktop window.",
   "windows": ["main"],
-  "permissions": ["core:default"]
+  "permissions": [
+    "core:default",
+    "core:event:default",
+    "core:window:allow-start-dragging"
+  ]
 }
