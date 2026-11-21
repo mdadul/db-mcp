@@ -44,7 +44,7 @@ What holds it back from feeling enterprise-grade:
 |---|---|---|
 | **Connections** (home) | Browse, query, manage databases | Becomes the default screen. Connection switcher at the top of the explorer. Folders/groups and environment tags. |
 | **Analyst** | AI analysis of data | Also available as a side panel inside the workbench, with the current table as context. |
-| **Integrations** (was "AI Clients") | MCP clients and agent providers | Merge AI clients and analyst providers into one place: "where your data can go". |
+| **AI Clients** | MCP clients on this computer | Stays separate from analyst providers. |
 | **Activity** | Audit of every query by AI clients, analyst and you | Becomes the audit log: filter, export, per-connection view. |
 | **Settings** | App preferences | Sections: General, Appearance, Server, Data & privacy, About. |
 
@@ -85,8 +85,6 @@ port, background mode, current connection, read-only badge), and a shortcut shee
 
 ### D. Connection management
 - Folders and groups, environment tag with colour, description, favourite.
-- Enterprise auth options: SSH tunnel, client certificates / CA bundle,
-  AWS IAM for Redshift/RDS. (Scope decision needed.)
 - Health at a glance: last test, latency, server version, last used by AI.
 - Export/import connection list without secrets, for sharing setups.
 
@@ -142,22 +140,104 @@ port, background mode, current connection, read-only badge), and a shortcut shee
 |---|---|---|
 | **M1 Polish baseline** | Fonts and sizing (in progress), component gallery, state catalogue applied to all screens, native app menu and context menus, workbench/analyst refactor | No layout bugs at 960–2560px and 12–18px; every screen passes the review checklist |
 | **M2 Workbench pro** | Grid and editor features (C), explorer search/favourites, connection folders and environment tags, trust UX (E) | Usability test: 5/5 users run a query and find a table without help |
-| **M3 Enterprise** | SSH/certs/IAM (if in scope), audit-log Activity with export, accessibility audit, visual regression in CI, analyst side panel | WCAG 2.2 AA pass; zero untested screens in CI |
+| **M3 Enterprise** | Rebrand, audit-log Activity with export, accessibility audit, visual regression in CI, analyst side panel | WCAG 2.2 AA pass; zero untested screens in CI |
 
-## 6. How we'll measure it
+## 6. How we'll measure it (usability tests only; no telemetry)
 
 - Time to first successful connection test (target < 2 minutes).
 - Time from install to first AI client connected.
 - Connection test success rate and top error codes.
 - Query errors that include an actionable hint (target 100%).
 - Crash-free sessions.
-These need opt-in, local-first telemetry (decision below).
 
-## 7. Decisions needed
+## 7. Decisions (2026-11-21)
 
-1. **Enterprise connectivity scope:** SSH tunnels, client certificates, AWS IAM.
-   High value for enterprise databases, significant work.
-2. **Telemetry:** opt-in anonymous usage metrics to measure the above, or none.
-3. **Brand:** keep the neutral look, or define a visual identity (logo, accent,
-   illustration style) before the public release.
-4. **"Integrations" rename** and merging AI clients with analyst providers.
+1. Enterprise connectivity (SSH tunnels, client certificates, AWS IAM): **no**. Removed from D and M3.
+2. Telemetry: **no**. Metrics in section 6 are measured only in usability tests.
+3. Brand: **rebrand** before the public release. See section 9.
+4. Keep "AI Clients" and analyst providers separate: **no merge**, no "Integrations" rename.
+
+## 8. Screen audit (from product-owner screenshots, dark theme, ~1000px wide)
+
+### Global
+- **Primary buttons fail contrast**: white text on the light green accent is far below
+  WCAG AA. Use dark text on light accents, or a darker accent for filled buttons.
+- **Too much chrome before data**: app sidebar (~330px for five items) plus a
+  connections pane plus a schema pane leaves the data area under half the window.
+  Use a 56px icon rail for app navigation on Connections and Analyst; full labels
+  stay in the command palette and tooltips.
+- **Name is inconsistent**: "db-mcp" in the sidebar, "DB MCP" in Settings text,
+  "Local database gateway" as tagline. Fixed by the rebrand.
+- Page title repeats the active nav item and often the first pane header
+  ("Connections" three times on one screen).
+- "Collapse sidebar" takes a full row; move it into the rail/menu with its shortcut.
+
+### Connections
+- Three "add connection" buttons visible at once (toolbar, pane "+", empty state).
+  Keep the toolbar action and the pane "+"; the empty state should do something else.
+- Two empty states say "Select a connection". The schema pane's message wraps into
+  a narrow column with dashed borders that look unfinished. When nothing is
+  selected, collapse the schema pane and use the main area for a **home view**:
+  recent tables, recent queries, connection health, "connect an AI client".
+- Every connection has the same amber dot with no legend. Show status only after
+  a test (green / red with tooltip) and nothing for untested.
+- Engine logos are blurry raster images at 16px; replace with crisp SVG marks.
+- Secondary line truncates the host and hides the database name; show
+  `database · host` and put the full value in a tooltip.
+
+### Analyst
+- Setup copy still describes API keys only; it must lead with detected local agents
+  (OpenCode, Claude Code) once that work lands.
+- Two "Providers" buttons (header and footer of the chat list); keep one.
+- The empty chat list takes a wide column; collapse it until there is a first chat.
+
+### AI Clients
+- Monogram tiles (CD, C, VC) instead of client logos.
+- "Connected" and "Detected" pills look identical; use success styling for connected.
+- "Remove" is a prominent outlined button on every row; move it into a row menu and
+  keep one primary action per row.
+- The MCP URL appears three times (header chip, endpoint card, JSON); keep the chip
+  and the JSON.
+- Inline "Copy path" and "Reveal" links compete with the path; move to the row menu.
+
+### Activity
+- "Success" pill on every row is noise; show status only for errors (and highlight
+  those rows).
+- Many rows show "—" for duration and rows (schema/list tools); hide the values
+  instead of dashes, or group by tool.
+- Source says "AI client" but not which one; show the client name when known.
+- Filter values are lowercase ("all"); use "All databases", "Any status".
+- Auto-refresh is explained twice; KPI captions are vague ("Read-only queries"
+  under latency). The error-rate card should link to the filtered error list.
+
+### Settings
+- "Start hidden" is disabled but its switch shows on; disabled switches must show
+  their real state in a clearly disabled style.
+- "Keep running when closed" and "Keep the MCP server running when DB MCP is closed"
+  read as the same thing. Replace both with one choice, "When you close the window":
+  *Quit DB MCP* / *Keep in the menu bar* / *Keep only the MCP server running*.
+
+## 9. Rebrand
+
+Goal: a product name and identity that reads as a desktop data tool, not a
+protocol acronym, ready for the public release.
+
+Deliverables:
+- Name and tagline (decision needed, options below), app identifier change plan
+  (`dev.dbmcp.desktop` → new id) with data migration for settings, keychain entry,
+  app data folder, LaunchAgent label and AI-client config entry name.
+- Logo mark (works at 16px in the menu bar and 1024px app icon, light/dark),
+  macOS icon in the system style, Windows/Linux icons, tray template icon.
+- Colour: brand accent with filled-button contrast ≥ 4.5:1 in light and dark;
+  stays one of the selectable accents.
+- Typography: keep system UI font for the interface; optional display face for
+  marketing only.
+- Voice: short, calm, precise; glossary (connection, AI client, analyst, read-only).
+- Applied to: app icon, sidebar/rail header, About, onboarding, README, release
+  assets, DMG background.
+
+Name directions (to choose from or replace):
+1. **Tablet** style descriptive names: "Querylane", "Datagate".
+2. Calm object names: "Harbor", "Ledger", "Quarry".
+3. Keep the meaning, drop the acronym: "DB Bridge", "Local Data Gateway".
+The MCP endpoint name in client configs can stay `db-mcp` for compatibility.
