@@ -185,3 +185,29 @@ Decisions:
 2. Analyst tools (`run_query` with result store, profiling, charts) and artifacts.
 3. Claude Agent SDK and OpenCode adapters; Codex after the spike; workbench side panel; `@` mentions; playbooks.
 4. Reports board, exports, PII masking, per-connection AI policy and approvals.
+
+### Analyst event and artifact contract
+
+- `artifact.created` is emitted in the thread's SSE stream after the artifact has
+  been durably saved. Payload: `{ type: "artifact.created", artifactId, kind,
+  title, resultId }`, where `kind` is `chart` or `table`.
+- `GET /api/analyst/threads/:id` includes `artifacts`, ordered by creation time.
+  Artifact metadata is `{ id, threadId, messageId, kind, title, resultId, spec,
+  createdAt }`.
+- `GET /api/analyst/artifacts/:id` returns `{ artifact, columns, rows,
+  truncated }`. The rows are a JSON-safe durable snapshot, capped at 5,000 rows
+  and 5 MB; `truncated` is true if the source result was already truncated or
+  either snapshot cap was reached. Artifact retrieval remains available after the
+  in-memory result store evicts its entry.
+- `render_chart` accepts a result reference, title, and restricted Vega-Lite spec.
+  Its marks are `bar|line|area|point|arc|rect|tick`; encodings are
+  `x|y|color|size|theta|tooltip` with result fields and supported type,
+  aggregate, bin, timeUnit, sort, stack, and title options. Data transforms are
+  disallowed; SQL must prepare chart data.
+- `render_table` accepts a result reference, title, and optional result columns.
+  Neither render tool returns row data to the model.
+- `profile_result` profiles the complete stored result locally. `profile_table`
+  performs a validated read-only sample capped at 10,000 rows and explicitly
+  labels the returned profiles as sample-based.
+- `GET /api/analyst/playbooks` returns static `{ id, title, description,
+  promptTemplate }` entries. Templates may use `{table}` and `{database}`.

@@ -87,3 +87,16 @@ export const analystMessages = sqliteTable("analyst_messages", {
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().default(nowMs),
   usage: text("usage"), // JSON token usage, nullable
 });
+
+export const analystArtifacts = sqliteTable("analyst_artifacts", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  threadId: text("thread_id").notNull().references(() => analystThreads.id, { onDelete: "cascade" }),
+  messageId: text("message_id").notNull(),
+  kind: text("kind").notNull(), // 'chart' | 'table'
+  title: text("title").notNull(),
+  resultId: text("result_id").notNull(),
+  spec: text("spec").notNull(), // JSON chart spec or selected table columns
+  snapshot: text("snapshot").notNull(), // JSON-safe columns and rows, capped at 5 MB / 5,000 rows
+  truncated: integer("truncated", { mode: "boolean" }).notNull().default(false),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().default(nowMs),
+});

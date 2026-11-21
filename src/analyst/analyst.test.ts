@@ -7,6 +7,7 @@ import test from "node:test";
 import { MockLanguageModelV4 } from "ai/test";
 import { clearResults, getResult, resultStoreSize, storeResult } from "./resultStore.ts";
 import type { LanguageModelV4StreamResult } from "@ai-sdk/provider";
+import { profileColumn, profileRows } from "./profiling.ts";
 
 const ENCRYPTION_KEY = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 
@@ -23,6 +24,30 @@ await t.test("result store evicts least-recently-used entries", () => {
   assert.equal(getResult(second.resultId), undefined);
   assert.equal(resultStoreSize().count, 50);
   clearResults();
+});
+
+await t.test("profiles nulls, numeric percentiles and histogram edges", () => {
+  const numeric = profileColumn("amount", [1, null, 2, 3, 100]);
+  assert.equal(numeric.type, "integer");
+  assert.equal(numeric.nulls, 1);
+  assert.equal(numeric.nullPercent, 20);
+  assert.equal(numeric.median, 2.5);
+  assert.equal(numeric.p25, 1.75);
+  assert.equal(numeric.p75, 27.25);
+  assert.equal(numeric.histogram?.[0]?.start, 1);
+  assert.equal(numeric.histogram?.at(-1)?.end, 100);
+  assert.equal(numeric.histogram?.reduce((sum, bucket) => sum + bucket.count, 0), 4);
+  assert.ok((numeric.histogram?.length ?? 0) <= 12);
+});
+
+await t.test("profiles date and mixed values without forcing incompatible numeric math", () => {
+  assert.equal(profileColumn("created", ["2025-01-02", "2025-02-03"]).type, "date");
+  assert.equal(profileColumn("created", ["2025-01-02", "2025-02-03"]).min, "2025-01-02T00:00:00.000Z");
+  const mixed = profileColumn("mixed", [1, "not-number", null]);
+  assert.equal(mixed.type, "text");
+  assert.equal(mixed.nulls, 1);
+  assert.equal(mixed.topValues?.[0]?.count, 1);
+  assert.deepEqual(profileRows([{ name: "flag" }], [{ flag: true }, { flag: false }])[0]?.type, "boolean");
 });
 
 await t.test("providers redact API keys and validate compatible base URLs", async () => {
@@ -73,6 +98,72 @@ await t.test("tools use read-only query service and return preview-only data", a
   await tools.sample_rows.execute({ table: "people", limit: 1 }, { toolCallId: "sample", messages: [], abortSignal: new AbortController().signal, context: {} });
   const sampleLogs = await db.select().from(queryLogs);
   assert.equal(sampleLogs.findLast((log) => log.query.includes("FROM \"people\""))?.source, "agent");
+});
+
+await t.test("profiling, table sampling, and durable artifact endpoints enforce contracts", async () => {
+  const connection = await fixture.createConnection();
+  const provider = await fixture.createProvider("http://127.0.0.1:1/v1");
+  const threadResponse = await fixture.app.request("/api/analyst/threads", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ providerId: provider.id, model: "mock-model", databaseId: connection.id }) });
+  const thread = await threadResponse.json() as { id: string };
+  const { createAnalystTools } = await import("./tools.ts");
+  const tools = createAnalystTools(thread.id, connection.id, crypto.randomUUID());
+  const query = await tools.run_query.execute({ query: "SELECT id, name FROM people ORDER BY id", limit: 100 }, { toolCallId: "query", messages: [], abortSignal: new AbortController().signal, context: {} });
+  assert.ok("resultId" in query);
+  const resultId = "resultId" in query && typeof query.resultId === "string" ? query.resultId : null;
+  if (!resultId) throw new Error("Query did not return a resultId");
+  const profiled = await tools.profile_result.execute({ result_id: resultId, columns: ["id"] }, { toolCallId: "profile", messages: [], abortSignal: new AbortController().signal, context: {} });
+  assert.ok("profiles" in profiled);
+  assert.equal(profiled.profiles[0]?.count, 3);
+
+  const sample = await tools.profile_table.execute({ table: "people", sample_limit: 2 }, { toolCallId: "table-profile", messages: [], abortSignal: new AbortController().signal, context: {} });
+  assert.ok("sample" in sample);
+  assert.equal(sample.rowCount, 2);
+  assert.equal(sample.sample, true);
+  const rejected = await tools.profile_table.execute({ table: "people\"; DROP TABLE people; --", sample_limit: 2 }, { toolCallId: "bad-table", messages: [], abortSignal: new AbortController().signal, context: {} });
+  assert.ok("error" in rejected);
+  assert.equal((await fixture.app.request("/api/analyst/playbooks")).status, 200);
+  const playbooks = await (await fixture.app.request("/api/analyst/playbooks")).json() as { id: string; promptTemplate: string }[];
+  assert.deepEqual(playbooks.map(({ id }) => id), ["profile-table", "data-quality", "trend-over-time", "compare-periods", "find-anomalies", "top-contributors", "explain-schema"]);
+  assert.ok(playbooks.every(({ promptTemplate }) => promptTemplate.includes("{table}") && promptTemplate.includes("{database}")));
+
+  const messageId = crypto.randomUUID();
+  let created: { artifactId: string; kind: string; title: string; resultId: string } | undefined;
+  const toolsWithEvent = createAnalystTools(thread.id, connection.id, messageId, (event) => { created = event; });
+  const chart = await toolsWithEvent.render_chart.execute({
+    result_id: resultId,
+    title: "Names",
+    spec: { mark: "bar", encoding: { x: { field: "name", type: "nominal" }, y: { field: "id", type: "quantitative", aggregate: "count" } } },
+  }, { toolCallId: "chart", messages: [], abortSignal: new AbortController().signal, context: {} });
+  assert.ok("artifactId" in chart, JSON.stringify(chart));
+  if (!("artifactId" in chart)) throw new Error("Chart was not persisted");
+  if (!created) throw new Error("Artifact event was not emitted");
+  assert.equal(created.kind, "chart");
+  const artifactResponse = await fixture.app.request(`/api/analyst/artifacts/${created.artifactId}`);
+  const artifact = await artifactResponse.json() as { artifact: { kind: string }; columns: { name: string }[]; rows: Record<string, unknown>[]; truncated: boolean };
+  assert.equal(artifact.artifact.kind, "chart");
+  assert.equal(artifact.rows.length, 3);
+  assert.equal(artifact.truncated, false);
+  const savedThread = await fixture.app.request(`/api/analyst/threads/${thread.id}`);
+  assert.equal((await savedThread.json() as { artifacts: { id: string }[] }).artifacts[0]?.id, created.artifactId);
+
+  const invalid = await toolsWithEvent.render_chart.execute({ result_id: resultId, title: "Bad", spec: { mark: "bar", transform: [{ filter: "datum.id > 0" }], encoding: { x: { field: "id" } } } }, { toolCallId: "bad-chart", messages: [], abortSignal: new AbortController().signal, context: {} });
+  assert.ok("error" in invalid);
+  assert.ok("hint" in invalid);
+  const unknownField = await toolsWithEvent.render_chart.execute({ result_id: resultId, title: "Bad field", spec: { mark: "bar", encoding: { x: { field: "missing", type: "nominal" } } } }, { toolCallId: "unknown-field", messages: [], abortSignal: new AbortController().signal, context: {} });
+  assert.ok("error" in unknownField);
+  assert.match(unknownField.hint, /Allowed spec fields/);
+
+  const { createArtifact } = await import("./artifacts.ts");
+  const rowCapped = storeResult({ threadId: thread.id, columns: [{ name: "value" }], rows: Array.from({ length: 5_001 }, (_, index) => ({ value: index })), rowCount: 5_001, truncated: false });
+  const rowCappedArtifact = await createArtifact({ threadId: thread.id, messageId, kind: "table", title: "Row cap", resultId: rowCapped.resultId, spec: {}, result: rowCapped });
+  const rowCappedData = await (await fixture.app.request(`/api/analyst/artifacts/${rowCappedArtifact.id}`)).json() as { rows: unknown[]; truncated: boolean };
+  assert.equal(rowCappedData.rows.length, 5_000);
+  assert.equal(rowCappedData.truncated, true);
+  const byteCapped = storeResult({ threadId: thread.id, columns: [{ name: "value" }], rows: [{ value: "x".repeat(5 * 1024 * 1024) }], rowCount: 1, truncated: false });
+  const byteCappedArtifact = await createArtifact({ threadId: thread.id, messageId, kind: "table", title: "Byte cap", resultId: byteCapped.resultId, spec: {}, result: byteCapped });
+  const byteCappedData = await (await fixture.app.request(`/api/analyst/artifacts/${byteCappedArtifact.id}`)).json() as { rows: unknown[]; truncated: boolean };
+  assert.equal(byteCappedData.rows.length, 0);
+  assert.equal(byteCappedData.truncated, true);
 });
 
 await t.test("SSE streams text, enforces one active turn, and supports cancellation", async (subtest) => {
@@ -129,6 +220,31 @@ await t.test("SSE emits tool lifecycle and persists full result while the model 
   assert.equal(storedResponse.status, 200);
   const stored = await storedResponse.json() as { rows: { note: string }[] };
   assert.equal(stored.rows[0]?.note, "full-result-secret");
+});
+
+await t.test("SSE emits artifact.created after artifact persistence", async (subtest) => {
+  const connection = await fixture.createConnection();
+  const providerServer = await startOpenAICompatibleServer({ toolQuery: "SELECT name FROM people ORDER BY name", artifactAfterQuery: true });
+  subtest.after(() => new Promise<void>((resolve) => providerServer.close(() => resolve())));
+  const provider = await fixture.createProvider(providerServer.url);
+  const threadResponse = await fixture.app.request("/api/analyst/threads", {
+    method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ providerId: provider.id, model: "mock-model", databaseId: connection.id }),
+  });
+  const thread = await threadResponse.json() as { id: string };
+  const response = await fixture.app.request(`/api/analyst/threads/${thread.id}/messages`, {
+    method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text: "Show names in a table" }),
+  });
+  const events = await readEvents(response);
+  const artifactIndex = events.findIndex((event) => event.type === "artifact.created");
+  assert.ok(artifactIndex > events.findIndex((event) => event.type === "tool.call" && event.toolName === "render_table"));
+  assert.ok(artifactIndex < events.findIndex((event) => event.type === "tool.result" && event.toolCallId === "call-artifact"));
+  const artifactEvent = events[artifactIndex];
+  assert.equal(artifactEvent?.kind, "table");
+  assert.equal(typeof artifactEvent?.artifactId, "string");
+  const artifactResponse = await fixture.app.request(`/api/analyst/artifacts/${artifactEvent?.artifactId}`);
+  assert.equal(artifactResponse.status, 200);
+  assert.equal((await artifactResponse.json() as { artifact: { title: string } }).artifact.title, "People names");
 });
 
 await t.test("model loop executes analyst tools with the AI SDK v4 mock", async () => {
@@ -212,7 +328,7 @@ async function setup(t: import("node:test").TestContext) {
   };
 }
 
-function startOpenAICompatibleServer(options: { toolQuery?: string; completeImmediately?: boolean; delayMs?: number } = {}): Promise<Server & { url: string; requests: number; toolResultMessage: string }> {
+function startOpenAICompatibleServer(options: { toolQuery?: string; artifactAfterQuery?: boolean; completeImmediately?: boolean; delayMs?: number } = {}): Promise<Server & { url: string; requests: number; toolResultMessage: string }> {
   return new Promise((resolve) => {
     let requests = 0;
     let toolResultMessage = "";
@@ -228,6 +344,9 @@ function startOpenAICompatibleServer(options: { toolQuery?: string; completeImme
       const send = (payload: unknown) => response.write(`data: ${JSON.stringify(payload)}\n\n`);
       if (options.toolQuery && requests === 1) {
         send({ id: "chatcmpl-mock", object: "chat.completion.chunk", created: 1, model: "mock-model", choices: [{ index: 0, delta: { role: "assistant", tool_calls: [{ index: 0, id: "call-mock", type: "function", function: { name: "run_query", arguments: JSON.stringify({ query: options.toolQuery ?? "SELECT name FROM people ORDER BY name", limit: 2 }) } }] }, finish_reason: "tool_calls" }] });
+      } else if (options.artifactAfterQuery && requests === 2) {
+        const resultId = findResultId(payload.messages ?? []);
+        send({ id: "chatcmpl-mock", object: "chat.completion.chunk", created: 1, model: "mock-model", choices: [{ index: 0, delta: { role: "assistant", tool_calls: [{ index: 0, id: "call-artifact", type: "function", function: { name: "render_table", arguments: JSON.stringify({ result_id: resultId, title: "People names", columns: ["name"] }) } }] }, finish_reason: "tool_calls" }] });
       } else {
         if (previousToolResult?.content) toolResultMessage = previousToolResult.content;
         setTimeout(() => {
@@ -247,4 +366,25 @@ function startOpenAICompatibleServer(options: { toolQuery?: string; completeImme
       resolve(Object.assign(server, { url: `http://127.0.0.1:${address.port}/v1`, get requests() { return requests; }, get toolResultMessage() { return toolResultMessage; } }));
     });
   });
+}
+
+function findResultId(value: unknown): string {
+  if (typeof value === "string") {
+    try { return findResultId(JSON.parse(value)); } catch { return ""; }
+  }
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const resultId = findResultId(item);
+      if (resultId) return resultId;
+    }
+    return "";
+  }
+  if (value && typeof value === "object") {
+    if ("resultId" in value && typeof value.resultId === "string") return value.resultId;
+    for (const item of Object.values(value)) {
+      const resultId = findResultId(item);
+      if (resultId) return resultId;
+    }
+  }
+  return "";
 }

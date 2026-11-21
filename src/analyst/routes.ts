@@ -5,16 +5,19 @@ import { z } from "zod";
 import { AppError, NotFoundError } from "../errors.ts";
 import * as service from "./service.ts";
 import { getResult } from "./resultStore.ts";
+import { getArtifactData } from "./artifacts.ts";
+import { ANALYST_PLAYBOOKS } from "./tools.ts";
 
 const providerSchema = z.object({ kind: z.enum(["anthropic", "openai", "openai-compatible"]), name: z.string().trim().min(1).max(120), baseUrl: z.string().trim().max(2048).nullable().optional(), apiKey: z.string().optional(), defaultModel: z.string().trim().min(1).max(200) });
 const providerUpdateSchema = providerSchema.partial().refine((value) => Object.keys(value).length > 0, "At least one field is required");
 const threadCreateSchema = z.object({ title: z.string().trim().max(200).optional(), providerId: z.string().min(1), model: z.string().trim().min(1).max(200), databaseId: z.string().min(1).nullable().optional() });
-const renameSchema = z.object({ title: z.string().trim().min(1).max(200) });
+const threadUpdateSchema = z.object({ title: z.string().trim().min(1).max(200).optional(), providerId: z.string().min(1).optional(), model: z.string().trim().min(1).max(200).optional() }).refine((value) => Object.keys(value).length > 0, "At least one field is required");
 const messageSchema = z.object({ text: z.string().trim().min(1).max(100_000), databaseId: z.string().min(1).nullable().optional() });
 
 const activeTurns = new Map<string, AbortController>();
 
 export const analystRoutes = new Hono()
+  .get("/playbooks", async (c) => c.json(ANALYST_PLAYBOOKS))
   .get("/providers", async (c) => c.json(await service.listProviders()))
   .post("/providers", zValidator("json", providerSchema), async (c) => c.json(await service.createProvider(c.req.valid("json")), 201))
   .patch("/providers/:id", zValidator("json", providerUpdateSchema), async (c) => c.json(await service.updateProvider(c.req.param("id"), c.req.valid("json"))))
@@ -24,7 +27,7 @@ export const analystRoutes = new Hono()
   .get("/threads", async (c) => c.json(await service.listThreads()))
   .post("/threads", zValidator("json", threadCreateSchema), async (c) => c.json(await service.createThread(c.req.valid("json")), 201))
   .get("/threads/:id", async (c) => c.json(await service.getThread(c.req.param("id"))))
-  .patch("/threads/:id", zValidator("json", renameSchema), async (c) => c.json(await service.renameThread(c.req.param("id"), c.req.valid("json").title)))
+  .patch("/threads/:id", zValidator("json", threadUpdateSchema), async (c) => c.json(await service.updateThread(c.req.param("id"), c.req.valid("json"))))
   .delete("/threads/:id", async (c) => { await service.deleteThread(c.req.param("id")); return c.json({ success: true }); })
   .post("/threads/:id/cancel", async (c) => {
     const active = activeTurns.get(c.req.param("id"));
@@ -63,7 +66,8 @@ export const analystRoutes = new Hono()
     const result = getResult(c.req.param("resultId"));
     if (!result) throw new NotFoundError("Analyst result", c.req.param("resultId"), "Results are temporary and may be evicted when the result store reaches its size limit.");
     return c.json(result);
-  });
+  })
+  .get("/artifacts/:id", async (c) => c.json(await getArtifactData(c.req.param("id"))));
 
 export function activeTurnCount(): number { return activeTurns.size; }
 export function cancelAllTurns(): void { for (const turn of activeTurns.values()) turn.abort(); activeTurns.clear(); }

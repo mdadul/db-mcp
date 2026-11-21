@@ -9,6 +9,7 @@ import { decrypt, encrypt, type EncryptedPayload } from "../services/credentials
 import { AppError, BadRequestError, NotFoundError } from "../errors.ts";
 import { buildAnalystSystemPrompt } from "./prompt.ts";
 import { createAnalystTools } from "./tools.ts";
+import { listThreadArtifacts } from "./artifacts.ts";
 
 export type ProviderKind = "anthropic" | "openai" | "openai-compatible";
 export type ProviderInput = { kind: ProviderKind; name: string; baseUrl?: string | null; apiKey?: string; defaultModel: string };
@@ -137,14 +138,18 @@ export async function createThread(input: { title?: string; providerId: string; 
   const [row] = await db.insert(analystThreads).values({ title: input.title?.trim() || "New analysis", providerId: input.providerId, model: input.model.trim(), databaseId: input.databaseId ?? null }).returning();
   return safeThread(row!);
 }
-export async function getThread(id: string): Promise<{ thread: ThreadView; messages: MessageView[] }> {
+export async function getThread(id: string): Promise<{ thread: ThreadView; messages: MessageView[]; artifacts: Awaited<ReturnType<typeof listThreadArtifacts>> }> {
   const thread = await requireThread(id);
   const messages = await db.select().from(analystMessages).where(eq(analystMessages.threadId, id)).orderBy(analystMessages.createdAt);
-  return { thread: safeThread(thread), messages: messages.map(safeMessage) };
+  return { thread: safeThread(thread), messages: messages.map(safeMessage), artifacts: await listThreadArtifacts(id) };
 }
 export async function renameThread(id: string, title: string): Promise<ThreadView> {
+  return updateThread(id, { title });
+}
+export async function updateThread(id: string, input: { title?: string; providerId?: string; model?: string }): Promise<ThreadView> {
   await requireThread(id);
-  const [row] = await db.update(analystThreads).set({ title: title.trim(), updatedAt: new Date() }).where(eq(analystThreads.id, id)).returning();
+  if (input.providerId) await requireProvider(input.providerId);
+  const [row] = await db.update(analystThreads).set({ ...(input.title ? { title: input.title.trim() } : {}), ...(input.providerId ? { providerId: input.providerId } : {}), ...(input.model ? { model: input.model.trim() } : {}), updatedAt: new Date() }).where(eq(analystThreads.id, id)).returning();
   return safeThread(row!);
 }
 export async function deleteThread(id: string): Promise<void> {
@@ -162,6 +167,7 @@ export type TurnEvent =
   | { type: "text.delta"; text: string }
   | { type: "tool.call"; toolCallId: string; toolName: string; args: unknown }
   | { type: "tool.result"; toolCallId: string; ok: boolean; summary: string; rowCount?: number; resultId?: string; error?: string }
+  | { type: "artifact.created"; artifactId: string; kind: "chart" | "table"; title: string; resultId: string }
   | { type: "usage"; inputTokens: number; outputTokens: number }
   | { type: "error"; message: string; hint: string }
   | { type: "turn.done"; messageId: string; finishReason: string };
@@ -204,7 +210,7 @@ export async function runTurnWithModel(threadId: string, text: string, databaseI
       model,
       system: buildAnalystSystemPrompt(connections, database),
       messages,
-      tools: createAnalystTools(threadId, database),
+      tools: createAnalystTools(threadId, database, assistantMessageId, (artifact) => emit({ type: "artifact.created", ...artifact })),
       stopWhen: isStepCount(12),
       abortSignal: signal,
       onStepFinish: (step) => {
