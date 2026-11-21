@@ -1,20 +1,23 @@
-import { Copy, ShieldCheck } from "lucide-react";
+import { Copy, RotateCw, ShieldCheck } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { AiClientList } from "@/features/ai-clients/components/AiClientList";
 import { Button } from "@/components/ui/Button";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { InlineHelp } from "@/components/ui/InlineHelp";
 import { useServerInfo } from "@/platform/hooks";
 
 export function AiClientsPage() {
   const { data: serverInfo } = useServerInfo();
+  const queryClient = useQueryClient();
   const mcpUrl = serverInfo?.mcpUrl ?? "http://127.0.0.1:4080/mcp";
   const copyUrl = async () => {
-    await navigator.clipboard.writeText(mcpUrl);
-    toast.success("MCP URL copied");
+    try { await navigator.clipboard.writeText(mcpUrl); toast.success("MCP URL copied"); }
+    catch { toast.error("Could not copy MCP URL"); }
   };
   return <div className="mx-auto w-full max-w-6xl px-6 py-7">
-    <PageHeader title="AI clients" description="Configure local AI tools to connect to your databases through MCP." actions={<Button variant="outline" size="sm" onClick={() => void copyUrl()}><Copy data-icon="inline-start" />Copy MCP URL</Button>} />
-    <div className="mb-5 flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-3"><ShieldCheck className="size-4 shrink-0 text-muted-foreground" /><p className="text-xs text-muted-foreground">MCP endpoint <code className="mx-1 rounded bg-muted px-1.5 py-0.5 font-mono text-foreground">{mcpUrl}</code> only accepts local connections from this computer.</p></div>
-    <AiClientList />
+    <PageHeader title="AI clients" description="Connect local AI tools to your enabled databases." actions={<><Button variant="ghost" size="sm" onClick={() => void queryClient.invalidateQueries({ queryKey: ["ai-clients"] })}><RotateCw data-icon="inline-start" />Refresh</Button><Button variant="outline" size="sm" onClick={() => void copyUrl()}><Copy data-icon="inline-start" />{mcpUrl}</Button></>} />
+    <div className="mb-5 flex items-center gap-2 rounded-md border border-border bg-muted/40 px-3 py-2.5"><ShieldCheck className="size-4 shrink-0 text-muted-foreground" /><p className="text-[12px] text-muted-foreground">AI clients on this computer can query your enabled databases through this address.</p><InlineHelp label="About local-only access" content="Any program running as your user can reach this local address. Database queries are read-only." /></div>
+    <AiClientList mcpUrl={mcpUrl} />
   </div>;
 }
