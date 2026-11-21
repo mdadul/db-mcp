@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { FolderOpen, RotateCw, Server, ShieldAlert, Sun, Moon, Monitor, Check } from "lucide-react";
+import { FolderOpen, RotateCw, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/Switch";
@@ -11,24 +11,15 @@ import { StatusDot } from "@/components/ui/StatusDot";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { SettingsGroup } from "@/components/ui/SettingsGroup";
 import { SettingRow } from "@/components/ui/SettingRow";
-import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { NumberInput } from "@/components/ui/NumberInput";
 import { CodeBlock } from "@/components/ui/CodeBlock";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { platform } from "@/platform";
 import { useRestartServer, useServerInfo, useSettings, useUpdateSettings } from "@/platform/hooks";
 import type { AppSettings } from "@/platform/types";
+import { AppearanceSettings } from "@/theme/AppearanceSettings";
 
 const DEFAULT_PORT = 4080;
-const accents: readonly { value: AppSettings["accent"]; label: string }[] = [
-  { value: "blue", label: "Blue" },
-  { value: "violet", label: "Violet" },
-  { value: "green", label: "Green" },
-  { value: "orange", label: "Orange" },
-  { value: "pink", label: "Pink" },
-  { value: "graphite", label: "Graphite" },
-];
-
 export function SettingsPage() {
   const { data: settings } = useSettings();
   const queryClient = useQueryClient();
@@ -48,22 +39,6 @@ export function SettingsPage() {
   const validPort = /^\d+$/.test(visiblePort) && Number.isInteger(portNumber) && portNumber >= 1024 && portNumber <= 65535;
   const portChanged = portNumber !== (settings?.port ?? DEFAULT_PORT);
   const update = (patch: Partial<AppSettings>) => updateSettings.mutate(patch, { onError: (error) => toast.error(error.message || "Could not save setting") });
-
-  useEffect(() => {
-    if (!settings) return;
-    localStorage.setItem("dbmcp.settingsCache", JSON.stringify(settings));
-    const root = document.documentElement;
-    root.dataset.accent = settings.accent;
-    const applyTheme = () => {
-      const dark = settings.theme === "dark" || (settings.theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
-      root.dataset.theme = dark ? "default-dark" : "default-light";
-      root.classList.toggle("dark", dark);
-    };
-    applyTheme();
-    const media = window.matchMedia("(prefers-color-scheme: dark)");
-    media.addEventListener("change", applyTheme);
-    return () => media.removeEventListener("change", applyTheme);
-  }, [settings]);
 
   const savePort = async () => {
     if (!validPort) { setPortError("Use a whole number from 1024 to 65535"); return; }
@@ -92,8 +67,6 @@ export function SettingsPage() {
     finally { setResetting(false); }
   };
 
-  const currentAccent = settings?.accent ?? "blue";
-  const currentTheme = settings?.theme ?? "system";
   const logsText = logs.data?.slice(-200).join("\n") ?? "";
   const about = [
     ["App version", appInfo.data?.version ?? "—"],
@@ -113,11 +86,8 @@ export function SettingsPage() {
       </SettingsGroup>
     </Section>
 
-    <Section title="Appearance" description="Choose the color mode and accent used throughout the app.">
-      <SettingsGroup>
-        <SettingRow title="Theme" description="System follows your computer's appearance setting." control={<SegmentedControl value={currentTheme} ariaLabel="Theme" onChange={(theme) => update({ theme })} options={[{ value: "system", label: "System", icon: <span aria-hidden="true" className="theme-swatch theme-swatch-system"><span /><span /></span> }, { value: "light", label: "Light", icon: <span aria-hidden="true" className="theme-swatch theme-swatch-light"><Sun className="size-2" /></span> }, { value: "dark", label: "Dark", icon: <span aria-hidden="true" className="theme-swatch theme-swatch-dark"><Moon className="size-2" /></span> }]} />} />
-        <SettingRow title="Accent color" description="Used for selected items, focus rings, and primary actions." control={<div role="group" aria-label="Accent color" className="flex items-center gap-1">{accents.map((accent) => <button key={accent.value} type="button" aria-label={`${accent.label} accent color`} aria-pressed={currentAccent === accent.value} title={accent.label} onClick={() => update({ accent: accent.value })} className={`accent-swatch accent-swatch-${accent.value} flex size-7 items-center justify-center rounded-full border border-transparent text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2`}>{currentAccent === accent.value ? <Check className="size-3.5" /> : <span className="sr-only">{accent.label}</span>}</button>)}</div>} />
-      </SettingsGroup>
+    <Section title="Appearance" description="Choose a theme, color mode, and interface density.">
+      <AppearanceSettings />
     </Section>
 
     <Section title="Server" description="The database gateway listens only on this computer.">

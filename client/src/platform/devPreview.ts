@@ -7,7 +7,10 @@ const defaults: AppSettings = {
   startHidden: true,
   closeToTray: true,
   theme: "system",
+  themeId: "default",
   accent: "blue",
+  density: "default",
+  fontSize: 13,
   onboardingCompleted: true,
 };
 
@@ -46,6 +49,19 @@ export const devPreviewPlatform: Platform = {
     const updated = { ...readSettings(), ...patch };
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(updated));
     return updated;
+  },
+  async listCustomThemes() { return JSON.parse(localStorage.getItem("dbmcp.customThemes") ?? "[]") as string[]; },
+  async installCustomTheme(json) {
+    const themes = await this.listCustomThemes();
+    const parsed: unknown = JSON.parse(json);
+    if (typeof parsed !== "object" || parsed === null || !("id" in parsed) || typeof parsed.id !== "string") throw new Error("Theme JSON must have an id.");
+    const updated = [...themes.filter((item) => { try { return (JSON.parse(item) as { id?: string }).id !== parsed.id; } catch { return true; } }), json];
+    localStorage.setItem("dbmcp.customThemes", JSON.stringify(updated));
+    return parsed.id;
+  },
+  async deleteCustomTheme(id) {
+    const themes = await this.listCustomThemes();
+    localStorage.setItem("dbmcp.customThemes", JSON.stringify(themes.filter((item) => { try { return (JSON.parse(item) as { id?: string }).id !== id; } catch { return true; } })));
   },
   async getAppInfo() { return { version: "0.1.0", platform: "macos" } satisfies AppInfo; },
   async listAiClients() { return sampleClients; },

@@ -90,7 +90,10 @@ interface AppSettings {
   startHidden: boolean;    // default true (only applies on autostart)
   closeToTray: boolean;    // default true
   theme: "system" | "light" | "dark"; // default "system"
+  themeId: string;          // default "default"; built-in or imported theme id
   accent: "blue" | "violet" | "green" | "orange" | "pink" | "graphite"; // default "blue"
+  density: "compact" | "default" | "comfortable"; // default "default"
+  fontSize: 12 | 13 | 14;  // default 13 px
   onboardingCompleted: boolean;       // default false
 }
 
@@ -122,6 +125,14 @@ interface InstallResult  { configPath: string; backupPath: string | null; }
 | `install_ai_client` | `{ id }` | `InstallResult` |
 | `uninstall_ai_client` | `{ id }` | `InstallResult` |
 | `reset_all_data` | — | `void` (stops server, deletes SQLite + keychain entry, restarts) |
+| `list_custom_themes` | — | `string[]` (theme JSON documents from `app_config_dir/themes/`) |
+| `install_custom_theme` | `{ json: string }` | `string` (theme id; JSON limited to 256 KB, id must be safe and not built-in) |
+| `delete_custom_theme` | `{ id: string }` | `void` (removes an imported theme) |
+
+Theme imports are validated by the UI against the version-1 theme schema before IPC.
+The shell independently checks JSON shape, id format, built-in id collisions and file
+size, then writes via a temporary file and atomic rename. Imported themes live in
+`app_config_dir/themes/<id>.json` and are not included in the settings document.
 
 Events (shell → UI):
 - `server://state` — payload `ServerInfo`, emitted on every state change.

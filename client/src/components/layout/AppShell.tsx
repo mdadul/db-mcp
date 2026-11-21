@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Command } from "cmdk";
-import { useQueryClient } from "@tanstack/react-query";
-import { Activity, ChevronsLeft, ChevronsRight, Command as CommandIcon, Copy, Database, MoreHorizontal, Plus, RotateCw, Settings, Users } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Activity, Bot, ChevronsLeft, ChevronsRight, Command as CommandIcon, Copy, Database, MoreHorizontal, Plus, RotateCw, Settings, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
 import { Kbd } from "@/components/ui/Kbd";
@@ -10,9 +10,13 @@ import { StatusDot } from "@/components/ui/StatusDot";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { platform } from "@/platform";
 import { useRestartServer, useServerInfo, useSettings } from "@/platform/hooks";
+import { installThemeApplication, registerCustomThemes } from "@/theme/runtime";
+import { themeSchema } from "@/theme/schema";
+import { builtInThemeIds } from "@/theme/themes";
 
 const navigation = [
   { to: "/connections", label: "Connections", icon: Database },
+  { to: "/analyst", label: "Analyst", icon: Bot },
   { to: "/ai-clients", label: "AI Clients", icon: Users },
   { to: "/activity", label: "Activity", icon: Activity },
   { to: "/settings", label: "Settings", icon: Settings },
@@ -29,6 +33,16 @@ export function AppShell() {
   const [platformName, setPlatformName] = useState<string>();
   const { data: serverInfo } = useServerInfo();
   const { data: settings } = useSettings();
+  const { data: customThemes = [], isSuccess: customThemesLoaded } = useQuery({
+    queryKey: ["platform", "custom-themes"],
+    queryFn: async () => (await platform.listCustomThemes()).flatMap((json) => {
+      try {
+        const parsed: unknown = JSON.parse(json);
+        const result = themeSchema.safeParse(parsed);
+        return result.success ? [result.data] : [];
+      } catch { return []; }
+    }),
+  });
   const restartServer = useRestartServer();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -56,19 +70,10 @@ export function AppShell() {
   }, [manualCollapsed]);
 
   useEffect(() => {
-    const root = document.documentElement;
-    const applyTheme = () => {
-      if (settings) localStorage.setItem("dbmcp.settingsCache", JSON.stringify(settings));
-      if (settings?.accent) root.dataset.accent = settings.accent;
-      const dark = settings?.theme === "dark" || (settings?.theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
-      root.dataset.theme = dark ? "default-dark" : "default-light";
-      root.classList.toggle("dark", dark);
-    };
-    applyTheme();
-    const media = window.matchMedia("(prefers-color-scheme: dark)");
-    media.addEventListener("change", applyTheme);
-    return () => media.removeEventListener("change", applyTheme);
-  }, [settings]);
+    registerCustomThemes(customThemes);
+    if (!settings || (!builtInThemeIds.has(settings.themeId) && !customThemesLoaded)) return undefined;
+    return installThemeApplication({ ...settings, mode: settings.theme, customThemes });
+  }, [settings, customThemes, customThemesLoaded]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -77,7 +82,7 @@ export function AppShell() {
       if (mod && event.key.toLowerCase() === "n") { event.preventDefault(); navigate("/connections/new"); }
       if (mod && event.key === ",") { event.preventDefault(); navigate("/settings"); }
       if (mod && event.key === "\\") { event.preventDefault(); setManualCollapsed((value) => !(value ?? narrowWindow)); }
-      if (mod && /^[1-4]$/.test(event.key)) { event.preventDefault(); navigate(navigation[Number(event.key) - 1].to); }
+      if (mod && /^[1-5]$/.test(event.key)) { event.preventDefault(); navigate(navigation[Number(event.key) - 1].to); }
       if (event.key === "Escape") setPaletteOpen(false);
     };
     window.addEventListener("keydown", onKeyDown);

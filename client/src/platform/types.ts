@@ -24,7 +24,10 @@ export interface AppSettings {
   startHidden: boolean;
   closeToTray: boolean;
   theme: "system" | "light" | "dark";
+  themeId: string;
   accent: "blue" | "violet" | "green" | "orange" | "pink" | "graphite";
+  density: "compact" | "default" | "comfortable";
+  fontSize: 12 | 13 | 14;
   onboardingCompleted: boolean;
 }
 
@@ -69,6 +72,9 @@ export interface Platform {
   openLogsDir(): Promise<void>;
   getSettings(): Promise<AppSettings>;
   updateSettings(patch: Partial<AppSettings>): Promise<AppSettings>;
+  listCustomThemes(): Promise<string[]>;
+  installCustomTheme(json: string): Promise<string>;
+  deleteCustomTheme(id: string): Promise<void>;
   getAppInfo(): Promise<AppInfo>;
   listAiClients(): Promise<AiClient[]>;
   previewAiClientInstall(id: AiClientId): Promise<InstallPreview>;

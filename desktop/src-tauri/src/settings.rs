@@ -16,8 +16,14 @@ pub struct AppSettings {
     pub close_to_tray: bool,
     #[serde(default)]
     pub theme: Theme,
+    #[serde(default = "default_theme_id")]
+    pub theme_id: String,
     #[serde(default)]
     pub accent: Accent,
+    #[serde(default)]
+    pub density: Density,
+    #[serde(default = "default_font_size")]
+    pub font_size: u8,
     #[serde(default)]
     pub onboarding_completed: bool,
 }
@@ -43,6 +49,15 @@ pub enum Accent {
     Graphite,
 }
 
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Density {
+    Compact,
+    #[default]
+    Default,
+    Comfortable,
+}
+
 impl Default for AppSettings {
     fn default() -> Self {
         Self {
@@ -51,7 +66,10 @@ impl Default for AppSettings {
             start_hidden: true,
             close_to_tray: true,
             theme: Theme::System,
+            theme_id: default_theme_id(),
             accent: Accent::Blue,
+            density: Density::Default,
+            font_size: default_font_size(),
             onboarding_completed: false,
         }
     }
@@ -65,7 +83,10 @@ pub struct SettingsPatch {
     pub start_hidden: Option<bool>,
     pub close_to_tray: Option<bool>,
     pub theme: Option<Theme>,
+    pub theme_id: Option<String>,
     pub accent: Option<Accent>,
+    pub density: Option<Density>,
+    pub font_size: Option<u8>,
     pub onboarding_completed: Option<bool>,
 }
 
@@ -86,8 +107,17 @@ impl AppSettings {
         if let Some(theme) = patch.theme {
             self.theme = theme;
         }
+        if let Some(theme_id) = patch.theme_id {
+            self.theme_id = theme_id;
+        }
         if let Some(accent) = patch.accent {
             self.accent = accent;
+        }
+        if let Some(density) = patch.density {
+            self.density = density;
+        }
+        if let Some(font_size) = patch.font_size {
+            self.font_size = font_size;
         }
         if let Some(value) = patch.onboarding_completed {
             self.onboarding_completed = value;
@@ -139,6 +169,18 @@ impl SettingsStore {
             .map_err(|_| "Settings lock is unavailable".to_owned())?;
         let mut updated = current.clone();
         updated.apply(patch);
+        if !(12..=14).contains(&updated.font_size) {
+            return Err("Interface font size must be 12, 13, or 14".to_owned());
+        }
+        if updated.theme_id.is_empty()
+            || updated.theme_id.len() > 40
+            || !updated
+                .theme_id
+                .bytes()
+                .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'-')
+        {
+            return Err("Theme id must match ^[a-z0-9-]{1,40}$".to_owned());
+        }
         if let Some(path) = self.path.as_ref() {
             write_atomic(path, &updated)?;
         }
@@ -169,6 +211,14 @@ const fn default_true() -> bool {
     true
 }
 
+fn default_theme_id() -> String {
+    "default".to_owned()
+}
+
+const fn default_font_size() -> u8 {
+    13
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -181,6 +231,9 @@ mod tests {
         assert!(AppSettings::default().close_to_tray);
         assert_eq!(AppSettings::default().theme, Theme::System);
         assert_eq!(AppSettings::default().accent, Accent::Blue);
+        assert_eq!(AppSettings::default().theme_id, "default");
+        assert_eq!(AppSettings::default().density, Density::Default);
+        assert_eq!(AppSettings::default().font_size, 13);
         assert!(!AppSettings::default().onboarding_completed);
     }
 
@@ -190,12 +243,18 @@ mod tests {
         settings.apply(SettingsPatch {
             port: Some(4321),
             theme: Some(Theme::Dark),
+            theme_id: Some("nord".to_owned()),
             accent: Some(Accent::Violet),
+            density: Some(Density::Comfortable),
+            font_size: Some(14),
             ..SettingsPatch::default()
         });
         assert_eq!(settings.port, 4321);
         assert_eq!(settings.theme, Theme::Dark);
         assert_eq!(settings.accent, Accent::Violet);
+        assert_eq!(settings.theme_id, "nord");
+        assert_eq!(settings.density, Density::Comfortable);
+        assert_eq!(settings.font_size, 14);
         assert!(settings.close_to_tray);
     }
 
@@ -204,10 +263,40 @@ mod tests {
         let settings: AppSettings =
             serde_json::from_str(r#"{"port":4080}"#).expect("deserialize old settings");
         assert_eq!(settings.accent, Accent::Blue);
+        assert_eq!(settings.theme_id, "default");
+        assert_eq!(settings.font_size, 13);
         assert_eq!(
             serde_json::to_string(&Accent::Graphite).expect("serialize accent"),
             "\"graphite\""
         );
+    }
+
+    #[test]
+    fn new_theme_fields_default_when_loading_existing_settings() {
+        let settings: AppSettings = serde_json::from_str(
+            r#"{"port":4080,"launchAtLogin":false,"startHidden":true,"closeToTray":true,"theme":"system","accent":"blue","onboardingCompleted":false}"#,
+        )
+        .expect("deserialize settings written before theme fields existed");
+        assert_eq!(settings.theme_id, "default");
+        assert_eq!(settings.density, Density::Default);
+        assert_eq!(settings.font_size, 13);
+    }
+
+    #[test]
+    fn invalid_theme_preferences_are_rejected() {
+        let store = SettingsStore::default();
+        assert!(store
+            .update(SettingsPatch {
+                theme_id: Some("../bad".to_owned()),
+                ..SettingsPatch::default()
+            })
+            .is_err());
+        assert!(store
+            .update(SettingsPatch {
+                font_size: Some(15),
+                ..SettingsPatch::default()
+            })
+            .is_err());
     }
 
     #[test]

@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{fs, path::PathBuf, sync::Arc};
 
 use tauri::{AppHandle, Manager, State};
 use tauri_plugin_autostart::ManagerExt as AutostartManagerExt;
@@ -57,6 +57,134 @@ pub fn open_logs_dir(app: AppHandle) -> Result<(), String> {
     app.opener()
         .open_path(path.to_string_lossy(), None::<&str>)
         .map_err(|error| format!("Could not open logs folder: {error}"))
+}
+
+const MAX_THEME_SIZE: usize = 256 * 1024;
+const BUILT_IN_THEME_IDS: &[&str] = &[
+    "default",
+    "graphite",
+    "nord",
+    "solarized",
+    "github",
+    "catppuccin",
+    "dracula",
+    "rose-pine",
+    "high-contrast",
+];
+
+fn validate_custom_theme_id(id: &str) -> Result<(), String> {
+    if id.is_empty()
+        || id.len() > 40
+        || !id
+            .bytes()
+            .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'-')
+    {
+        return Err("Theme id must match ^[a-z0-9-]{1,40}$".to_owned());
+    }
+    Ok(())
+}
+
+fn custom_themes_dir(app: &AppHandle) -> Result<PathBuf, String> {
+    app.path()
+        .app_config_dir()
+        .map(|path| path.join("themes"))
+        .map_err(|error| format!("Could not resolve custom themes folder: {error}"))
+}
+
+#[tauri::command]
+pub fn list_custom_themes(app: AppHandle) -> Result<Vec<String>, String> {
+    let directory = custom_themes_dir(&app)?;
+    let entries = match fs::read_dir(directory) {
+        Ok(entries) => entries,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
+        Err(error) => return Err(format!("Could not list custom themes: {error}")),
+    };
+    let mut themes = Vec::new();
+    for entry in entries {
+        let entry = entry.map_err(|error| format!("Could not read custom theme entry: {error}"))?;
+        if entry
+            .path()
+            .extension()
+            .is_some_and(|extension| extension == "json")
+        {
+            let contents = fs::read_to_string(entry.path())
+                .map_err(|error| format!("Could not read custom theme: {error}"))?;
+            themes.push(contents);
+        }
+    }
+    themes.sort();
+    Ok(themes)
+}
+
+#[tauri::command]
+pub fn install_custom_theme(app: AppHandle, json: String) -> Result<String, String> {
+    if json.len() > MAX_THEME_SIZE {
+        return Err("Theme file must be 256 KB or smaller".to_owned());
+    }
+    let value: serde_json::Value =
+        serde_json::from_str(&json).map_err(|error| format!("Theme JSON is invalid: {error}"))?;
+    let object = value
+        .as_object()
+        .ok_or_else(|| "Theme JSON must be an object".to_owned())?;
+    let id = object
+        .get("id")
+        .and_then(serde_json::Value::as_str)
+        .ok_or_else(|| "Theme JSON must include a string id".to_owned())?
+        .to_owned();
+    let name = object
+        .get("name")
+        .and_then(serde_json::Value::as_str)
+        .ok_or_else(|| "Theme JSON must include a string name".to_owned())?
+        .to_owned();
+    if name.trim().is_empty() {
+        return Err("Theme name cannot be empty".to_owned());
+    }
+    if name.len() > 80 {
+        return Err("Theme name must be 80 characters or fewer".to_owned());
+    }
+    validate_custom_theme_id(&id)?;
+    if BUILT_IN_THEME_IDS.contains(&id.as_str()) {
+        return Err("A built-in theme cannot be replaced".to_owned());
+    }
+    let directory = custom_themes_dir(&app)?;
+    fs::create_dir_all(&directory)
+        .map_err(|error| format!("Could not create custom themes folder: {error}"))?;
+    let path = directory.join(format!("{id}.json"));
+    let temporary = directory.join(format!(".{id}.json.tmp"));
+    let result = (|| {
+        fs::write(&temporary, json)
+            .map_err(|error| format!("Could not write custom theme: {error}"))?;
+        fs::rename(&temporary, &path)
+            .map_err(|error| format!("Could not install custom theme: {error}"))
+    })();
+    if result.is_err() {
+        let _ = fs::remove_file(temporary);
+    }
+    result?;
+    Ok(id)
+}
+
+#[tauri::command]
+pub fn delete_custom_theme(app: AppHandle, id: String) -> Result<(), String> {
+    validate_custom_theme_id(&id)?;
+    if BUILT_IN_THEME_IDS.contains(&id.as_str()) {
+        return Err("A built-in theme cannot be deleted".to_owned());
+    }
+    let path = custom_themes_dir(&app)?.join(format!("{id}.json"));
+    fs::remove_file(path).map_err(|error| format!("Could not delete custom theme: {error}"))
+}
+
+#[cfg(test)]
+mod theme_tests {
+    use super::*;
+
+    #[test]
+    fn custom_theme_id_validation_accepts_safe_id_and_rejects_paths() {
+        assert!(validate_custom_theme_id("my-dark-theme-2").is_ok());
+        assert!(validate_custom_theme_id("../outside").is_err());
+        assert!(validate_custom_theme_id("UPPERCASE").is_err());
+        assert!(validate_custom_theme_id(&"a".repeat(41)).is_err());
+    }
 }
 
 #[tauri::command]
