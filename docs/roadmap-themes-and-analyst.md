@@ -55,14 +55,12 @@ theme works without touching components.
 A built-in chat where the user talks to an AI agent that acts as a **data
 analyst / data engineer** over their connected databases: explores schemas, writes
 and runs read-only queries, profiles data, explains results, and renders charts.
-It uses the **AI agents the user already has and is signed in to** (Claude Code,
-Codex, OpenCode, Gemini CLI, …), the same way T3 Code does: the app drives the
-agent installed on the user's machine and never resells tokens or handles the
-user's provider credentials.
+It works with AI providers the user already has: API keys, local models, and,
+where the provider permits it, agents installed on the user's machine. The app
+never resells tokens.
 
-### How T3 Code does it (the model we follow)
-- Runs the agents locally and gives them one interface; "if an agent is set up on
-  your computer, T3 Code can control it".
+### Integration approach
+- Agents and models run locally or through the user's own provider account.
 - Provider-specific behavior lives behind an **adapter**; the rest of the app works
   with normalized commands and events, so adding a provider doesn't spread
   branches through the code.
@@ -147,9 +145,8 @@ Normalized events: `message.delta`, `message.done`, `tool.call`, `tool.result`,
 ### Decision blockers (verify before building)
 1. **Provider terms.** Check each provider's current terms for third-party apps
    that drive the user's own signed-in agent. For example, Anthropic's Agent SDK
-   docs have restricted third-party products from offering claude.ai login; T3
-   Code avoids this by driving the user's own installed CLI. Confirm the
-   approach per provider (Claude, OpenAI Codex, Google) before shipping.
+   docs have restricted third-party products from offering claude.ai login.
+   Confirm the approach per provider (Claude, OpenAI Codex, Google) before shipping.
 2. **Antigravity.** Confirm it exposes a CLI or ACP interface we can drive; if not,
    support it through ACP later or leave it out.
 3. **Chart library.** Vega-Lite (expressive, larger) vs ECharts (fast, large
@@ -158,7 +155,7 @@ Normalized events: `message.delta`, `message.done`, `tool.call`, `tool.result`,
 
 ### Research findings and decisions (2026-11-21)
 
-Source: provider research task (official docs, T3 Code source). Summary:
+Source: provider research task (official provider documentation). Summary:
 
 | Provider | Drive method | Can restrict to our MCP tools only? | Use of the user's subscription login |
 |---|---|---|---|
