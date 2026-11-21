@@ -17,6 +17,7 @@ const OnboardingPage = lazy(() => import("@/pages/OnboardingPage").then((module)
 const SettingsPage = lazy(() => import("@/pages/SettingsPage").then((module) => ({ default: module.SettingsPage })));
 const AiClientsPage = lazy(() => import("@/pages/AiClientsPage").then((module) => ({ default: module.AiClientsPage })));
 const ActivityPage = lazy(() => import("@/pages/ActivityPage").then((module) => ({ default: module.ActivityPage })));
+const AnalystPage = lazy(() => import("@/pages/AnalystPage").then((module) => ({ default: module.AnalystPage })));
 
 function ServerStateGate() {
   const { data: serverInfo, isLoading } = useServerInfo();
@@ -59,6 +60,8 @@ const router = createBrowserRouter(createRoutesFromElements(
   <Route element={<ServerStateGate />}>
     <Route element={<AppShell />}>
       <Route path="/" element={<HomeRedirect />} />
+      <Route path="/analyst" element={<LazyPage><AnalystPage /></LazyPage>} />
+      <Route path="/analyst/:threadId" element={<LazyPage><AnalystPage /></LazyPage>} />
       <Route element={<OnboardingGate />}>
         <Route path="/onboarding" element={<LazyPage><OnboardingPage /></LazyPage>} />
         <Route path="/connections" element={<LazyPage><DatabaseListPage /></LazyPage>} />

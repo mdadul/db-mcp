@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type MouseEvent, type MutableRefObject } from "react";
 import type { EditorView } from "@codemirror/view";
 import { useMutation, useQuery, useQueryClient, type UseQueryResult } from "@tanstack/react-query";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { toast } from "sonner";
 import { ChevronDown, ChevronRight, Code2, Copy, Database, Eye, FolderTree, ListFilter, MoreHorizontal, Plus, RefreshCw, Search, ShieldCheck, Table2 } from "lucide-react";
@@ -40,6 +40,7 @@ const formatEstimate = (value: number | null) => value === null ? "" : value.toL
 export function ConnectionsWorkbench() {
   const { id: routeId } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const [selectedId, setSelectedId] = useState(routeId ?? "");
   const [tabsByConnection, setTabsByConnection] = useState<Record<string, WorkbenchTab[]>>(() => readStorage());
@@ -120,6 +121,19 @@ export function ConnectionsWorkbench() {
     setCell(null);
   }, [connection, selectedId, tabsByConnection]);
   const openQueryTab = useCallback((query?: string) => { openTab("query", undefined, query); if (query) setQueryText(query); }, [openTab]);
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("analystQuery") !== "1" || !routeId || connection?.id !== routeId) return;
+    try {
+      const request: unknown = JSON.parse(sessionStorage.getItem("dbmcp.analyst.openQuery") ?? "null");
+      if (request && typeof request === "object" && "databaseId" in request && request.databaseId === routeId && "sql" in request && typeof request.sql === "string") {
+        sessionStorage.removeItem("dbmcp.analyst.openQuery");
+        openQueryTab(request.sql);
+      }
+    } catch { sessionStorage.removeItem("dbmcp.analyst.openQuery"); }
+    params.delete("analystQuery");
+    navigate({ pathname: location.pathname, search: params.toString() ? `?${params}` : "" }, { replace: true });
+  }, [location.pathname, location.search, routeId, connection?.id, openQueryTab, navigate]);
   const closeTab = (tabId: string) => {
     if (!selectedId) return;
     const currentTabs = tabsByConnection[selectedId] ?? [];

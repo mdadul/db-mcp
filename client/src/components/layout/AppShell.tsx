@@ -82,7 +82,7 @@ export function AppShell() {
       if (mod && event.key.toLowerCase() === "n") { event.preventDefault(); navigate("/connections/new"); }
       if (mod && event.key === ",") { event.preventDefault(); navigate("/settings"); }
       if (mod && event.key === "\\") { event.preventDefault(); setManualCollapsed((value) => !(value ?? narrowWindow)); }
-      if (mod && /^[1-5]$/.test(event.key)) { event.preventDefault(); navigate(navigation[Number(event.key) - 1].to); }
+      if (mod && /^[1-5]$/.test(event.key)) { event.preventDefault(); navigate(event.key === "5" ? "/analyst" : navigation[Number(event.key) - 1].to); }
       if (event.key === "Escape") setPaletteOpen(false);
     };
     window.addEventListener("keydown", onKeyDown);
