@@ -1,21 +1,75 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { Provider } from "jotai";
-import { LandingPage } from "@/pages/LandingPage";
+import { useEffect, useState } from "react";
+import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { AlertTriangle, FolderOpen, RotateCw, Server } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import { DatabaseListPage } from "@/pages/DatabaseListPage";
 import { DatabaseFormPage } from "@/pages/DatabaseFormPage";
+import { PlaceholderPage } from "@/pages/PlaceholderPage";
+import { OnboardingPage } from "@/pages/OnboardingPage";
+import { SettingsPage } from "@/pages/SettingsPage";
+import { AppShell } from "@/components/layout/AppShell";
+import { PageHeader, Skeleton } from "@/components/ui/primitives";
+import { platform } from "@/platform";
+import { useRestartServer, useServerInfo, useSettings } from "@/platform/hooks";
+import type { ServerState } from "@/platform/types";
+
+function ServerStateGate() {
+  const { data: serverInfo, isLoading } = useServerInfo();
+  const restart = useRestartServer();
+  const { data: settings } = useSettings();
+  const [logs, setLogs] = useState<string[]>([]);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (serverInfo?.state === "failed") void platform.readServerLogs(200).then(setLogs);
+  }, [serverInfo?.state]);
+
+  if (isLoading || !serverInfo) return <div className="flex min-h-screen items-center justify-center bg-background"><div className="w-full max-w-sm space-y-3 p-8" role="status" aria-label="Starting local server"><Skeleton className="h-5 w-48" /><Skeleton className="h-3 w-64" /><Skeleton className="h-1 w-full" /><p className="text-sm text-muted-foreground">Starting local server…</p></div></div>;
+  if (serverInfo.state === "starting") return <div className="flex min-h-screen items-center justify-center bg-background"><div className="w-full max-w-sm space-y-3 p-8" role="status" aria-label="Starting local server"><Skeleton className="h-5 w-48" /><Skeleton className="h-3 w-64" /><div className="h-1 overflow-hidden rounded-full bg-muted"><div className="h-full w-1/2 animate-pulse rounded-full bg-primary motion-reduce:animate-none" /></div><p className="text-sm text-muted-foreground">Starting local server…</p></div></div>;
+  if (serverInfo.state === "healthy" || serverInfo.state === "unhealthy" || serverInfo.state === "restarting") return <Outlet />;
+  if (location.pathname === "/settings") return <Outlet />;
+  const stateCopy: Record<Extract<ServerState, "port_in_use" | "failed" | "stopped">, { title: string; description: string }> = {
+    port_in_use: { title: "Port already in use", description: `Another process is using port ${serverInfo.port}. Change the port in Settings, then restart the local server.` },
+    failed: { title: "Local server failed to start", description: serverInfo.lastError ?? "The local server could not start. Review the recent logs and try again." },
+    stopped: { title: "Local server is stopped", description: "Start the local server to manage connections and provide database access to your AI clients." },
+  };
+  const state = serverInfo.state;
+  const { title, description } = stateCopy[state];
+
+  return <main className="flex min-h-screen items-center justify-center bg-background px-6 py-10"><section className="w-full max-w-xl rounded-2xl border border-border bg-card p-7 shadow-lg">
+    <div className="mb-5 flex size-11 items-center justify-center rounded-xl bg-destructive/10 text-destructive"><AlertTriangle className="size-5" /></div>
+    <PageHeader title={title} description={description} />
+    {state === "failed" && <div className="mb-5"><div className="mb-2 flex items-center justify-between"><h2 className="text-xs font-semibold">Recent server logs</h2><Button variant="ghost" size="sm" onClick={() => void platform.readServerLogs(200).then(setLogs)}>Refresh logs</Button></div><pre className="max-h-64 overflow-auto rounded-lg border border-border bg-muted p-3 font-mono text-[11px] leading-5 text-muted-foreground">{logs.length ? logs.slice(-200).join("\n") : "Select Refresh logs to load recent output."}</pre></div>}
+    <div className="flex flex-wrap gap-2">
+      <Button onClick={() => restart.mutate()} disabled={restart.isPending}><RotateCw data-icon="inline-start" />Restart server</Button>
+      {state === "failed" && <Button variant="outline" onClick={() => void platform.openLogsDir()}><FolderOpen data-icon="inline-start" />Open logs folder</Button>}
+      {state === "port_in_use" && <Button variant="outline" onClick={() => navigate("/settings")}><Server data-icon="inline-start" />Open Settings</Button>}
+    </div>
+    {settings?.port !== undefined && state === "port_in_use" && <p className="mt-4 text-xs text-muted-foreground">Current port: <code className="font-mono">{settings.port}</code></p>}
+  </section></main>;
+}
 
 export function App() {
-  return (
-    <Provider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<DatabaseListPage />} />
-          <Route path="/welcome" element={<LandingPage />} />
-          <Route path="/databases" element={<DatabaseListPage />} />
-          <Route path="/new" element={<DatabaseFormPage />} />
-          <Route path="/:id/edit" element={<DatabaseFormPage />} />
-        </Routes>
-      </BrowserRouter>
-    </Provider>
-  );
+  return <BrowserRouter><Routes>
+    <Route element={<ServerStateGate />}>
+      <Route element={<AppShell />}>
+        <Route path="/" element={<HomeRedirect />} />
+        <Route path="/onboarding" element={<OnboardingPage />} />
+        <Route path="/connections" element={<DatabaseListPage />} />
+        <Route path="/connections/new" element={<DatabaseFormPage />} />
+        <Route path="/connections/:id/edit" element={<DatabaseFormPage />} />
+        <Route path="/ai-clients" element={<PlaceholderPage title="AI Clients" description="Connect your AI tools to the local db-mcp server." />} />
+        <Route path="/activity" element={<PlaceholderPage title="Activity" description="Review recent database and MCP activity." />} />
+        <Route path="/settings" element={<SettingsPage />} />
+        <Route path="*" element={<Navigate to="/connections" replace />} />
+      </Route>
+    </Route>
+  </Routes></BrowserRouter>;
+}
+
+function HomeRedirect() {
+  const { data: settings } = useSettings();
+  if (!settings) return <div className="p-8"><Skeleton className="h-8 w-40" /></div>;
+  return <Navigate to={settings.onboardingCompleted ? "/connections" : "/onboarding"} replace />;
 }

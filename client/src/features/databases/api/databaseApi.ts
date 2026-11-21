@@ -1,4 +1,4 @@
-import { client } from "@/api/client";
+import { getApiClient } from "@/api/client";
 import { unwrap } from "@/api/unwrap";
 import type {
   DatabaseConnection,
@@ -13,21 +13,25 @@ import type {
 
 export const databaseApi = {
   async list(): Promise<DatabaseConnection[]> {
+    const client = await getApiClient();
     const res = await client.api.databases.$get();
     return unwrap<DatabaseConnection[]>(res);
   },
 
   async getById(id: string): Promise<DatabaseConnection> {
+    const client = await getApiClient();
     const res = await client.api.databases[":id"].$get({ param: { id } });
     return unwrap<DatabaseConnection>(res);
   },
 
   async create(input: CreateDatabaseInput): Promise<DatabaseConnection> {
+    const client = await getApiClient();
     const res = await client.api.databases.$post({ json: input });
     return unwrap<DatabaseConnection>(res);
   },
 
   async update(id: string, input: UpdateDatabaseInput): Promise<DatabaseConnection> {
+    const client = await getApiClient();
     const res = await client.api.databases[":id"].$patch({
       param: { id },
       json: input,
@@ -36,11 +40,13 @@ export const databaseApi = {
   },
 
   async delete(id: string): Promise<void> {
+    const client = await getApiClient();
     const res = await client.api.databases[":id"].$delete({ param: { id } });
     await unwrap<void>(res);
   },
 
   async toggleStatus(id: string, nextStatus: "enabled" | "disabled"): Promise<DatabaseConnection> {
+    const client = await getApiClient();
     const res = await client.api.databases[":id"].status.$patch({
       param: { id },
       json: { status: nextStatus },
@@ -49,16 +55,19 @@ export const databaseApi = {
   },
 
   async testConnection(id: string): Promise<TestResult> {
+    const client = await getApiClient();
     const res = await client.api.databases[":id"].test.$post({ param: { id } });
     return unwrap<TestResult>(res);
   },
 
   async getSchema(id: string): Promise<SchemaResponse> {
+    const client = await getApiClient();
     const res = await client.api.databases[":id"].schema.$get({ param: { id } });
     return unwrap<SchemaResponse>(res);
   },
 
   async getTableSchema(id: string, tableName: string): Promise<TableSchema> {
+    const client = await getApiClient();
     const res = await client.api.databases[":id"].tables[":tableName"].schema.$get({
       param: { id, tableName },
     });
@@ -66,6 +75,7 @@ export const databaseApi = {
   },
 
   async executeQuery(id: string, query: string, limit?: number): Promise<StructuredQueryResult> {
+    const client = await getApiClient();
     const res = await client.api.databases[":id"].query.$post({
       param: { id },
       json: { query, limit },
@@ -74,6 +84,7 @@ export const databaseApi = {
   },
 
   async getLogs(id: string, limit?: number): Promise<QueryLogItem[]> {
+    const client = await getApiClient();
     const res = await client.api.databases[":id"].logs.$get({
       param: { id },
       query: limit ? { limit: String(limit) } : {},
@@ -81,4 +92,3 @@ export const databaseApi = {
     return unwrap<QueryLogItem[]>(res);
   },
 };
-

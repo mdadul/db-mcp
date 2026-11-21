@@ -1,21 +1,15 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
-
-const MCP_SNIPPET = `{
-  "mcpServers": {
-    "db-mcp": {
-      "url": "http://localhost:4080/mcp",
-      "headers": { "Authorization": "Bearer <MCP_TOKEN>" }
-    }
-  }
-}`;
+import { useServerInfo } from "@/platform/hooks";
 
 export function McpSnippetCard() {
   const [copied, setCopied] = useState(false);
+  const { data: serverInfo } = useServerInfo();
+  const mcpSnippet = JSON.stringify({ mcpServers: { "db-mcp": { url: serverInfo?.mcpUrl ?? "" } } }, null, 2);
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(MCP_SNIPPET);
+      await navigator.clipboard.writeText(mcpSnippet);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -39,7 +33,7 @@ export function McpSnippetCard() {
         </Button>
       </div>
       <pre className="max-h-[320px] overflow-x-auto rounded-xl border border-border bg-muted p-3 text-xs text-primary whitespace-pre-wrap break-all font-mono">
-        {MCP_SNIPPET}
+        {mcpSnippet}
       </pre>
     </div>
   );

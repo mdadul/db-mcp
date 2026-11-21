@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
-import { toast } from "@/components/ui/Toast";
+import { toast } from "sonner";
 import { databaseApi } from "../api/databaseApi";
 import {
   createDatabaseFormSchema,
@@ -8,7 +9,7 @@ import {
   type BaseDatabaseFormData,
 } from "../schemas/databaseSchemas";
 import { DB_ENGINES } from "../types";
-import type { TestResult, DbEngineType } from "../types";
+import type { DbEngineType, TestResult, UpdateDatabaseInput } from "../types";
 import type { ParsedConnectionFields } from "../components/ConnectionStringParser";
 
 export type DatabaseFormState = BaseDatabaseFormData & { password?: string };
@@ -33,8 +34,47 @@ export function useDatabaseForm() {
 
   const [form, setForm] = useState<DatabaseFormState>(INITIAL_FORM);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(isEdit);
-  const [saving, setSaving] = useState(false);
+  const queryClient = useQueryClient();
+  const editQuery = useQuery({
+    queryKey: ["databases", id],
+    queryFn: () => databaseApi.getById(id ?? ""),
+    enabled: Boolean(id),
+  });
+  const saveMutation = useMutation({
+    mutationFn: async ({ input, connectionId }: { input: BaseDatabaseFormData & { password?: string }; connectionId?: string }) => {
+      if (connectionId) {
+        const update: UpdateDatabaseInput = {
+          name: input.name,
+          type: input.type,
+          host: input.host || "",
+          port: Number(input.port),
+          databaseName: input.databaseName,
+          username: input.username || "",
+          password: input.password || undefined,
+          ssl: input.ssl ?? false,
+          serviceName: input.serviceName,
+          environment: input.environment,
+        };
+        return databaseApi.update(connectionId, update);
+      }
+      return databaseApi.create({
+        name: input.name,
+        type: input.type,
+        host: input.host || "",
+        port: Number(input.port),
+        databaseName: input.databaseName,
+        username: input.username || "",
+        password: input.password ?? "",
+        ssl: input.ssl ?? false,
+        serviceName: input.serviceName || undefined,
+        environment: input.environment || undefined,
+      });
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["databases"] }),
+  });
+  const testMutation = useMutation({ mutationFn: (connectionId: string) => databaseApi.testConnection(connectionId) });
+  const loading = isEdit && editQuery.isLoading;
+  const saving = saveMutation.isPending;
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copiedUri, setCopiedUri] = useState(false);
@@ -42,10 +82,8 @@ export function useDatabaseForm() {
   const [testResult, setTestResult] = useState<TestResult | null>(null);
 
   useEffect(() => {
-    if (!id) return;
-    databaseApi
-      .getById(id)
-      .then((db) => {
+    const db = editQuery.data;
+    if (db) {
         setForm({
           name: db.name,
           type: db.type as DbEngineType,
@@ -58,12 +96,10 @@ export function useDatabaseForm() {
           serviceName: db.serviceName ?? "",
           environment: db.environment ?? "",
         });
-      })
-      .catch((err: unknown) => {
-        setError(err instanceof Error ? err.message : "Failed to load database connection");
-      })
-      .finally(() => setLoading(false));
-  }, [id]);
+    } else if (editQuery.error) {
+      setError(editQuery.error instanceof Error ? editQuery.error.message : "Failed to load database connection");
+    }
+  }, [editQuery.data, editQuery.error]);
 
   function handleChange(field: keyof DatabaseFormState, value: string | number | boolean) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -102,7 +138,7 @@ export function useDatabaseForm() {
       ...(parsed.password ? { password: parsed.password } : {}),
       ...(parsed.ssl !== undefined ? { ssl: parsed.ssl } : {}),
     }));
-    toast.add({ type: "success", title: "Auto-filled connection parameters!" });
+    toast.success("Auto-filled connection parameters!");
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -123,32 +159,18 @@ export function useDatabaseForm() {
       return;
     }
 
-    setSaving(true);
     try {
       const data = result.data;
       if (isEdit && id) {
-        await databaseApi.update(id, { ...data, password: data.password || undefined });
-        toast.add({ type: "success", title: `Updated "${data.name}"` });
+        await saveMutation.mutateAsync({ input: data, connectionId: id });
+        toast.success(`Updated "${data.name}"`);
       } else {
-        await databaseApi.create({
-          name: data.name,
-          type: data.type,
-          host: data.host,
-          port: data.port,
-          databaseName: data.databaseName,
-          username: data.username,
-          password: data.password ?? "",
-          ssl: data.ssl,
-          serviceName: data.serviceName || undefined,
-          environment: data.environment || undefined,
-        });
-        toast.add({ type: "success", title: `Added "${data.name}"` });
+        await saveMutation.mutateAsync({ input: data });
+        toast.success(`Added "${data.name}"`);
       }
-      navigate("/databases");
+      navigate("/connections");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Save failed");
-    } finally {
-      setSaving(false);
     }
   }
 
@@ -157,16 +179,14 @@ export function useDatabaseForm() {
     setTesting(true);
     setTestResult(null);
     try {
-      const res = await databaseApi.testConnection(id);
+      const res = await testMutation.mutateAsync(id);
       setTestResult(res);
-      toast.add({
-        type: res.success ? "success" : "error",
-        title: res.success ? "Connection test passed!" : `Test failed: ${res.message}`,
-      });
+      if (res.success) toast.success("Connection test passed!");
+      else toast.error(`Test failed: ${res.message}`);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Test failed";
       setTestResult({ success: false, message: msg });
-      toast.add({ type: "error", title: msg });
+      toast.error(msg);
     } finally {
       setTesting(false);
     }
@@ -194,7 +214,7 @@ export function useDatabaseForm() {
       await navigator.clipboard.writeText(full);
       setCopiedUri(true);
       setTimeout(() => setCopiedUri(false), 2000);
-      toast.add({ type: "success", title: "URI copied!" });
+      toast.success("URI copied!");
     } catch {
       // clipboard not available
     }

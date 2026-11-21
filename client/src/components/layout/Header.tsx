@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 
 export interface HeaderProps {
   title: string;
@@ -12,13 +13,13 @@ export function Header({ title, subtitle, backTo, action }: HeaderProps) {
     <div className="flex items-start justify-between mb-8 gap-4">
       <div className="flex items-center gap-3">
         {backTo && (
-          <a
-            href={backTo}
+          <Link
+            to={backTo}
             className="text-muted-foreground hover:text-muted-foreground transition-colors text-lg leading-none"
             aria-label="Back"
           >
             ←
-          </a>
+          </Link>
         )}
         <div>
           <h1 className="text-2xl font-bold text-foreground tracking-tight">

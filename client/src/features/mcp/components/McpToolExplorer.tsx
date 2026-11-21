@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/Button";
 
 interface ToolInfo {
   name: string;
@@ -109,9 +108,10 @@ export function McpToolExplorer() {
         {/* Tool selector buttons */}
         <div className="flex items-center gap-1 bg-muted p-1 rounded-xl border border-border overflow-x-auto">
           {MCP_TOOLS.map((t, idx) => (
-            <button
+      <button
               key={t.name}
               onClick={() => setActiveIdx(idx)}
+              aria-pressed={activeIdx === idx}
               className={`px-3 py-1.5 text-xs font-mono font-semibold rounded-lg transition-all shrink-0 ${
                 activeIdx === idx
                   ? "bg-background text-primary shadow-2xs"

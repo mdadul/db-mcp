@@ -1,11 +1,10 @@
 import { useState } from "react";
-import { useAtomValue, useSetAtom } from "jotai";
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Switch } from "@/components/ui/Switch";
-import { toast } from "@/components/ui/Toast";
+import { toast } from "sonner";
 import {
   Copy,
   Check,
@@ -16,13 +15,7 @@ import {
   Database,
   Play,
 } from "@/components/ui/Icons";
-import {
-  testingIdAtom,
-  testResultsAtom,
-  toggleStatusAtom,
-  testConnectionAtom,
-} from "../atoms/databaseAtoms";
-import type { DatabaseConnection } from "../types";
+import type { DatabaseConnection, TestResult } from "../types";
 
 export interface DatabaseCardProps {
   database: DatabaseConnection;
@@ -31,6 +24,10 @@ export interface DatabaseCardProps {
   onToggleSelect?: (id: string) => void;
   onDeleteRequest: (db: DatabaseConnection) => void;
   onOpenDetails: (db: DatabaseConnection) => void;
+  isTesting?: boolean;
+  testResult?: TestResult;
+  onToggleStatus?: (db: DatabaseConnection) => void;
+  onTestConnection?: (id: string) => void;
 }
 
 export function DatabaseCard({
@@ -40,18 +37,14 @@ export function DatabaseCard({
   onToggleSelect,
   onDeleteRequest,
   onOpenDetails,
+  isTesting = false,
+  testResult,
+  onToggleStatus,
+  onTestConnection,
 }: DatabaseCardProps) {
   const navigate = useNavigate();
   const [copiedHost, setCopiedHost] = useState(false);
 
-  const testingId = useAtomValue(testingIdAtom);
-  const testResults = useAtomValue(testResultsAtom);
-
-  const toggleStatus = useSetAtom(toggleStatusAtom);
-  const testConnection = useSetAtom(testConnectionAtom);
-
-  const isTesting = testingId === database.id;
-  const testResult = testResults[database.id];
   const isDense = displayMode === "dense";
   const isMonitor = displayMode === "monitor";
 
@@ -60,7 +53,7 @@ export function DatabaseCard({
     try {
       await navigator.clipboard.writeText(connStr);
       setCopiedHost(true);
-      toast.add({ type: "info", title: `Copied "${connStr}" to clipboard` });
+      toast.success(`Copied "${connStr}" to clipboard`);
       setTimeout(() => setCopiedHost(false), 2000);
     } catch {
       // Fallback
@@ -115,7 +108,7 @@ export function DatabaseCard({
           </span>
           <Switch
             checked={database.status === "enabled"}
-            onCheckedChange={() => toggleStatus(database)}
+            onCheckedChange={() => onToggleStatus?.(database)}
           />
         </div>
       </div>
@@ -224,7 +217,7 @@ export function DatabaseCard({
             variant="outline"
             size="sm"
             disabled={isTesting}
-            onClick={() => testConnection(database.id)}
+            onClick={() => onTestConnection?.(database.id)}
             title="Test Connection"
             className={`${isMonitor ? "text-sm h-10" : "text-xs"} border-border`}
           >
@@ -234,7 +227,7 @@ export function DatabaseCard({
           <Button
             variant="secondary"
             size="icon"
-            onClick={() => navigate(`/${database.id}/edit`)}
+            onClick={() => navigate(`/connections/${database.id}/edit`)}
             title="Edit Connection"
           >
             <Pencil className="w-3.5 h-3.5" />

@@ -43,7 +43,7 @@ export function DatabaseForm() {
       <Header
         title={isEdit ? "Edit Connection" : "Add Database Connection"}
         subtitle="Credentials are encrypted with AES-256 before saving and never shared in plain text."
-        backTo="/databases"
+        backTo="/connections"
       />
 
       <div className="space-y-4 mb-6">
@@ -384,7 +384,7 @@ export function DatabaseForm() {
               <span>Encrypted & secure. AI agents receive read-only query access.</span>
             </div>
             <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
-              <Link to="/databases" className="flex-1 sm:flex-none">
+              <Link to="/connections" className="flex-1 sm:flex-none">
                 <Button type="button" variant="secondary" size="sm" className="w-full sm:w-auto px-5">Cancel</Button>
               </Link>
               <Button type="submit" variant="default" size="sm" disabled={saving}

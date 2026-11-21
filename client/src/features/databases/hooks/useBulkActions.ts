@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { toast } from "@/components/ui/Toast";
+import { toast } from "sonner";
 import type { DatabaseConnection } from "../types";
 
 interface UseBulkActionsOptions {
@@ -28,7 +28,7 @@ export function useBulkActions({
       if (db.status !== "enabled") { await onToggleStatus(db); count++; }
     }
     setIsActioning(false);
-    toast.add({ type: "success", title: `Enabled ${count} database connection(s)` });
+    toast.success(`Enabled ${count} database connection(s)`);
     onClearSelection();
   };
 
@@ -39,7 +39,7 @@ export function useBulkActions({
       if (db.status !== "disabled") { await onToggleStatus(db); count++; }
     }
     setIsActioning(false);
-    toast.add({ type: "info", title: `Disabled ${count} database connection(s)` });
+    toast.info(`Disabled ${count} database connection(s)`);
     onClearSelection();
   };
 
@@ -51,7 +51,7 @@ export function useBulkActions({
       await onDeleteDatabase({ id: db.id, name: db.name }); count++;
     }
     setIsActioning(false);
-    toast.add({ type: "success", title: `Deleted ${count} connection(s)` });
+    toast.success(`Deleted ${count} connection(s)`);
     onClearSelection();
   };
 

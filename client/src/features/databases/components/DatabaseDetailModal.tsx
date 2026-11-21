@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/Textarea";
-import { toast } from "@/components/ui/Toast";
+import { toast } from "sonner";
 import { Spinner } from "@/components/ui/Spinner";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
@@ -28,6 +28,7 @@ import {
   Layers,
 } from "@/components/ui/Icons";
 import { databaseApi } from "../api/databaseApi";
+import { useServerInfo } from "@/platform/hooks";
 import type {
   DatabaseConnection,
   StructuredQueryResult,
@@ -51,11 +52,12 @@ export function DatabaseDetailModal({
   onClose,
   initialTab = "overview",
 }: DatabaseDetailModalProps) {
+  const { data: serverInfo } = useServerInfo();
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
   const { copied: copiedSnippet, copy: _copy } = useCopyToClipboard();
   const copyToClipboard = async (text: string, label: string) => {
     await _copy(text, label);
-    toast.add({ type: "info", title: `Copied ${label} snippet` });
+    toast.success(`Copied ${label} snippet`);
   };
 
   const [testingConnection, setTestingConnection] = useState(false);
@@ -122,13 +124,10 @@ export function DatabaseDetailModal({
       const res = await databaseApi.testConnection(database.id);
       if (res.success) {
         setConnectionLatency(res.latencyMs ?? 15);
-        toast.add({
-          type: "success",
-          title: `Connection successful (${res.latencyMs ?? 15}ms)`,
-        });
+        toast.success(`Connection successful (${res.latencyMs ?? 15}ms)`);
       } else {
         setConnectionError(res.message);
-        toast.add({ type: "error", title: `Connection failed: ${res.message}` });
+        toast.error(`Connection failed: ${res.message}`);
       }
     } catch (err: unknown) {
       setConnectionError(err instanceof Error ? err.message : "Failed to reach database");
@@ -162,7 +161,7 @@ export function DatabaseDetailModal({
           handleSelectTable(normalized[0].table_name);
         }
       } else if (typeof data?.message === "string") {
-        toast.add({ type: "info", title: data.message });
+        toast.info(data.message);
       }
     } catch (err: unknown) {
       setSchemaError(err instanceof Error ? err.message : "Failed to load schema");
@@ -192,7 +191,7 @@ export function DatabaseDetailModal({
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to load table details";
       setTableSchemaError(message);
-      toast.add({ type: "error", title: message });
+      toast.error(message);
     } finally {
       setLoadingTableSchema(false);
     }
@@ -209,13 +208,10 @@ export function DatabaseDetailModal({
       const res = await databaseApi.executeQuery(database.id, q);
       setQueryResult(res);
       if (res.success) {
-        toast.add({
-          type: "success",
-          title: `Returned ${res.rowCount} row(s) in ${res.executionTimeMs}ms`,
-        });
+        toast.success(`Returned ${res.rowCount} row(s) in ${res.executionTimeMs}ms`);
       }
     } catch (err: unknown) {
-      toast.add({ type: "error", title: err instanceof Error ? err.message : "Query execution failed" });
+      toast.error(err instanceof Error ? err.message : "Query execution failed");
     } finally {
       setRunningQuery(false);
     }
@@ -228,7 +224,7 @@ export function DatabaseDetailModal({
       const data = await databaseApi.getLogs(database.id);
       setLogs(data);
     } catch (err: unknown) {
-      toast.add({ type: "error", title: err instanceof Error ? err.message : "Failed to load query logs" });
+      toast.error(err instanceof Error ? err.message : "Failed to load query logs");
     } finally {
       setLoadingLogs(false);
     }
@@ -322,7 +318,7 @@ export function DatabaseDetailModal({
     : `psql "${connectionUri}"`;
 
   const generateAgentConfig = () => {
-    const mcpUrl = "http://localhost:4080/mcp";
+    const mcpUrl = serverInfo?.mcpUrl ?? "";
     if (selectedClient === "claude_desktop") {
       return JSON.stringify(
         {
@@ -330,9 +326,6 @@ export function DatabaseDetailModal({
             "db-mcp-gateway": {
               command: "npx",
               args: ["-y", "@modelcontextprotocol/server-fetch", mcpUrl],
-              env: {
-                MCP_GATEWAY_TOKEN: "<YOUR_MCP_TOKEN>",
-              },
             },
           },
         },
@@ -346,9 +339,6 @@ export function DatabaseDetailModal({
           mcpServers: {
             "db-mcp": {
               url: mcpUrl,
-              headers: {
-                Authorization: "Bearer <YOUR_MCP_TOKEN>",
-              },
             },
           },
         },
@@ -357,7 +347,7 @@ export function DatabaseDetailModal({
       );
     }
     if (selectedClient === "claude_code") {
-      return `claude mcp add --transport http db-gateway ${mcpUrl} --header "Authorization: Bearer <YOUR_MCP_TOKEN>"`;
+      return `claude mcp add --transport http db-mcp ${mcpUrl}`;
     }
     return JSON.stringify(
       {

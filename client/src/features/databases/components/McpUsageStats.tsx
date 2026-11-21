@@ -11,7 +11,7 @@ const TOOL_LABELS: Record<string, string> = {
 };
 
 export function McpUsageStats() {
-  const stats = useMcpStats();
+  const { data: stats } = useMcpStats();
 
   if (!stats || (stats.totalToolCalls === 0 && stats.queries.total === 0)) {
     return (

@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
-import { useAtomValue, useSetAtom } from "jotai";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -14,13 +13,7 @@ import {
   TableHead,
   TableCell,
 } from "@/components/ui/Table";
-import {
-  testingIdAtom,
-  testResultsAtom,
-  toggleStatusAtom,
-  testConnectionAtom,
-} from "../atoms/databaseAtoms";
-import type { DatabaseConnection } from "../types";
+import type { DatabaseConnection, TestResult } from "../types";
 
 export interface DatabaseTableProps {
   databases: DatabaseConnection[];
@@ -29,6 +22,10 @@ export interface DatabaseTableProps {
   onToggleSelectAll: () => void;
   onDeleteRequest: (db: DatabaseConnection) => void;
   onOpenDetails: (db: DatabaseConnection) => void;
+  onToggleStatus: (db: DatabaseConnection) => void;
+  onTestConnection: (id: string) => void;
+  testingId: string | null;
+  testResults: Record<string, TestResult>;
 }
 
 export function DatabaseTable({
@@ -38,14 +35,12 @@ export function DatabaseTable({
   onToggleSelectAll,
   onDeleteRequest,
   onOpenDetails,
+  onToggleStatus,
+  onTestConnection,
+  testingId,
+  testResults,
 }: DatabaseTableProps) {
   const navigate = useNavigate();
-
-  const testingId = useAtomValue(testingIdAtom);
-  const testResults = useAtomValue(testResultsAtom);
-
-  const toggleStatus = useSetAtom(toggleStatusAtom);
-  const testConnection = useSetAtom(testConnectionAtom);
   const [focusedIndex, setFocusedIndex] = useState<number>(0);
   const rowRefs = useRef<Array<HTMLTableRowElement | null>>([]);
 
@@ -110,13 +105,13 @@ export function DatabaseTable({
 
     if (event.key.toLowerCase() === "t") {
       event.preventDefault();
-      testConnection(focused.id);
+      onTestConnection(focused.id);
       return;
     }
 
     if (event.key.toLowerCase() === "e") {
       event.preventDefault();
-      toggleStatus(focused);
+      onToggleStatus(focused);
       return;
     }
 
@@ -181,7 +176,7 @@ export function DatabaseTable({
                   <div className="flex items-center gap-2">
                     <Switch
                       checked={db.status === "enabled"}
-                      onCheckedChange={() => toggleStatus(db)}
+                      onCheckedChange={() => onToggleStatus(db)}
                     />
                     <Badge variant={db.status === "enabled" ? "default" : "secondary"}>
                       {db.status}
@@ -225,10 +220,10 @@ export function DatabaseTable({
                     <Button variant="default" size="sm" onClick={() => onOpenDetails(db)} title="Open Interactive Workbench">
                       Workbench
                     </Button>
-                    <Button variant="outline" size="sm" disabled={isTesting} onClick={() => testConnection(db.id)}>
+                    <Button variant="outline" size="sm" disabled={isTesting} onClick={() => onTestConnection(db.id)}>
                       {isTesting ? "Testing…" : "Test"}
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={() => navigate(`/${db.id}/edit`)}>
+                    <Button variant="ghost" size="sm" onClick={() => navigate(`/connections/${db.id}/edit`)}>
                       Edit
                     </Button>
                     <Button variant="destructive" size="sm" onClick={() => onDeleteRequest(db)}>

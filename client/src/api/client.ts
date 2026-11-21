@@ -1,6 +1,18 @@
 import { hc } from "hono/client";
 import type { AppType } from "@server/app.ts";
+import type { ServerInfo } from "@/platform/types";
+import { platform } from "@/platform";
 
-// In dev: Vite proxies /api → localhost:4080
-// In prod: same origin serves both frontend and backend
-export const client = hc<AppType>("/");
+export function createApiClient(serverInfo: ServerInfo) {
+  return hc<AppType>(serverInfo.baseUrl, {
+    headers: (): Record<string, string> => {
+      const headers: Record<string, string> = {};
+      if (serverInfo.sessionToken) headers["X-App-Session"] = serverInfo.sessionToken;
+      return headers;
+    },
+  });
+}
+
+export async function getApiClient() {
+  return createApiClient(await platform.getServerInfo());
+}

@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { getApiClient } from "@/api/client";
 
 export interface ToolStat {
   tool: string;
@@ -28,14 +29,13 @@ export interface McpStats {
 }
 
 export function useMcpStats() {
-  const [stats, setStats] = useState<McpStats | null>(null);
-
-  useEffect(() => {
-    fetch("/api/stats")
-      .then((r) => r.json())
-      .then(setStats)
-      .catch(() => {});
-  }, []);
-
-  return stats;
+  return useQuery({
+    queryKey: ["mcp", "stats"],
+    queryFn: async () => {
+      const client = await getApiClient();
+      const response = await client.api.stats.$get();
+      if (!response.ok) throw new Error("Failed to load MCP usage statistics");
+      return response.json() as Promise<McpStats>;
+    },
+  });
 }
