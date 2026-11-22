@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="DB MCP">
+  <!-- GitHub avatar: square canvas, symbol kept inside the circular crop (r <= 0.72 of the circle) -->
+  <rect width="512" height="512" fill="#0B1220"/>
+  <g transform="translate(256 256) scale(0.95) translate(-276 -428)">
+    <path d="M378 356 L384 330 L266 280 L136 333 V468 C136 516 196 548 266 575 C326 548 360 520 364 490"
+          fill="none" stroke="#2563EB" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/>
+    <g fill="#22D3EE">
+      <path d="M188 366 A75 26 0 0 1 338 366 V384 A75 26 0 0 1 188 384 Z"/>
+      <path d="M188 408 A75 26 0 0 0 338 408 V426 A75 26 0 0 1 188 426 Z"/>
+      <path d="M188 450 A75 26 0 0 0 338 450 V468 A75 26 0 0 1 188 468 Z"/>
+    </g>
+    <path d="M314 417 H350" stroke="#0B1220" stroke-width="34" stroke-linecap="round"/>
+    <g stroke="#22D3EE" stroke-width="16" stroke-linecap="round" fill="#22D3EE">
+      <path d="M314 417 H354 L404 380 M354 417 L406 466" fill="none"/>
+      <circle cx="354" cy="417" r="16"/>
+      <circle cx="408" cy="377" r="16"/>
+      <circle cx="410" cy="469" r="16"/>
+    </g>
+  </g>
+</svg>
