@@ -18,7 +18,7 @@ export async function listDatabases(): Promise<string> {
   if (rows.length === 0) {
     return JSON.stringify({
       databases: [],
-      hint: "No databases configured. Add one through the web dashboard.",
+      hint: "No databases configured. Ask the user to add one in the DB MCP app (Connections).",
     });
   }
 

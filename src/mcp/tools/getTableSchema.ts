@@ -14,7 +14,7 @@ export async function getTableSchema(
     .where(eq(databaseConnections.id, databaseId));
 
   if (!conn) return JSON.stringify({ error: `Database "${databaseId}" not found.`, hint: "Call list_databases to get valid database_id values." });
-  if (conn.status !== "enabled") return JSON.stringify({ error: `Database "${conn.name}" is disabled.`, hint: "Enable the database in the dashboard before querying." });
+  if (conn.status !== "enabled") return JSON.stringify({ error: `Database "${conn.name}" is disabled.`, hint: "Ask the user to enable the database in DB MCP (Connections) before querying." });
 
   const executor = await getExecutor(conn.id, conn as any);
 
