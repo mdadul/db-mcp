@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { Database, Folder, Table2, Trash2 } from "lucide-react";
+import { Bot, Database, Folder, ShieldCheck, Table2, Trash2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/Alert";
 import { Badge } from "@/components/ui/Badge";
 import { Banner } from "@/components/ui/Banner";
@@ -26,6 +26,7 @@ import { StatusDot } from "@/components/ui/StatusDot";
 import { Switch } from "@/components/ui/Switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/Table";
 import { Textarea } from "@/components/ui/Textarea";
+import { EnvironmentTag } from "@/features/databases/workbench/EnvironmentTag";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { TreeView, type TreeNode } from "@/components/ui/TreeView";
 import { useSettings } from "@/platform/hooks";
@@ -80,6 +81,8 @@ export function GalleryPage() {
         <Block title="Badge">{(["default", "secondary", "outline", "destructive"] as const).map((variant) => <Badge key={variant} variant={variant}>{variant}</Badge>)}</Block>
         <Block title="StatusDot"><StatusDot state="healthy" showLabel /><StatusDot state="warning" showLabel /><StatusDot state="error" showLabel /><StatusDot state="neutral" showLabel /></Block>
         <Block title="Kbd"><Kbd>⌘</Kbd><Kbd>K</Kbd><Kbd>Esc</Kbd></Block>
+        <Block title="Environment tags">{["production", "staging", "development", "local", "reporting"].map((environment) => <EnvironmentTag key={environment} environment={environment} />)}</Block>
+        <Block title="Trust cues"><span className="inline-flex items-center gap-1 rounded border border-success/30 bg-success-subtle px-1.5 py-0.5 text-ui-xs text-success"><ShieldCheck className="size-3" />Read-only</span><span role="img" aria-label="AI access on" className="inline-flex text-success"><Bot className="size-3.5" /></span><span role="img" aria-label="AI access off" className="inline-flex text-muted-foreground"><Bot className="size-3.5" /></span></Block>
         <Block title="Spinner"><Spinner label="Loading" /><Spinner size="sm" label="Loading small" /></Block>
       </div>
     </Section>
