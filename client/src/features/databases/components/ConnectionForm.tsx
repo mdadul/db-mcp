@@ -21,9 +21,9 @@ import { databaseApi } from "../api/databaseApi";
 import { ConnectionStringParser, type ParsedConnectionFields } from "./ConnectionStringParser";
 import { DbEngineIcon } from "@/components/brand/DbEngineIcon";
 
-type FormValues = { name: string; type: DbEngineType; host: string; port: number | string; databaseName: string; username: string; password: string; ssl: boolean; serviceName: string; environment: string };
+type FormValues = { name: string; type: DbEngineType; host: string; port: number | string; databaseName: string; username: string; password: string; ssl: boolean; serviceName: string; environment: string; folder: string; description: string };
 
-const INITIAL: FormValues = { name: "", type: "postgresql", host: "localhost", port: 5432, databaseName: "", username: "", password: "", ssl: false, serviceName: "", environment: "" };
+const INITIAL: FormValues = { name: "", type: "postgresql", host: "localhost", port: 5432, databaseName: "", username: "", password: "", ssl: false, serviceName: "", environment: "", folder: "", description: "" };
 const READ_ONLY_GUIDANCE: Record<DbEngineType, string> = {
   postgresql: "CREATE ROLE db_mcp_reader LOGIN PASSWORD 'use-a-strong-password'; GRANT CONNECT ON DATABASE your_db TO db_mcp_reader; GRANT USAGE ON SCHEMA public TO db_mcp_reader; GRANT SELECT ON ALL TABLES IN SCHEMA public TO db_mcp_reader; ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO db_mcp_reader;",
   mysql: "CREATE USER 'db_mcp_reader'@'%' IDENTIFIED BY 'use-a-strong-password'; GRANT SELECT, SHOW VIEW ON your_db.* TO 'db_mcp_reader'@'%';",
@@ -76,7 +76,7 @@ export function ConnectionForm({ onSaved, stayOnSave = false }: ConnectionFormPr
         setErrors(next);
         throw new FormValidationError();
       }
-      const input = { ...result.data, port: Number(result.data.port), serviceName: result.data.serviceName || undefined, environment: result.data.environment || undefined };
+      const input = { ...result.data, port: Number(result.data.port), serviceName: result.data.serviceName || undefined, environment: result.data.environment || undefined, folder: result.data.folder ?? "", description: result.data.description ?? "" };
       if (id) return databaseApi.update(id, input);
       return databaseApi.create({ ...input, password: values.password });
     },
@@ -93,7 +93,7 @@ export function ConnectionForm({ onSaved, stayOnSave = false }: ConnectionFormPr
   useEffect(() => {
     if (connectionQuery.data && !initialLoaded.current) {
       const connection = connectionQuery.data;
-      setValues({ name: connection.name, type: connection.type as DbEngineType, host: connection.host, port: connection.port, databaseName: connection.databaseName, username: connection.username, password: "", ssl: connection.ssl, serviceName: connection.serviceName ?? "", environment: connection.environment ?? "" });
+      setValues({ name: connection.name, type: connection.type as DbEngineType, host: connection.host, port: connection.port, databaseName: connection.databaseName, username: connection.username, password: "", ssl: connection.ssl, serviceName: connection.serviceName ?? "", environment: connection.environment ?? "", folder: connection.folder ?? "", description: connection.description ?? "" });
       initialLoaded.current = true;
     }
   }, [connectionQuery.data]);
@@ -198,7 +198,7 @@ export function ConnectionForm({ onSaved, stayOnSave = false }: ConnectionFormPr
 
         <section className="rounded-md border border-border">
           <button type="button" aria-expanded={advancedOpen} onClick={() => setAdvancedOpen((open) => !open)} className="flex h-9 w-full items-center justify-between px-3 text-left text-ui-sm font-semibold hover:bg-muted">Advanced options<span className="text-muted-foreground">{advancedOpen ? "−" : "+"}</span></button>
-          {advancedOpen && <div className="flex flex-col gap-3 border-t border-border p-3"><Field label="SSL" description="Cloud database providers usually require SSL."><SegmentedControl ariaLabel="SSL mode" value={values.ssl ? "require" : "off"} onChange={(value) => update("ssl", value === "require" || engine.sslRequired)} options={[{ value: "off", label: "Off" }, { value: "require", label: engine.sslRequired ? "Required" : "Require" }]} /></Field><div className="grid gap-3 sm:grid-cols-2"><Field label="Environment" optional description="A label such as production, staging, or development."><Input value={values.environment} placeholder="staging" onChange={(event) => update("environment", event.target.value)} /></Field><Field label="Service" optional description="An optional service or project label."><Input value={values.serviceName} placeholder="orders-api" onChange={(event) => update("serviceName", event.target.value)} /></Field></div></div>}
+          {advancedOpen && <div className="flex flex-col gap-3 border-t border-border p-3"><Field label="SSL" description="Cloud database providers usually require SSL."><SegmentedControl ariaLabel="SSL mode" value={values.ssl ? "require" : "off"} onChange={(value) => update("ssl", value === "require" || engine.sslRequired)} options={[{ value: "off", label: "Off" }, { value: "require", label: engine.sslRequired ? "Required" : "Require" }]} /></Field><div className="grid gap-3 sm:grid-cols-2"><Field label="Environment" optional description="A label such as production, staging, or development."><Input value={values.environment} placeholder="staging" onChange={(event) => update("environment", event.target.value)} /></Field><Field label="Service" optional description="An optional service or project label."><Input value={values.serviceName} placeholder="orders-api" onChange={(event) => update("serviceName", event.target.value)} /></Field><Field label="Folder" optional description="Groups this connection in the list."><Input value={values.folder} placeholder="Analytics" onChange={(event) => update("folder", event.target.value)} /></Field><Field label="Description" optional description="A short note about what this database is for."><Input value={values.description} placeholder="Orders and payments, read replica" onChange={(event) => update("description", event.target.value)} /></Field></div></div>}
         </section>
       </div>
     </div>

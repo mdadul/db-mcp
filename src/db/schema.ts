@@ -20,7 +20,16 @@ export const databaseConnections = sqliteTable("database_connections", {
   ssl: integer("ssl", { mode: "boolean" }).notNull().default(false),
   serviceName: text("service_name"),
   environment: text("environment"),
+  folder: text("folder"),
+  description: text("description"),
+  favourite: integer("favourite", { mode: "boolean" }).notNull().default(false),
   status: text("status").notNull().default("enabled"), // 'enabled' | 'disabled'
+  /** Last connection test, persisted so the app can show health without retesting. */
+  lastTestedAt: integer("last_tested_at", { mode: "timestamp_ms" }),
+  lastTestStatus: text("last_test_status"), // 'reachable' | 'unreachable'
+  lastTestMessage: text("last_test_message"),
+  lastTestLatencyMs: integer("last_test_latency_ms"),
+  serverVersion: text("server_version"),
   createdAt: integer("created_at", { mode: "timestamp_ms" })
     .notNull()
     .default(nowMs),

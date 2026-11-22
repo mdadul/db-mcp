@@ -27,7 +27,9 @@ import { useFavouriteTables } from "../workbench/useFavouriteTables";
 import { useSavedQueries } from "../workbench/useSavedQueries";
 import { useTableBrowser } from "../workbench/useTableBrowser";
 import { useWorkbenchTabs } from "../workbench/useWorkbenchTabs";
-import { READ_ONLY_TOOLTIP, browseQuery, collectRecentQueries, collectRecentTables, connectionStatus, readStoredHistory, recentTablesFor, type TableRef, type TestState } from "../workbench/model";
+import { READ_ONLY_TOOLTIP, browseQuery, collectRecentQueries, collectRecentTables, connectionListExport, connectionStatus, formatRelative, readStoredHistory, recentTablesFor, type TableRef, type TestState } from "../workbench/model";
+import { EnvironmentTag } from "../workbench/EnvironmentTag";
+import { downloadText } from "./gridData";
 
 /** Connections home and read-only schema/query workbench. Layout and orchestration only; state lives in ../workbench. */
 export function ConnectionsWorkbench() {
@@ -42,12 +44,18 @@ export function ConnectionsWorkbench() {
   const [collapsedSchema, setCollapsedSchema] = useState(false);
   const [narrowViewport, setNarrowViewport] = useState(() => window.innerWidth < 1100);
   const [deleteTarget, setDeleteTarget] = useState<DatabaseConnection | null>(null);
-  const [testStates, setTestStates] = useState<Record<string, TestState>>({});
+  const [sessionTests, setSessionTests] = useState<Record<string, TestState>>({});
   const [connectionMenu, setConnectionMenu] = useState<{ id: string; x: number; y: number } | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
   const connectionsQuery = useQuery({ queryKey: ["databases"], queryFn: databaseApi.list });
   const connections = connectionsQuery.data ?? [];
+  // Persisted results from the last test seed the map; a test run in this session overrides them.
+  const testStates = useMemo(() => {
+    const persisted: Record<string, TestState> = {};
+    for (const item of connections) if (item.lastTestStatus) persisted[item.id] = item.lastTestStatus;
+    return { ...persisted, ...sessionTests };
+  }, [connections, sessionTests]);
   const connection = connections.find((item) => item.id === selectedId);
   const selectedConnectionStatus = connection ? connectionStatus(connection, testStates[connection.id]) : null;
 
@@ -62,6 +70,7 @@ export function ConnectionsWorkbench() {
   useEffect(() => { const timer = window.setTimeout(() => setDebouncedSchemaFilter(schemaFilter), 150); return () => window.clearTimeout(timer); }, [schemaFilter]);
   const schemaQuery = useQuery({ queryKey: ["database-schema", selectedId, debouncedSchemaFilter], queryFn: () => databaseApi.getSchemaTree(selectedId, debouncedSchemaFilter || undefined), enabled: Boolean(selectedId && connection?.status === "enabled"), retry: 1, staleTime: 30_000 });
 
+  const favouriteMutation = useMutation({ mutationFn: (item: DatabaseConnection) => databaseApi.update(item.id, { favourite: !item.favourite }), onSuccess: async (item) => { await queryClient.invalidateQueries({ queryKey: ["databases"] }); toast.success(item.favourite ? `${item.name} added to favourites` : `${item.name} removed from favourites`); }, onError: (error) => toast.error(error instanceof Error ? error.message : "Could not update favourite") });
   const toggleStatus = useMutation({ mutationFn: (item: DatabaseConnection) => databaseApi.toggleStatus(item.id, item.status === "enabled" ? "disabled" : "enabled"), onSuccess: async (item) => { await queryClient.invalidateQueries({ queryKey: ["databases"] }); toast.success(`${item.name} ${item.status}`); } });
   const deleteConnection = useMutation({ mutationFn: (item: DatabaseConnection) => databaseApi.delete(item.id), onSuccess: async () => { const deletedId = deleteTarget?.id; await queryClient.invalidateQueries({ queryKey: ["databases"] }); if (deletedId === selectedId) { setSelectedId(""); navigate("/connections", { replace: true }); } setDeleteTarget(null); toast.success("Connection deleted"); }, onError: (error) => toast.error(error instanceof Error ? error.message : "Could not delete connection") });
 
@@ -139,10 +148,10 @@ export function ConnectionsWorkbench() {
   const runConnectionTest = async (item: DatabaseConnection) => {
     try {
       const result = await databaseApi.testConnection(item.id);
-      setTestStates((current) => ({ ...current, [item.id]: result.success ? "reachable" : "unreachable" }));
+      setSessionTests((current) => ({ ...current, [item.id]: result.success ? "reachable" : "unreachable" }));
       toast[result.success ? "success" : "error"](result.message, { description: result.hint });
     } catch (error) {
-      setTestStates((current) => ({ ...current, [item.id]: "unreachable" }));
+      setSessionTests((current) => ({ ...current, [item.id]: "unreachable" }));
       toast.error(error instanceof Error ? error.message : "Connection test failed");
     }
   };
@@ -154,7 +163,7 @@ export function ConnectionsWorkbench() {
   const structureQuery = browser.structureQuery;
   const languageSchema = schemaQuery.data ? Object.fromEntries(schemaQuery.data.schemas.map((schema) => [schema.name, Object.fromEntries(schema.tables.map((table) => [table.name, table.name === selectedTable?.name ? structureQuery.data?.columns.map((column) => column.name) ?? [] : []]))])) : undefined;
 
-  const connectionsPane = <ExplorerPane query={connectionsQuery} selectedId={selectedId} testStates={testStates} searchRef={searchRef} onSelect={handleSelectConnection} onOpenMenu={(item, x, y) => setConnectionMenu({ id: item.id, x, y })} onAdd={() => navigate("/connections/new")} />;
+  const connectionsPane = <ExplorerPane query={connectionsQuery} selectedId={selectedId} testStates={testStates} searchRef={searchRef} onExport={() => downloadText("db-mcp-connections.json", connectionListExport(connections), "application/json")} onSelect={handleSelectConnection} onOpenMenu={(item, x, y) => setConnectionMenu({ id: item.id, x, y })} onAdd={() => navigate("/connections/new")} />;
 
   const schemaPane = <SchemaPane connection={connection} connections={connections} onSwitchConnection={handleSelectConnection} query={schemaQuery} filter={schemaFilter} onFilter={setSchemaFilter} selectedTable={selectedTable} recentTables={recentForConnection} favouriteKeys={favourites.favouriteKeys} onToggleFavourite={favourites.toggle} collapsed={collapsedSchema} onCollapse={() => setCollapsedSchema(true)} onRefresh={() => void schemaQuery.refetch()} onOpenData={(schema, name) => openTable(schema, name, "data")} onOpenStructure={(schema, name) => openTable(schema, name, "structure")} onQuery={openTableQuery} onCopy={(value) => void copy(value, "Name")} onEnable={(item) => toggleStatus.mutate(item)} />;
 
@@ -163,6 +172,8 @@ export function ConnectionsWorkbench() {
       <DbEngineIcon type={connection.type} className="size-4" />
       <span className="max-w-52 truncate text-ui-sm font-semibold">{connection.name}</span>
       <span className="rounded border border-border px-1.5 py-0.5 text-ui-xs uppercase text-muted-foreground">{connection.type}</span>
+      <EnvironmentTag environment={connection.environment} />
+      {connection.lastTestedAt && <span className="hidden min-w-0 truncate text-ui-xs text-muted-foreground @xl:inline" title={connection.lastTestMessage ?? undefined}>{connection.lastTestStatus === "reachable" ? `Tested ${formatRelative(connection.lastTestedAt)}${connection.lastTestLatencyMs !== null ? ` · ${connection.lastTestLatencyMs} ms` : ""}${connection.serverVersion ? ` · ${connection.serverVersion}` : ""}` : `Test failed ${formatRelative(connection.lastTestedAt)}`}</span>}
       {selectedConnectionStatus && <Tooltip content={selectedConnectionStatus.label}><span className="inline-flex" tabIndex={0} aria-label={selectedConnectionStatus.label}><StatusDot state={selectedConnectionStatus.state} /></span></Tooltip>}
       <span className="flex-1" />
       <Tooltip content={READ_ONLY_TOOLTIP}><span className="inline-flex cursor-default items-center gap-1 rounded border border-success/30 bg-success-subtle px-1.5 py-0.5 text-ui-xs text-success" tabIndex={0}><ShieldCheck className="size-3" />Read-only</span></Tooltip>
@@ -196,6 +207,7 @@ export function ConnectionsWorkbench() {
     onCopyUrl={() => void copyConnectionUrl(connectionsForMenu)}
     onCopyMcp={() => void copy(JSON.stringify({ mcpServers: { "db-mcp": { url: serverInfo?.mcpUrl ?? "http://127.0.0.1:4080/mcp" } } }, null, 2), `${connectionsForMenu.name} MCP config`)}
     onToggle={() => toggleStatus.mutate(connectionsForMenu)}
+    onFavourite={() => favouriteMutation.mutate(connectionsForMenu)}
     onDelete={() => setDeleteTarget(connectionsForMenu)} /> : null;
 
   return <div className="relative h-full min-h-0 min-w-0 overflow-hidden" onClick={() => connectionMenu && setConnectionMenu(null)}>

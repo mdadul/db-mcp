@@ -108,11 +108,63 @@ export function collectRecentQueries(historyByConnection: Record<string, string[
   return result;
 }
 
-export function groupedConnections(items: DatabaseConnection[], mode: "status" | "engine"): [string, DatabaseConnection[]][] {
+export type GroupMode = "status" | "engine" | "folder";
+
+export function groupedConnections(items: DatabaseConnection[], mode: GroupMode): [string, DatabaseConnection[]][] {
   const groups = new Map<string, DatabaseConnection[]>();
   for (const item of items) {
-    const label = mode === "status" ? (item.status === "enabled" ? "Enabled" : "Disabled") : DB_ENGINES.find((engine) => engine.type === item.type)?.label ?? item.type;
+    const label = groupLabel(item, mode);
     groups.set(label, [...(groups.get(label) ?? []), item]);
   }
   return [...groups];
+}
+
+function groupLabel(item: DatabaseConnection, mode: GroupMode): string {
+  if (mode === "status") return item.status === "enabled" ? "Enabled" : "Disabled";
+  if (mode === "folder") return item.folder?.trim() || "No folder";
+  return DB_ENGINES.find((engine) => engine.type === item.type)?.label ?? item.type;
+}
+
+/** Colour family for an environment label. Known names map to fixed tones; anything else is neutral. */
+export function environmentTone(environment: string | null): { label: string; className: string } | null {
+  const label = environment?.trim();
+  if (!label) return null;
+  const value = label.toLowerCase();
+  if (/^(prod|production|live)$/.test(value)) return { label, className: "border-danger/30 bg-danger-subtle text-danger" };
+  if (/^(stag|staging|stage|uat|qa|test)$/.test(value)) return { label, className: "border-warning/30 bg-warning-subtle text-warning" };
+  if (/^(dev|development|local)$/.test(value)) return { label, className: "border-success/30 bg-success-subtle text-success" };
+  return { label, className: "border-border bg-muted text-muted-foreground" };
+}
+
+/** Short relative time such as "just now", "12 min ago" or "3 h ago", then a date. */
+export function formatRelative(iso: string, now = Date.now()): string {
+  const seconds = Math.max(0, Math.round((now - new Date(iso).getTime()) / 1000));
+  if (seconds < 60) return "just now";
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours} h ago`;
+  return new Date(iso).toLocaleDateString();
+}
+
+/** Connection settings as JSON. Passwords are never part of the connection list, so none are exported. */
+export function connectionListExport(connections: DatabaseConnection[]): string {
+  return JSON.stringify({
+    exportedAt: new Date().toISOString(),
+    note: "Passwords are not included. Add credentials again after importing.",
+    connections: connections.map((item) => ({
+      name: item.name,
+      type: item.type,
+      host: item.host,
+      port: item.port,
+      databaseName: item.databaseName,
+      username: item.username,
+      ssl: item.ssl,
+      serviceName: item.serviceName,
+      environment: item.environment,
+      folder: item.folder,
+      description: item.description,
+      favourite: item.favourite,
+    })),
+  }, null, 2);
 }

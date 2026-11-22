@@ -23,6 +23,8 @@ export const CreateDatabaseSchema = z.discriminatedUnion("type", [
     ssl: z.boolean().default(false),
     serviceName: z.string().optional(),
     environment: z.string().optional(),
+    folder: z.string().trim().max(100).optional(),
+    description: z.string().max(500).optional(),
   }),
   z.object({
     name: z.string().min(1).max(255),
@@ -35,6 +37,8 @@ export const CreateDatabaseSchema = z.discriminatedUnion("type", [
     ssl: z.boolean().default(false),
     serviceName: z.string().optional(),
     environment: z.string().optional(),
+    folder: z.string().trim().max(100).optional(),
+    description: z.string().max(500).optional(),
   }),
   z.object({
     name: z.string().min(1).max(255),
@@ -47,6 +51,8 @@ export const CreateDatabaseSchema = z.discriminatedUnion("type", [
     ssl: z.boolean().default(false),
     serviceName: z.string().optional(),
     environment: z.string().optional(),
+    folder: z.string().trim().max(100).optional(),
+    description: z.string().max(500).optional(),
   }),
   z.object({
     name: z.string().min(1).max(255),
@@ -59,6 +65,8 @@ export const CreateDatabaseSchema = z.discriminatedUnion("type", [
     ssl: z.boolean().default(true), // always required for Redshift
     serviceName: z.string().optional(),
     environment: z.string().optional(),
+    folder: z.string().trim().max(100).optional(),
+    description: z.string().max(500).optional(),
   }),
   z.object({
     name: z.string().min(1).max(255),
@@ -71,6 +79,8 @@ export const CreateDatabaseSchema = z.discriminatedUnion("type", [
     ssl: z.boolean().default(false),
     serviceName: z.string().optional(),
     environment: z.string().optional(),
+    folder: z.string().trim().max(100).optional(),
+    description: z.string().max(500).optional(),
   }),
 ]);
 
@@ -86,6 +96,9 @@ export const UpdateDatabaseSchema = z.object({
   ssl: z.boolean().optional(),
   serviceName: z.string().optional(),
   environment: z.string().optional(),
+  folder: z.string().trim().max(100).optional(),
+  description: z.string().max(500).optional(),
+  favourite: z.boolean().optional(),
 });
 
 export const SetStatusSchema = z.object({
@@ -111,7 +124,15 @@ export interface DatabaseConnection {
   ssl: boolean;
   serviceName: string | null;
   environment: string | null;
+  folder: string | null;
+  description: string | null;
+  favourite: boolean;
   status: string;
+  lastTestedAt: string | null;
+  lastTestStatus: "reachable" | "unreachable" | null;
+  lastTestMessage: string | null;
+  lastTestLatencyMs: number | null;
+  serverVersion: string | null;
   createdAt: string;
   updatedAt: string;
 }

@@ -59,7 +59,15 @@ function sanitize(row: Row): DatabaseConnection {
     ssl: row.ssl,
     serviceName: row.serviceName,
     environment: row.environment,
+    folder: row.folder,
+    description: row.description,
+    favourite: row.favourite,
     status: row.status,
+    lastTestedAt: row.lastTestedAt?.toISOString() ?? null,
+    lastTestStatus: row.lastTestStatus === "reachable" || row.lastTestStatus === "unreachable" ? row.lastTestStatus : null,
+    lastTestMessage: row.lastTestMessage,
+    lastTestLatencyMs: row.lastTestLatencyMs,
+    serverVersion: row.serverVersion,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -137,6 +145,8 @@ export async function createDatabase(
       ssl: input.ssl,
       serviceName: input.serviceName ?? null,
       environment: input.environment ?? null,
+      folder: input.folder || null,
+      description: input.description || null,
     })
     .returning();
 
@@ -162,6 +172,9 @@ export async function updateDatabase(
     updates.serviceName = input.serviceName ?? null;
   if (input.environment !== undefined)
     updates.environment = input.environment ?? null;
+  if (input.folder !== undefined) updates.folder = input.folder || null;
+  if (input.description !== undefined) updates.description = input.description || null;
+  if (input.favourite !== undefined) updates.favourite = input.favourite;
   if (input.password !== undefined) {
     updates.encryptedCredentials = JSON.stringify(
       await encrypt(input.password)
@@ -203,6 +216,16 @@ export async function testConnection(id: string): Promise<TestResult & { code?: 
   const row = await findOrThrow(id);
   const result = await testConnectionConfig(dbConfig(row));
   removeConnection(id);
+  await db
+    .update(databaseConnections)
+    .set({
+      lastTestedAt: new Date(),
+      lastTestStatus: result.success ? "reachable" : "unreachable",
+      lastTestMessage: result.success ? null : result.message,
+      lastTestLatencyMs: result.latencyMs ?? null,
+      serverVersion: result.serverVersion ?? row.serverVersion,
+    })
+    .where(eq(databaseConnections.id, id));
   return result;
 }
 
