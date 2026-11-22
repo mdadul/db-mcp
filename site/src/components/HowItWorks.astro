@@ -1,0 +1,291 @@
+---
+import Icon from './Icon.astro';
+import { databases } from '../data/site';
+
+const steps = [
+  { n: '01', t: 'Add a connection', d: 'Pick an engine, paste your host and a read-only user, then hit Test Connection.' },
+  { n: '02', t: 'Connect your AI client', d: 'One click writes the MCP config for your editor. Or copy a snippet for anything else.' },
+  { n: '03', t: 'Ask in plain English', d: 'Your agent lists databases, reads the schema and runs safe queries to answer you.' },
+];
+---
+<section class="section" id="how">
+  <div class="container">
+    <div class="section-head reveal">
+      <span class="kicker">How it works</span>
+      <h2>A secure bridge on your own machine</h2>
+      <p>DB MCP sits between your AI tools and your databases. Nothing in the middle but localhost.</p>
+    </div>
+
+    <div class="diagram reveal" aria-label="AI clients connect to DB MCP on localhost, which connects to your databases">
+      <div class="machine">
+        <span class="machine-label"><Icon name="laptop" size={14} /> Your computer</span>
+
+        <div class="node clients">
+          <span class="node-title">AI clients</span>
+          <ul>
+            <li>Claude Code</li>
+            <li>Cursor</li>
+            <li>VS Code</li>
+            <li>Windsurf</li>
+          </ul>
+        </div>
+
+        <div class="link">
+          <span class="wire"><i></i></span>
+          <span class="wire-label mono">MCP over HTTP<br />127.0.0.1:4080</span>
+        </div>
+
+        <div class="node core">
+          <img src="/icon.svg" alt="" width="44" height="44" />
+          <b>DB MCP</b>
+          <ul class="guards">
+            <li><Icon name="shield" size={14} /> Read-only guard</li>
+            <li><Icon name="key" size={14} /> Keychain vault</li>
+            <li><Icon name="globe" size={14} /> Host &amp; Origin checks</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="link out">
+        <span class="wire"><i></i></span>
+        <span class="wire-label mono">read-only user</span>
+      </div>
+
+      <div class="node dbs">
+        <span class="node-title">Your databases</span>
+        <ul>
+          {
+            databases.map((d) => (
+              <li>
+                <img src={d.img} alt="" width="18" height="18" loading="lazy" />
+                {d.name}
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+    </div>
+
+    <ol class="steps">
+      {
+        steps.map((s) => (
+          <li class="reveal">
+            <span class="n mono">{s.n}</span>
+            <h3>{s.t}</h3>
+            <p>{s.d}</p>
+          </li>
+        ))
+      }
+    </ol>
+  </div>
+</section>
+
+<style>
+  .diagram {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    padding: 8px;
+  }
+  .machine {
+    position: relative;
+    flex: 2;
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 40px 24px 24px;
+    border: 1px dashed rgba(34, 211, 238, 0.35);
+    border-radius: 20px;
+    background: rgba(34, 211, 238, 0.025);
+  }
+  .machine-label {
+    position: absolute;
+    top: -12px;
+    left: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 10px;
+    border-radius: 999px;
+    background: var(--bg);
+    border: 1px solid rgba(34, 211, 238, 0.35);
+    color: var(--cyan);
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .node {
+    flex: 1;
+    min-width: 0;
+    padding: 20px;
+    border-radius: 14px;
+    border: 1px solid var(--line-strong);
+    background: var(--bg-2);
+  }
+  .node-title {
+    display: block;
+    margin-bottom: 12px;
+    color: var(--mut);
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .node ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 8px;
+  }
+  .node li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    font-size: 14px;
+    color: var(--fg-2);
+  }
+  .dbs li img {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+    padding: 2px;
+    border-radius: 4px;
+    background: #fff;
+  }
+  .core {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    border-color: rgba(34, 211, 238, 0.4);
+    box-shadow: 0 0 60px -10px rgba(34, 211, 238, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+  .core b {
+    margin: 10px 0 14px;
+    font-size: 17px;
+  }
+  .core .guards {
+    width: 100%;
+  }
+  .core .guards li {
+    text-align: left;
+    font-size: 13px;
+    color: var(--fg);
+  }
+  .core .guards :global(svg) {
+    color: var(--cyan);
+    flex: none;
+  }
+  .link {
+    position: relative;
+    flex: 0 0 132px;
+    padding: 0 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+  .link.out {
+    flex-basis: 110px;
+    align-self: center;
+  }
+  .wire {
+    position: relative;
+    width: 100%;
+    height: 2px;
+    background: repeating-linear-gradient(90deg, rgba(34, 211, 238, 0.45) 0 6px, transparent 6px 12px);
+    overflow: hidden;
+  }
+  .wire i {
+    position: absolute;
+    top: -2px;
+    left: -20%;
+    width: 20%;
+    height: 6px;
+    border-radius: 3px;
+    background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+    animation: flow 2.4s linear infinite;
+  }
+  @keyframes flow {
+    to {
+      left: 100%;
+    }
+  }
+  .wire-label {
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--mut);
+    text-align: center;
+  }
+  .node.dbs {
+    flex: 1;
+    align-self: center;
+  }
+
+  .steps {
+    list-style: none;
+    margin: 64px 0 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    counter-reset: s;
+  }
+  .steps li {
+    padding: 24px;
+    border-top: 1px solid var(--line-strong);
+  }
+  .n {
+    color: var(--cyan);
+    font-size: 13px;
+  }
+  .steps h3 {
+    margin: 10px 0 6px;
+    font-size: 18px;
+  }
+  .steps p {
+    margin: 0;
+    color: var(--fg-2);
+    font-size: 15px;
+  }
+
+  @media (max-width: 960px) {
+    .diagram,
+    .machine {
+      flex-direction: column;
+    }
+    .machine {
+      width: 100%;
+    }
+    .node {
+      width: 100%;
+    }
+    .link,
+    .link.out {
+      flex-basis: 64px;
+      width: 2px;
+    }
+    .wire {
+      width: 2px;
+      height: 100%;
+      min-height: 48px;
+      background: repeating-linear-gradient(180deg, rgba(34, 211, 238, 0.45) 0 6px, transparent 6px 12px);
+    }
+    .wire i {
+      display: none;
+    }
+    .wire-label {
+      position: absolute;
+      left: 16px;
+      width: max-content;
+      text-align: left;
+    }
+    .steps {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

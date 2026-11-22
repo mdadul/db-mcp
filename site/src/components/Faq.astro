@@ -1,0 +1,84 @@
+---
+import { faqs } from '../data/site';
+---
+<section class="section" id="faq">
+  <div class="container narrow">
+    <div class="section-head reveal">
+      <span class="kicker">FAQ</span>
+      <h2>Questions, answered</h2>
+    </div>
+    <div class="list">
+      {
+        faqs.map((f, i) => (
+          <details class="reveal" open={i === 0}>
+            <summary>
+              <span>{f.q}</span>
+              <span class="plus" aria-hidden="true" />
+            </summary>
+            <p>{f.a}</p>
+          </details>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<style>
+  .narrow {
+    max-width: 800px;
+  }
+  .list {
+    border-top: 1px solid var(--line);
+  }
+  details {
+    border-bottom: 1px solid var(--line);
+  }
+  summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 22px 4px;
+    cursor: pointer;
+    list-style: none;
+    font-size: 17px;
+    font-weight: 600;
+    transition: color 0.15s ease;
+  }
+  summary::-webkit-details-marker {
+    display: none;
+  }
+  summary:hover {
+    color: var(--cyan);
+  }
+  .plus {
+    position: relative;
+    flex: none;
+    width: 14px;
+    height: 14px;
+  }
+  .plus::before,
+  .plus::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 6px;
+    width: 14px;
+    height: 2px;
+    border-radius: 2px;
+    background: currentColor;
+    transition: transform 0.25s ease;
+  }
+  .plus::after {
+    transform: rotate(90deg);
+  }
+  details[open] .plus::after {
+    transform: rotate(0deg);
+  }
+  p {
+    margin: 0;
+    padding: 0 40px 24px 4px;
+    color: var(--fg-2);
+    font-size: 16px;
+  }
+</style>

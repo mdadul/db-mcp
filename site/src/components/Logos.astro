@@ -1,0 +1,129 @@
+---
+import { databases, clients } from '../data/site';
+---
+<section class="logos" aria-label="Supported databases and AI clients">
+  <div class="container">
+    <p class="label">Connect the databases you already run</p>
+    <ul class="dbs">
+      {
+        databases.map((d) => (
+          <li class="reveal">
+            <span class="logo">
+              <img src={d.img} alt="" width="36" height="36" loading="lazy" />
+            </span>
+            <span class="txt">
+              <b>{d.name}</b>
+              <small>{d.note}</small>
+            </span>
+          </li>
+        ))
+      }
+    </ul>
+    <p class="label clients-label">…to the AI tools you already use</p>
+    <ul class="clients">
+      {clients.map((c) => <li>{c}</li>)}
+      <li class="any">+ any MCP client</li>
+    </ul>
+  </div>
+</section>
+
+<style>
+  .logos {
+    padding: 24px 0 40px;
+  }
+  .label {
+    text-align: center;
+    color: var(--mut);
+    font-size: 14px;
+    margin: 0 0 22px;
+  }
+  .dbs {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+  }
+  .dbs li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px;
+    border-radius: 12px;
+    border: 1px solid var(--line);
+    background: var(--card);
+    transition: border-color 0.2s ease, background 0.2s ease;
+  }
+  .dbs li:hover {
+    border-color: var(--line-strong);
+    background: var(--card-hover);
+  }
+  .logo {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.92);
+  }
+  .logo img {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+  }
+  .txt {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .txt b {
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .txt small {
+    color: var(--mut);
+    font-size: 12px;
+    line-height: 1.4;
+  }
+  .clients-label {
+    margin-top: 40px;
+  }
+  .clients {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+  }
+  .clients li {
+    padding: 8px 16px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    color: var(--fg-2);
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .clients .any {
+    border-style: dashed;
+    color: var(--cyan);
+  }
+  @media (max-width: 1000px) {
+    .dbs {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+  @media (max-width: 640px) {
+    .dbs {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+  @media (max-width: 420px) {
+    .dbs {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

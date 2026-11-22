@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="DB MCP">
+  <defs>
+    <radialGradient id="bg" cx="0.8" cy="0.15" r="1">
+      <stop offset="0" stop-color="#10224A"/>
+      <stop offset="0.6" stop-color="#0B1220"/>
+    </radialGradient>
+    <linearGradient id="shield" x1="130" y1="560" x2="390" y2="290" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2563EB"/>
+      <stop offset="1" stop-color="#22D3EE"/>
+    </linearGradient>
+    <linearGradient id="db" x1="0" y1="340" x2="0" y2="510" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#22D3EE"/>
+      <stop offset="1" stop-color="#2563EB"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <rect x="3" y="3" width="506" height="506" rx="109" fill="none" stroke="#2563EB" stroke-opacity="0.45" stroke-width="6"/>
+
+  <g transform="translate(-24 -171)">
+    <!-- shield, open on the right where the network exits -->
+    <path d="M376 356 L384 330 L266 280 L136 333 V468 C136 516 196 548 266 575 C326 548 360 520 364 486"
+          fill="none" stroke="url(#shield)" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <!-- database: three layers -->
+    <g fill="url(#db)">
+      <path d="M188 370 A75 28 0 0 1 338 370 V390 A75 28 0 0 1 188 390 Z"/>
+      <path d="M188 404 A75 28 0 0 0 338 404 V424 A75 28 0 0 1 188 424 Z"/>
+      <path d="M188 438 A75 28 0 0 0 338 438 V458 A75 28 0 0 1 188 458 Z"/>
+    </g>
+    <ellipse cx="263" cy="370" rx="75" ry="28" fill="#67E8F9"/>
+
+    <!-- network: connector knocked out of the database, three nodes -->
+    <path d="M318 428 H344" stroke="#0B1220" stroke-width="22" stroke-linecap="round"/>
+    <g fill="none" stroke="#22D3EE" stroke-width="9" stroke-linecap="round">
+      <path d="M318 428 H343 M364 417 L397 394 M364 439 L398 465"/>
+      <circle cx="354" cy="428" r="12" fill="#0B1220"/>
+      <circle cx="408" cy="387" r="13" fill="#0B1220"/>
+      <circle cx="409" cy="473" r="13" fill="#0B1220"/>
+    </g>
+  </g>
+</svg>

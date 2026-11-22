@@ -1,0 +1,228 @@
+---
+import Icon from './Icon.astro';
+---
+<section class="section" id="features">
+  <div class="container">
+    <div class="section-head reveal">
+      <span class="kicker">Features</span>
+      <h2>Built for agents.<br />Locked down for you.</h2>
+      <p>Everything an AI coding tool needs to understand your data, and nothing that lets it change it.</p>
+    </div>
+
+    <div class="bento">
+      <article class="card big reveal">
+        <div class="ico"><Icon name="shield" /></div>
+        <h3>Read-only, enforced twice</h3>
+        <p>
+          Every query is checked before it runs, and multi-statement tricks are rejected. <span class="mono">INSERT</span>, <span class="mono">UPDATE</span>,
+          <span class="mono">DROP</span> and friends never reach your database. Pair it with a read-only DB user
+          and an agent has no path to write.
+        </p>
+        <div class="verdicts" aria-hidden="true">
+          <div class="v ok"><span class="mono">SELECT * FROM orders</span><em>allowed</em></div>
+          <div class="v ok"><span class="mono">EXPLAIN SELECT …</span><em>allowed</em></div>
+          <div class="v no"><span class="mono">UPDATE users SET …</span><em>blocked</em></div>
+          <div class="v no"><span class="mono">DROP TABLE invoices</span><em>blocked</em></div>
+        </div>
+      </article>
+
+      <article class="card reveal">
+        <div class="ico"><Icon name="laptop" /></div>
+        <h3>100% local</h3>
+        <p>The MCP server binds to <span class="mono">127.0.0.1</span>. No account, no cloud relay, no hosted copy of your schema.</p>
+      </article>
+
+      <article class="card reveal">
+        <div class="ico"><Icon name="key" /></div>
+        <h3>Encrypted credentials</h3>
+        <p>AES-256-GCM at rest. The key lives in your OS keychain, never in the database or a config file.</p>
+      </article>
+
+      <article class="card reveal">
+        <div class="ico"><Icon name="plug" /></div>
+        <h3>One-click client setup</h3>
+        <p>DB MCP writes the config for Claude Desktop, Cursor, VS Code, Windsurf and LM Studio for you.</p>
+      </article>
+
+      <article class="card reveal">
+        <div class="ico"><Icon name="filter" /></div>
+        <h3>Context-window friendly</h3>
+        <p>Schema filters, row caps and <span class="mono">truncated</span> flags keep big databases from flooding your agent.</p>
+      </article>
+
+      <article class="card reveal">
+        <div class="ico"><Icon name="tray" /></div>
+        <h3>Lives in your tray</h3>
+        <p>Close the window and the server keeps serving. Restart, view logs or quit from the menu bar. Optional start at login.</p>
+      </article>
+      <article class="card wide reveal">
+        <div>
+          <div class="ico"><Icon name="sparkles" /></div>
+          <h3>Tools that guide the agent</h3>
+          <p>
+            Every response carries a <span class="mono">hint</span> for the next step, and errors come back as
+            structured JSON. Agents recover on their own instead of guessing.
+          </p>
+        </div>
+        <pre class="json" aria-hidden="true">{`{
+  "row_count": 100,
+  "truncated": true,
+  "hint": "Results capped at 100 rows. Add a WHERE clause or explicit LIMIT to narrow the results."
+}`}</pre>
+      </article>
+
+    </div>
+  </div>
+</section>
+
+<style>
+  .bento {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  .card {
+    position: relative;
+    padding: 28px;
+    border-radius: var(--radius);
+    border: 1px solid var(--line);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.01));
+    overflow: hidden;
+    transition: border-color 0.25s ease, transform 0.25s ease;
+  }
+  .card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(400px circle at var(--mx, 50%) var(--my, 0%), rgba(34, 211, 238, 0.08), transparent 60%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+  }
+  .card:hover {
+    border-color: rgba(34, 211, 238, 0.28);
+  }
+  .card:hover::after {
+    opacity: 1;
+  }
+  .big {
+    grid-column: span 2;
+    grid-row: span 2;
+  }
+  .wide {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    gap: 32px;
+    align-items: center;
+  }
+  .wide .json {
+    margin: 0;
+  }
+  .ico {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    margin-bottom: 18px;
+    border-radius: 10px;
+    color: var(--cyan);
+    background: rgba(34, 211, 238, 0.1);
+    border: 1px solid rgba(34, 211, 238, 0.2);
+  }
+  h3 {
+    margin: 0 0 8px;
+    font-size: 18px;
+    letter-spacing: -0.01em;
+  }
+  p {
+    margin: 0;
+    color: var(--fg-2);
+    font-size: 15px;
+  }
+  .mono {
+    font-size: 0.88em;
+    color: var(--fg);
+  }
+  .big h3 {
+    font-size: 24px;
+  }
+  .big p {
+    font-size: 16px;
+    max-width: 520px;
+  }
+  .verdicts {
+    display: grid;
+    gap: 8px;
+    margin-top: 28px;
+  }
+  .v {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--line);
+    font-size: 13px;
+  }
+  .v .mono {
+    color: var(--fg-2);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .v em {
+    flex: none;
+    font: 600 11px/1 var(--mono);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 5px 8px;
+    border-radius: 6px;
+  }
+  .v.ok em {
+    color: var(--green);
+    background: rgba(52, 211, 153, 0.12);
+  }
+  .v.no em {
+    color: var(--red);
+    background: rgba(248, 113, 113, 0.12);
+  }
+  .v.no .mono {
+    text-decoration: line-through;
+    text-decoration-color: rgba(248, 113, 113, 0.6);
+  }
+  .json {
+    margin: 20px 0 0;
+    padding: 14px 16px;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--line);
+    font: 12.5px/1.6 var(--mono);
+    color: #a5f3fc;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  @media (max-width: 960px) {
+    .bento {
+      grid-template-columns: 1fr 1fr;
+    }
+    .big {
+      grid-row: auto;
+    }
+  }
+  @media (max-width: 640px) {
+    .bento {
+      grid-template-columns: 1fr;
+    }
+    .big,
+    .wide {
+      grid-column: auto;
+    }
+    .wide {
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+  }
+</style>

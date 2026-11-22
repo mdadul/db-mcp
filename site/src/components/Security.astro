@@ -1,0 +1,154 @@
+---
+import Icon from './Icon.astro';
+
+const layers = [
+  { icon: 'key', t: 'Credentials encrypted at rest', d: 'AES-256-GCM. The key lives in the macOS Keychain, Windows Credential Manager or Secret Service, with a 0600 file fallback.' },
+  { icon: 'globe', t: 'Loopback only, rebinding-proof', d: 'Binds to 127.0.0.1 and rejects any Host header that is not localhost, which blocks DNS rebinding attacks.' },
+  { icon: 'ban', t: 'Browsers are shut out', d: 'Requests to /mcp carrying a browser Origin are refused. The app’s own API needs a per-launch session token.' },
+  { icon: 'shield', t: 'Writes never reach the database', d: 'Write keywords and multi-statement queries are rejected. MongoDB operators like $where, $out and $merge are blocked too.' },
+  { icon: 'zap', t: 'Bounded queries', d: 'Results are capped at 100 rows by default and 1000 max, with a 10 second timeout so a runaway query can’t hang your agent.' },
+];
+---
+<section class="section security" id="security">
+  <div class="glow" aria-hidden="true"></div>
+  <div class="container split">
+    <div class="copy reveal">
+      <span class="kicker">Security</span>
+      <h2>Defense in depth, by default</h2>
+      <p>
+        Giving an AI access to production data should feel boring. DB MCP stacks independent safeguards so a single
+        mistake is never enough.
+      </p>
+      <div class="callout">
+        <Icon name="lock" size={18} />
+        <p>
+          <b>Your part:</b> connect with a database user that has read-only grants. It is the one safeguard enforced
+          by the database itself.
+        </p>
+      </div>
+    </div>
+
+    <ul class="layers">
+      {
+        layers.map((l) => (
+          <li class="reveal">
+            <span class="li-ico">
+              <Icon name={l.icon} size={18} />
+            </span>
+            <div>
+              <h3>{l.t}</h3>
+              <p>{l.d}</p>
+            </div>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>
+
+<style>
+  .security {
+    overflow: hidden;
+  }
+  .glow {
+    position: absolute;
+    right: -200px;
+    top: 50%;
+    width: 700px;
+    height: 700px;
+    transform: translateY(-50%);
+    background: radial-gradient(closest-side, rgba(37, 99, 235, 0.16), transparent);
+    pointer-events: none;
+  }
+  .split {
+    position: relative;
+    display: grid;
+    grid-template-columns: 5fr 7fr;
+    gap: 64px;
+    align-items: start;
+  }
+  .copy {
+    position: sticky;
+    top: 120px;
+  }
+  h2 {
+    font-size: clamp(30px, 4vw, 42px);
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    margin: 0 0 16px;
+  }
+  .copy > p {
+    color: var(--fg-2);
+    font-size: 17px;
+    margin: 0 0 28px;
+  }
+  .callout {
+    display: flex;
+    gap: 12px;
+    padding: 16px 18px;
+    border-radius: 12px;
+    border: 1px solid rgba(251, 191, 36, 0.3);
+    background: rgba(251, 191, 36, 0.06);
+    color: var(--amber);
+  }
+  .callout :global(svg) {
+    flex: none;
+    margin-top: 3px;
+  }
+  .callout p {
+    margin: 0;
+    color: var(--fg-2);
+    font-size: 14.5px;
+  }
+  .callout b {
+    color: var(--fg);
+  }
+  .layers {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 12px;
+  }
+  .layers li {
+    display: flex;
+    gap: 16px;
+    padding: 22px;
+    border-radius: var(--radius);
+    border: 1px solid var(--line);
+    background: var(--card);
+    transition: border-color 0.2s ease, background 0.2s ease;
+  }
+  .layers li:hover {
+    border-color: var(--line-strong);
+    background: var(--card-hover);
+  }
+  .li-ico {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    color: var(--cyan);
+    background: rgba(34, 211, 238, 0.1);
+  }
+  h3 {
+    margin: 0 0 4px;
+    font-size: 16px;
+  }
+  .layers p {
+    margin: 0;
+    color: var(--fg-2);
+    font-size: 14.5px;
+  }
+  @media (max-width: 960px) {
+    .split {
+      grid-template-columns: 1fr;
+      gap: 40px;
+    }
+    .copy {
+      position: static;
+    }
+  }
+</style>

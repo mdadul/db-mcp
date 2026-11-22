@@ -1,0 +1,182 @@
+---
+import Icon from './Icon.astro';
+import { setupTabs } from '../data/site';
+---
+<section class="section setup" id="setup">
+  <div class="container split">
+    <div class="copy reveal">
+      <span class="kicker">Setup</span>
+      <h2>Connected in under a minute</h2>
+      <p>
+        The <b>AI Clients</b> page in DB MCP writes these entries for you. Prefer to do it by hand? Copy the snippet
+        for your tool and restart it.
+      </p>
+      <ul class="notes">
+        <li><Icon name="check" size={16} /> Default port <span class="mono">4080</span>, changeable in Settings</li>
+        <li><Icon name="check" size={16} /> No token to paste, nothing to expose publicly</li>
+        <li><Icon name="check" size={16} /> Works with any client that speaks MCP over HTTP</li>
+      </ul>
+    </div>
+
+    <div class="tabs reveal" data-tabs>
+      <div class="tablist" role="tablist" aria-label="AI client">
+        {
+          setupTabs.map((t, i) => (
+            <button
+              role="tab"
+              id={`tab-${t.id}`}
+              aria-controls={`panel-${t.id}`}
+              aria-selected={i === 0 ? 'true' : 'false'}
+              tabindex={i === 0 ? 0 : -1}
+            >
+              {t.label}
+            </button>
+          ))
+        }
+      </div>
+      {
+        setupTabs.map((t, i) => (
+          <div class="panel" role="tabpanel" id={`panel-${t.id}`} aria-labelledby={`tab-${t.id}`} hidden={i !== 0}>
+            <div class="panel-bar">
+              <span class="mono">{t.file}</span>
+              <button class="copy-btn" type="button" data-copy={t.code} aria-label={`Copy ${t.label} config`}>
+                <Icon name="copy" size={15} class="i-copy" />
+                <Icon name="check" size={15} class="i-check" />
+                <span>Copy</span>
+              </button>
+            </div>
+            <pre><code>{t.code}</code></pre>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<style>
+  .split {
+    display: grid;
+    grid-template-columns: 5fr 7fr;
+    gap: 56px;
+    align-items: center;
+  }
+  h2 {
+    font-size: clamp(30px, 4vw, 42px);
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    margin: 0 0 16px;
+  }
+  .copy p {
+    color: var(--fg-2);
+    font-size: 17px;
+    margin: 0 0 24px;
+  }
+  .copy b {
+    color: var(--fg);
+  }
+  .notes {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 10px;
+    color: var(--fg-2);
+    font-size: 15px;
+  }
+  .notes li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .notes :global(svg) {
+    color: var(--green);
+    flex: none;
+  }
+  .notes .mono {
+    color: var(--fg);
+    font-size: 0.9em;
+  }
+
+  .tabs {
+    border-radius: 16px;
+    border: 1px solid var(--line-strong);
+    background: #0a0e18;
+    overflow: hidden;
+    box-shadow: 0 30px 80px -30px rgba(0, 0, 0, 0.9);
+  }
+  .tablist {
+    display: flex;
+    gap: 4px;
+    padding: 8px;
+    border-bottom: 1px solid var(--line);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .tablist button {
+    flex: none;
+    padding: 8px 14px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--mut);
+    font: 500 14px var(--sans);
+    cursor: pointer;
+    transition: color 0.15s ease, background 0.15s ease;
+  }
+  .tablist button:hover {
+    color: var(--fg);
+  }
+  .tablist button[aria-selected='true'] {
+    background: rgba(255, 255, 255, 0.07);
+    color: var(--fg);
+  }
+  .panel-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px 0 20px;
+    font-size: 12px;
+    color: var(--mut);
+  }
+  .copy-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 7px;
+    border: 1px solid var(--line-strong);
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--fg-2);
+    font: 500 12px var(--sans);
+    cursor: pointer;
+    transition: color 0.15s ease, background 0.15s ease;
+  }
+  .copy-btn:hover {
+    color: var(--fg);
+    background: rgba(255, 255, 255, 0.07);
+  }
+  .copy-btn :global(.i-check) {
+    display: none;
+    color: var(--green);
+  }
+  .copy-btn:global(.copied) :global(.i-copy) {
+    display: none;
+  }
+  .copy-btn:global(.copied) :global(.i-check) {
+    display: inline;
+  }
+  pre {
+    margin: 0;
+    padding: 16px 20px 24px;
+    min-height: 190px;
+    font: 13.5px/1.7 var(--mono);
+    color: #a5f3fc;
+    overflow-x: auto;
+  }
+  @media (max-width: 960px) {
+    .split {
+      grid-template-columns: 1fr;
+      gap: 40px;
+    }
+  }
+</style>

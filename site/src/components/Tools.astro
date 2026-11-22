@@ -1,0 +1,90 @@
+---
+import { tools } from '../data/site';
+---
+<section class="section" id="tools">
+  <div class="container">
+    <div class="section-head reveal">
+      <span class="kicker">MCP tools</span>
+      <h2>Four tools. Zero guesswork.</h2>
+      <p>A small, focused surface the agent learns instantly, with field names that match their parameters.</p>
+    </div>
+
+    <ol class="tools">
+      {
+        tools.map((t, i) => (
+          <li class="reveal">
+            <span class="idx mono">{String(i + 1).padStart(2, '0')}</span>
+            <code>{t.name}</code>
+            <p>{t.desc}</p>
+          </li>
+        ))
+      }
+    </ol>
+  </div>
+</section>
+
+<style>
+  .tools {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 1px solid var(--line);
+    background: var(--line);
+  }
+  .tools li {
+    position: relative;
+    padding: 28px 24px 32px;
+    background: var(--bg);
+    transition: background 0.2s ease;
+  }
+  .tools li:hover {
+    background: var(--bg-2);
+  }
+  .tools li::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--grad);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.35s ease;
+  }
+  .tools li:hover::before {
+    transform: scaleX(1);
+  }
+  .idx {
+    display: block;
+    color: var(--mut);
+    font-size: 12px;
+    margin-bottom: 18px;
+  }
+  code {
+    display: inline-block;
+    font: 600 15px var(--mono);
+    color: var(--cyan);
+    word-break: break-all;
+  }
+  p {
+    margin: 10px 0 0;
+    color: var(--fg-2);
+    font-size: 14.5px;
+  }
+  @media (max-width: 960px) {
+    .tools {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+  @media (max-width: 560px) {
+    .tools {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
