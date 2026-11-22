@@ -41,6 +41,7 @@ export interface ActivityFilters {
   status?: ActivityStatus;
   tool?: string;
   source?: ActivitySource;
+  from?: string;
 }
 
 export async function getActivity(filters: ActivityFilters): Promise<ActivityResponse> {
@@ -49,10 +50,25 @@ export async function getActivity(filters: ActivityFilters): Promise<ActivityRes
   if (filters.status) query.set("status", filters.status);
   if (filters.tool) query.set("tool", filters.tool);
   if (filters.source) query.set("source", filters.source);
+  if (filters.from) query.set("from", filters.from);
   const serverInfo = await platform.getServerInfo();
   const response = await fetch(`${serverInfo.baseUrl}/api/activity?${query}`, { headers: { "X-App-Session": serverInfo.sessionToken } });
   if (!response.ok) throw new Error("Could not load recent activity");
   return response.json();
+}
+
+/** Downloads the filtered activity as a file. The server caps exports and flags truncation in the CSV header. */
+export async function exportActivity(format: "csv" | "json", filters: Omit<ActivityFilters, "limit" | "offset">): Promise<{ blob: Blob; truncated: boolean }> {
+  const query = new URLSearchParams({ format });
+  if (filters.databaseId) query.set("databaseId", filters.databaseId);
+  if (filters.status) query.set("status", filters.status);
+  if (filters.tool) query.set("tool", filters.tool);
+  if (filters.source) query.set("source", filters.source);
+  if (filters.from) query.set("from", filters.from);
+  const serverInfo = await platform.getServerInfo();
+  const response = await fetch(`${serverInfo.baseUrl}/api/activity/export?${query}`, { headers: { "X-App-Session": serverInfo.sessionToken } });
+  if (!response.ok) throw new Error("Could not export activity");
+  return { blob: await response.blob(), truncated: response.headers.get("X-Truncated") === "true" };
 }
 
 export async function getDailyActivityStats(source: DailyStatsSource): Promise<DailyActivityStat[]> {

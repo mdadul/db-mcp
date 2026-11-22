@@ -179,6 +179,7 @@ export function ConnectionsWorkbench() {
       <span className="max-w-52 truncate text-ui-sm font-semibold">{connection.name}</span>
       <span className="rounded border border-border px-1.5 py-0.5 text-ui-xs uppercase text-muted-foreground">{connection.type}</span>
       <EnvironmentTag environment={connection.environment} />
+      <span className="hidden truncate text-ui-xs text-muted-foreground @xl:inline">{connection.lastUsedByAiAt ? `AI last used ${formatRelative(connection.lastUsedByAiAt)}` : "No AI use yet"}</span>
       <Button variant="ghost" size="xs" onClick={() => navigate(`/activity?databaseId=${connection.id}&source=mcp`)}>AI activity</Button>
       {connection.lastTestedAt && <span className="hidden min-w-0 truncate text-ui-xs text-muted-foreground @xl:inline" title={connection.lastTestMessage ?? undefined}>{connection.lastTestStatus === "reachable" ? `Tested ${formatRelative(connection.lastTestedAt)}${connection.lastTestLatencyMs !== null ? ` · ${connection.lastTestLatencyMs} ms` : ""}${connection.serverVersion ? ` · ${connection.serverVersion}` : ""}` : `Test failed ${formatRelative(connection.lastTestedAt)}`}</span>}
       {selectedConnectionStatus && <Tooltip content={selectedConnectionStatus.label}><span className="inline-flex" tabIndex={0} aria-label={selectedConnectionStatus.label}><StatusDot state={selectedConnectionStatus.state} /></span></Tooltip>}

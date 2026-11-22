@@ -10,10 +10,24 @@ import { Switch } from "@/components/ui/Switch";
 import { Button } from "@/components/ui/Button";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { databaseApi } from "@/features/databases/api/databaseApi";
-import { getActivity, getDailyActivityStats, type ActivitySource, type ActivityStatus } from "@/features/activity/api/activityApi";
+import { exportActivity, getActivity, getDailyActivityStats, type ActivitySource, type ActivityStatus } from "@/features/activity/api/activityApi";
+import { Download } from "lucide-react";
+import { toast } from "sonner";
 import { ActivityTable } from "@/features/activity/components/ActivityTable";
 
 const PAGE_SIZE = 200;
+type TimeRange = "all" | "24h" | "7d" | "30d";
+const RANGE_OPTIONS: { value: TimeRange; label: string; ms: number | null }[] = [
+  { value: "all", label: "All time", ms: null },
+  { value: "24h", label: "Last 24 hours", ms: 24 * 60 * 60 * 1000 },
+  { value: "7d", label: "Last 7 days", ms: 7 * 24 * 60 * 60 * 1000 },
+  { value: "30d", label: "Last 30 days", ms: 30 * 24 * 60 * 60 * 1000 },
+];
+/** ISO start of a time range, or undefined for all time. */
+function rangeStart(range: TimeRange): string | undefined {
+  const option = RANGE_OPTIONS.find((item) => item.value === range);
+  return option?.ms ? new Date(Date.now() - option.ms).toISOString() : undefined;
+}
 const SOURCE_OPTIONS = [
   { value: "mcp", label: "AI clients" },
   { value: "agent", label: "Analyst" },
@@ -30,6 +44,7 @@ export function ActivityPage() {
   const [search, setSearch] = useState("");
   const [source, setSource] = useState<(typeof SOURCE_OPTIONS)[number]["value"]>(() => SOURCE_OPTIONS.find((option) => option.value === searchParams.get("source"))?.value ?? "all");
   const [autoRefresh, setAutoRefresh] = useState(false);
+  const [range, setRange] = useState<TimeRange>("all");
   const [offset, setOffset] = useState(0);
   const dailyStats = useQuery({
     queryKey: ["activity", "daily-stats", source],
@@ -37,10 +52,24 @@ export function ActivityPage() {
   });
   const databases = useQuery({ queryKey: ["databases"], queryFn: databaseApi.list });
   const activity = useQuery({
-    queryKey: ["activity", { databaseId, status, tool, source, offset }],
-    queryFn: () => getActivity({ limit: PAGE_SIZE, offset, ...(databaseId !== "all" ? { databaseId } : {}), ...(status !== "all" ? { status: status as ActivityStatus } : {}), ...(tool.trim() ? { tool: tool.trim() } : {}), ...(source !== "all" ? { source: source as ActivitySource } : {}) }),
+    queryKey: ["activity", { databaseId, status, tool, source, range, offset }],
+    queryFn: () => getActivity({ limit: PAGE_SIZE, offset, ...(rangeStart(range) ? { from: rangeStart(range) } : {}), ...(databaseId !== "all" ? { databaseId } : {}), ...(status !== "all" ? { status: status as ActivityStatus } : {}), ...(tool.trim() ? { tool: tool.trim() } : {}), ...(source !== "all" ? { source: source as ActivitySource } : {}) }),
     refetchInterval: autoRefresh ? 10_000 : false,
   });
+  const exportFile = async (format: "csv" | "json") => {
+    try {
+      const { blob, truncated } = await exportActivity(format, { ...(databaseId !== "all" ? { databaseId } : {}), ...(status !== "all" ? { status: status as ActivityStatus } : {}), ...(tool.trim() ? { tool: tool.trim() } : {}), ...(source !== "all" ? { source: source as ActivitySource } : {}), ...(rangeStart(range) ? { from: rangeStart(range) } : {}) });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `db-mcp-activity.${format}`;
+      link.click();
+      URL.revokeObjectURL(url);
+      if (truncated) toast.warning("Export was capped", { description: "Only the newest 10,000 matching events were exported. Narrow the filters to export the rest." });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not export activity");
+    }
+  };
   const daily = dailyStats.data ?? [];
   const toolCalls = daily.reduce((total, day) => total + day.toolCalls, 0);
   const queries = daily.reduce((total, day) => total + day.queries, 0);
@@ -105,9 +134,11 @@ export function ActivityPage() {
     <div className="mb-3 flex flex-wrap items-center justify-between gap-2"><SegmentedControl value={source} onChange={(value) => setSource(value)} ariaLabel="Filter activity by source" options={SOURCE_OPTIONS} /></div>
     <section aria-label="Activity filters" className="mb-3 flex flex-wrap items-end gap-2 rounded-md border border-border bg-card p-2.5">
       <label className="flex min-w-36 flex-col gap-1 text-ui-xs font-medium text-muted-foreground">Database<Select value={databaseId} onValueChange={(value) => setDatabaseId(value ?? "all")}><SelectTrigger className="h-7 w-full" aria-label="Filter by database"><SelectValue /></SelectTrigger><SelectContent><SelectGroup><SelectItem value="all">All databases</SelectItem>{(databases.data ?? []).map((db) => <SelectItem key={db.id} value={db.id}>{db.name}</SelectItem>)}</SelectGroup></SelectContent></Select></label>
+      <label className="flex min-w-36 flex-col gap-1 text-ui-xs font-medium text-muted-foreground">Time range<Select value={range} onValueChange={(value) => setRange((value ?? "all") as TimeRange)}><SelectTrigger className="h-7 w-full" aria-label="Filter by time range"><SelectValue /></SelectTrigger><SelectContent><SelectGroup>{RANGE_OPTIONS.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}</SelectGroup></SelectContent></Select></label>
       <label className="flex min-w-32 flex-col gap-1 text-ui-xs font-medium text-muted-foreground">Status<Select value={status} onValueChange={(value) => setStatus(value ?? "all")}><SelectTrigger className="h-7 w-full" aria-label="Filter by status"><SelectValue /></SelectTrigger><SelectContent><SelectGroup><SelectItem value="all">All statuses</SelectItem>{["success", "error", "timeout", "blocked"].map((item) => <SelectItem key={item} value={item} className="capitalize">{item}</SelectItem>)}</SelectGroup></SelectContent></Select></label>
       <label className="flex min-w-36 flex-col gap-1 text-ui-xs font-medium text-muted-foreground">Tool<Input value={tool} placeholder="Filter by tool" aria-label="Filter by tool name" className="h-7" onChange={(event) => setTool(event.target.value)} /></label>
       <label className="flex min-w-44 flex-1 flex-col gap-1 text-ui-xs font-medium text-muted-foreground">Search<Input value={search} placeholder="Tool, database or status" aria-label="Search activity" className="h-7" onChange={(event) => setSearch(event.target.value)} /></label>
+      <div className="flex items-end gap-1"><Button variant="outline" size="sm" aria-label="Export activity as CSV" title="Exports the filters above. The search box only filters the loaded page." onClick={() => void exportFile("csv")}><Download data-icon="inline-start" />CSV</Button><Button variant="outline" size="sm" aria-label="Export activity as JSON" title="Exports the filters above. The search box only filters the loaded page." onClick={() => void exportFile("json")}><Download data-icon="inline-start" />JSON</Button></div>
       {(databaseId !== "all" || status !== "all" || tool || search || source !== "all") && <Button size="sm" variant="ghost" onClick={() => { setDatabaseId("all"); setStatus("all"); setTool(""); setSearch(""); setSource("all"); setOffset(0); }}>Clear filters</Button>}
     </section>
     <div ref={activityResultsRef} tabIndex={-1} aria-label="Activity results" className="focus-visible:outline-2 focus-visible:outline-ring">
