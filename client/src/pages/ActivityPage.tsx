@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -21,11 +22,13 @@ const SOURCE_OPTIONS = [
 ] as const;
 
 export function ActivityPage() {
-  const [databaseId, setDatabaseId] = useState("all");
+  // Links from a connection ("AI activity") pass databaseId and source in the URL.
+  const [searchParams] = useSearchParams();
+  const [databaseId, setDatabaseId] = useState(() => searchParams.get("databaseId") ?? "all");
   const [status, setStatus] = useState("all");
   const [tool, setTool] = useState("");
   const [search, setSearch] = useState("");
-  const [source, setSource] = useState<(typeof SOURCE_OPTIONS)[number]["value"]>("all");
+  const [source, setSource] = useState<(typeof SOURCE_OPTIONS)[number]["value"]>(() => SOURCE_OPTIONS.find((option) => option.value === searchParams.get("source"))?.value ?? "all");
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [offset, setOffset] = useState(0);
   const dailyStats = useQuery({

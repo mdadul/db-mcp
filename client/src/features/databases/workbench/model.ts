@@ -126,14 +126,39 @@ function groupLabel(item: DatabaseConnection, mode: GroupMode): string {
 }
 
 /** Colour family for an environment label. Known names map to fixed tones; anything else is neutral. */
-export function environmentTone(environment: string | null): { label: string; className: string } | null {
+export function environmentTone(environment: string | null): { label: string; className: string; strip: string } | null {
   const label = environment?.trim();
   if (!label) return null;
   const value = label.toLowerCase();
-  if (/^(prod|production|live)$/.test(value)) return { label, className: "border-danger/30 bg-danger-subtle text-danger" };
-  if (/^(stag|staging|stage|uat|qa|test)$/.test(value)) return { label, className: "border-warning/30 bg-warning-subtle text-warning" };
-  if (/^(dev|development|local)$/.test(value)) return { label, className: "border-success/30 bg-success-subtle text-success" };
-  return { label, className: "border-border bg-muted text-muted-foreground" };
+  if (/^(prod|production|live)$/.test(value)) return { label, className: "border-danger/30 bg-danger-subtle text-danger", strip: "border-t-2 border-t-danger" };
+  if (/^(stag|staging|stage|uat|qa|test)$/.test(value)) return { label, className: "border-warning/30 bg-warning-subtle text-warning", strip: "border-t-2 border-t-warning" };
+  if (/^(dev|development|local)$/.test(value)) return { label, className: "border-success/30 bg-success-subtle text-success", strip: "border-t-2 border-t-success" };
+  return { label, className: "border-border bg-muted text-muted-foreground", strip: "" };
+}
+
+export const isProductionEnvironment = (environment: string | null) => /^(prod|production|live)$/.test(environment?.trim().toLowerCase() ?? "");
+
+const PRODUCTION_ACK_KEY = "dbmcp.productionAccessAcknowledged.v1";
+
+/** Whether the user has confirmed AI access for this production connection before. */
+export function hasAcknowledgedProduction(connectionId: string): boolean {
+  try {
+    const value: unknown = JSON.parse(localStorage.getItem(PRODUCTION_ACK_KEY) ?? "{}");
+    return typeof value === "object" && value !== null && (value as Record<string, unknown>)[connectionId] === true;
+  } catch {
+    return false;
+  }
+}
+
+export function acknowledgeProduction(connectionId: string): void {
+  const current: Record<string, boolean> = { [connectionId]: true };
+  try {
+    const value: unknown = JSON.parse(localStorage.getItem(PRODUCTION_ACK_KEY) ?? "{}");
+    if (typeof value === "object" && value !== null) Object.assign(current, value);
+  } catch {
+    // Corrupt storage is replaced below.
+  }
+  localStorage.setItem(PRODUCTION_ACK_KEY, JSON.stringify(current));
 }
 
 /** Short relative time such as "just now", "12 min ago" or "3 h ago", then a date. */

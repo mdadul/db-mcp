@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type MouseEvent, type RefObject } from "react";
 import type { UseQueryResult } from "@tanstack/react-query";
-import { Download, ListFilter, MoreHorizontal, Plus, Search } from "lucide-react";
+import { Bot, Download, ListFilter, MoreHorizontal, Plus, Search } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -75,7 +75,7 @@ function ConnectionRow({ item, selected, testState, onSelect, onMenu, onContextM
   return <div role="option" aria-selected={selected} aria-label={`${item.name}, ${status?.label ?? "Not tested"}`} tabIndex={0} onClick={onSelect} onContextMenu={onContextMenu} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onSelect(); } else if (event.key === "ArrowDown" || event.key === "ArrowUp") { event.preventDefault(); const rows = [...(event.currentTarget.parentElement?.querySelectorAll<HTMLElement>("[role='option']") ?? [])]; const index = rows.indexOf(event.currentTarget); rows[Math.max(0, Math.min(rows.length - 1, index + (event.key === "ArrowDown" ? 1 : -1)))]?.focus(); } }} className={`group flex h-12 min-w-0 cursor-default items-center gap-2 rounded px-2 outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring ${selected ? "bg-accent-subtle text-foreground" : "text-muted-foreground"}`}>
     <DbEngineIcon type={item.type} className="size-4 shrink-0" />
     <div className="min-w-0 flex-1">
-      <div className="flex items-center gap-1.5"><span className="min-w-0 truncate text-ui-sm font-medium text-foreground">{item.name}</span>{status && <Tooltip content={status.label}><span role="img" aria-label={status.label} className="inline-flex"><StatusDot state={status.state} /></span></Tooltip>}<EnvironmentTag environment={item.environment} /></div>
+      <div className="flex items-center gap-1.5"><span className="min-w-0 truncate text-ui-sm font-medium text-foreground">{item.name}</span>{status && <Tooltip content={status.label}><span role="img" aria-label={status.label} className="inline-flex"><StatusDot state={status.state} /></span></Tooltip>}<EnvironmentTag environment={item.environment} /><span role="img" aria-label={item.status === "enabled" ? "AI access on" : "AI access off"} title={item.status === "enabled" ? "AI clients can query this connection" : "Disabled: AI clients cannot query this connection"} className={`inline-flex shrink-0 ${item.status === "enabled" ? "text-success" : "text-muted-foreground"}`}><Bot className="size-3.5" /></span></div>
       <p className="truncate text-ui-xs text-muted-foreground" title={subtitle.title}>{subtitle.text}</p>
     </div>
     <Button variant="ghost" size="icon-xs" aria-label={`Actions for ${item.name}`} onClick={onMenu}><MoreHorizontal /></Button>
