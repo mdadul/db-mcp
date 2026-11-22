@@ -133,6 +133,8 @@ export interface DatabaseConnection {
   lastTestMessage: string | null;
   lastTestLatencyMs: number | null;
   serverVersion: string | null;
+  /** Latest query or tool call made by an AI client through MCP, or null. */
+  lastUsedByAiAt: string | null;
   createdAt: string;
   updatedAt: string;
 }

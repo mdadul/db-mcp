@@ -1,6 +1,6 @@
-import { eq, desc } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 import { db } from "../../../db/client.ts";
-import { databaseConnections, queryLogs } from "../../../db/schema.ts";
+import { databaseConnections, queryLogs, toolCalls } from "../../../db/schema.ts";
 import { decrypt, encrypt } from "../../../services/credentials.ts";
 import {
   getExecutor,
@@ -47,7 +47,7 @@ function dbConfig(row: Row): DbConfig {
 }
 
 /** Strip credentials and convert Date → ISO string for the API response. */
-function sanitize(row: Row): DatabaseConnection {
+function sanitize(row: Row, lastUsedByAi: Date | null = null): DatabaseConnection {
   return {
     id: row.id,
     name: row.name,
@@ -68,6 +68,7 @@ function sanitize(row: Row): DatabaseConnection {
     lastTestMessage: row.lastTestMessage,
     lastTestLatencyMs: row.lastTestLatencyMs,
     serverVersion: row.serverVersion,
+    lastUsedByAiAt: lastUsedByAi?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -120,7 +121,31 @@ export async function listDatabases(): Promise<DatabaseConnection[]> {
     .select()
     .from(databaseConnections)
     .orderBy(databaseConnections.createdAt);
-  return rows.map(sanitize);
+  const lastUsed = await lastAiUseByConnection();
+  return rows.map((row) => sanitize(row, lastUsed.get(row.id) ?? null));
+}
+
+/** Latest MCP query or tool call per connection. Analyst and app queries do not count as AI use. */
+async function lastAiUseByConnection(): Promise<Map<string, Date>> {
+  const [queryUse, toolUse] = await Promise.all([
+    db
+      .select({ id: queryLogs.databaseConnectionId, last: sql<number | null>`max(${queryLogs.createdAt})` })
+      .from(queryLogs)
+      .where(eq(queryLogs.source, "mcp"))
+      .groupBy(queryLogs.databaseConnectionId),
+    db
+      .select({ id: toolCalls.databaseConnectionId, last: sql<number | null>`max(${toolCalls.createdAt})` })
+      .from(toolCalls)
+      .groupBy(toolCalls.databaseConnectionId),
+  ]);
+  const result = new Map<string, Date>();
+  for (const entry of [...queryUse, ...toolUse]) {
+    if (!entry.id || entry.last === null || entry.last === undefined) continue;
+    const at = new Date(Number(entry.last));
+    const current = result.get(entry.id);
+    if (!current || at > current) result.set(entry.id, at);
+  }
+  return result;
 }
 
 export async function getDatabase(id: string): Promise<DatabaseConnection> {

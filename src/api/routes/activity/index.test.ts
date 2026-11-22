@@ -83,4 +83,33 @@ test("activity endpoint filters Analyst source and returns redacted tool argumen
   const blockedResponse = await app.request("/api/activity?source=app");
   const blocked = await blockedResponse.json() as { items: { hint: string | null }[] };
   assert.match(blocked.items[0]?.hint ?? "", /Only read-only queries/);
+  // Export uses the same filters and never includes SQL text or secrets.
+  const csvExport = await app.request("/api/activity/export?source=mcp");
+  assert.equal(csvExport.status, 200);
+  assert.match(csvExport.headers.get("content-type") ?? "", /text\/csv/);
+  assert.equal(csvExport.headers.get("x-truncated"), "false");
+  const csvText = await csvExport.text();
+  assert.match(csvText.split("\r\n")[0] ?? "", /^createdAt,source,kind,tool/);
+  assert.ok(csvText.includes("execute_read_query"));
+  assert.ok(!csvText.includes("never-return-this"));
+  assert.ok(!csvText.includes("person@example.com"));
+  assert.ok(!csvText.includes("SELECT secret"));
+
+  const jsonExport = await app.request("/api/activity/export?format=json&source=mcp");
+  const exported = await jsonExport.json() as { total: number; truncated: boolean; items: unknown[] };
+  assert.equal(exported.total, mcpResult.total);
+  assert.equal(exported.items.length, mcpResult.total);
+  assert.equal(exported.truncated, false);
+
+  // Date range: windows that cannot match return nothing.
+  const future = await app.request("/api/activity?from=2999-01-01T00:00:00.000Z");
+  assert.equal((await future.json() as { total: number }).total, 0);
+  const past = await app.request("/api/activity?to=2000-01-01T00:00:00.000Z");
+  assert.equal((await past.json() as { total: number }).total, 0);
+
+  // Latest AI use is reported per connection.
+  await db.insert(toolCalls).values({ tool: "list_databases", status: "success", args: null, databaseConnectionId: connectionId });
+  const databases = await app.request("/api/databases");
+  const list = await databases.json() as { id: string; lastUsedByAiAt: string | null }[];
+  assert.ok(list.find((item) => item.id === connectionId)?.lastUsedByAiAt);
 });

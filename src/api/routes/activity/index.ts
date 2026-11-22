@@ -1,10 +1,15 @@
 import { zValidator } from "@hono/zod-validator";
-import { and, count, desc, eq, sql } from "drizzle-orm";
+import { and, count, desc, eq, gte, lte, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { db } from "../../../db/client.ts";
 import { sanitizeToolArgs } from "../../../db/logToolCall.ts";
 import { databaseConnections, queryLogs, toolCalls } from "../../../db/schema.ts";
-import { activityQuerySchema } from "./schema.ts";
+import { toCsv } from "./csv.ts";
+import { activityExportSchema, activityQuerySchema, type ActivityFilters } from "./schema.ts";
+
+/** Largest export. Larger histories are truncated and flagged in the response. */
+export const ACTIVITY_EXPORT_LIMIT = 10_000;
+const EXPORT_COLUMNS = ["createdAt", "source", "kind", "tool", "databaseName", "status", "durationMs", "rows", "error", "hint", "args"] as const;
 
 function errorHint(error: string | null, status: string): string | null {
   if (!error && status !== "error" && status !== "timeout" && status !== "blocked") return null;
@@ -33,82 +38,112 @@ function errorHint(error: string | null, status: string): string | null {
   return error ? "Review the error and query details, then verify the database schema before retrying." : null;
 }
 
-export const activityRoutes = new Hono().get(
-  "/",
-  zValidator("query", activityQuerySchema),
-  async (c) => {
-    const { limit, offset, databaseId, status, tool, source } = c.req.valid("query");
-    const queryConditions = [
-      ...(databaseId ? [eq(queryLogs.databaseConnectionId, databaseId)] : []),
-      ...(status ? [eq(queryLogs.status, status)] : []),
-      ...(tool ? [sql`coalesce(${queryLogs.toolName}, 'execute_read_query') = ${tool}`] : []),
-      ...(source ? [eq(queryLogs.source, source)] : []),
-    ];
-    const toolConditions = [
-      ...(databaseId ? [eq(toolCalls.databaseConnectionId, databaseId)] : []),
-      ...(status === "success" || status === "error" ? [eq(toolCalls.status, status)] : status ? [sql`0 = 1`] : []),
-      ...(tool ? [eq(toolCalls.tool, tool)] : []),
-      ...(source === "app" || source === "agent" ? [sql`0 = 1`] : []),
-    ];
+function dateBounds(column: typeof queryLogs.createdAt | typeof toolCalls.createdAt, filters: ActivityFilters) {
+  return [
+    ...(filters.from ? [gte(column, new Date(filters.from))] : []),
+    ...(filters.to ? [lte(column, new Date(filters.to))] : []),
+  ];
+}
 
-    const queryItems = db
-      .select({
-        id: queryLogs.id,
-        source: queryLogs.source,
-        kind: sql<"query">`'query'`,
-        tool: sql<string>`coalesce(${queryLogs.toolName}, 'execute_read_query')`,
-        databaseConnectionId: queryLogs.databaseConnectionId,
-        databaseName: databaseConnections.name,
-        status: queryLogs.status,
-        createdAt: queryLogs.createdAt,
-        durationMs: queryLogs.executionTimeMs,
-        rows: queryLogs.rowCount,
-        error: queryLogs.error,
-        args: sql<string | null>`null`,
-      })
-      .from(queryLogs)
-      .leftJoin(databaseConnections, eq(queryLogs.databaseConnectionId, databaseConnections.id))
-      .where(queryConditions.length ? and(...queryConditions) : undefined);
+/** Filter conditions for the query log and tool call tables. */
+function activityConditions(filters: ActivityFilters) {
+  const { databaseId, status, tool, source } = filters;
+  const queryConditions = [
+    ...(databaseId ? [eq(queryLogs.databaseConnectionId, databaseId)] : []),
+    ...(status ? [eq(queryLogs.status, status)] : []),
+    ...(tool ? [sql`coalesce(${queryLogs.toolName}, 'execute_read_query') = ${tool}`] : []),
+    ...(source ? [eq(queryLogs.source, source)] : []),
+    ...dateBounds(queryLogs.createdAt, filters),
+  ];
+  const toolConditions = [
+    ...(databaseId ? [eq(toolCalls.databaseConnectionId, databaseId)] : []),
+    ...(status === "success" || status === "error" ? [eq(toolCalls.status, status)] : status ? [sql`0 = 1`] : []),
+    ...(tool ? [eq(toolCalls.tool, tool)] : []),
+    ...(source === "app" || source === "agent" ? [sql`0 = 1`] : []),
+    ...dateBounds(toolCalls.createdAt, filters),
+  ];
+  return { queryConditions, toolConditions };
+}
 
-    const toolItems = db
-      .select({
-        id: toolCalls.id,
-        source: sql<"mcp">`'mcp'`,
-        kind: sql<"tool">`'tool'`,
-        tool: toolCalls.tool,
-        databaseConnectionId: toolCalls.databaseConnectionId,
-        databaseName: databaseConnections.name,
-        status: toolCalls.status,
-        createdAt: toolCalls.createdAt,
-        durationMs: sql<number | null>`null`,
-        rows: sql<number | null>`null`,
-        error: sql<string | null>`null`,
-        args: toolCalls.args,
-      })
-      .from(toolCalls)
-      .leftJoin(databaseConnections, eq(toolCalls.databaseConnectionId, databaseConnections.id))
-      .where(toolConditions.length ? and(...toolConditions) : undefined);
+/** Merged, newest-first activity for the given filters. `limit` is the number of rows returned from `offset`. */
+async function loadActivity(filters: ActivityFilters, limit: number, offset: number) {
+  const { queryConditions, toolConditions } = activityConditions(filters);
 
-    const fetchLimit = limit + offset;
-    const [queryRows, toolRows, queryCount, toolCount] = await Promise.all([
-      queryItems.orderBy(desc(queryLogs.createdAt)).limit(fetchLimit),
-      toolItems.orderBy(desc(toolCalls.createdAt)).limit(fetchLimit),
-      db.select({ total: count() }).from(queryLogs).where(queryConditions.length ? and(...queryConditions) : undefined),
-      db.select({ total: count() }).from(toolCalls).where(toolConditions.length ? and(...toolConditions) : undefined),
-    ]);
+  const queryItems = db
+    .select({
+      id: queryLogs.id,
+      source: queryLogs.source,
+      kind: sql<"query">`'query'`,
+      tool: sql<string>`coalesce(${queryLogs.toolName}, 'execute_read_query')`,
+      databaseConnectionId: queryLogs.databaseConnectionId,
+      databaseName: databaseConnections.name,
+      status: queryLogs.status,
+      createdAt: queryLogs.createdAt,
+      durationMs: queryLogs.executionTimeMs,
+      rows: queryLogs.rowCount,
+      error: queryLogs.error,
+      args: sql<string | null>`null`,
+    })
+    .from(queryLogs)
+    .leftJoin(databaseConnections, eq(queryLogs.databaseConnectionId, databaseConnections.id))
+    .where(queryConditions.length ? and(...queryConditions) : undefined);
 
-    const items = [...queryRows, ...toolRows]
-      .sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime())
-      .slice(offset, offset + limit);
+  const toolItems = db
+    .select({
+      id: toolCalls.id,
+      source: sql<"mcp">`'mcp'`,
+      kind: sql<"tool">`'tool'`,
+      tool: toolCalls.tool,
+      databaseConnectionId: toolCalls.databaseConnectionId,
+      databaseName: databaseConnections.name,
+      status: toolCalls.status,
+      createdAt: toolCalls.createdAt,
+      durationMs: sql<number | null>`null`,
+      rows: sql<number | null>`null`,
+      error: sql<string | null>`null`,
+      args: toolCalls.args,
+    })
+    .from(toolCalls)
+    .leftJoin(databaseConnections, eq(toolCalls.databaseConnectionId, databaseConnections.id))
+    .where(toolConditions.length ? and(...toolConditions) : undefined);
 
-    return c.json({
-      items: items.map((item) => ({
-        ...item,
-        createdAt: item.createdAt.toISOString(),
-        args: sanitizeToolArgs(item.args),
-        hint: errorHint(item.error, item.status),
-      })),
-      total: (queryCount[0]?.total ?? 0) + (toolCount[0]?.total ?? 0),
-    });
-  }
-);
+  const fetchLimit = limit + offset;
+  const [queryRows, toolRows, queryCount, toolCount] = await Promise.all([
+    queryItems.orderBy(desc(queryLogs.createdAt)).limit(fetchLimit),
+    toolItems.orderBy(desc(toolCalls.createdAt)).limit(fetchLimit),
+    db.select({ total: count() }).from(queryLogs).where(queryConditions.length ? and(...queryConditions) : undefined),
+    db.select({ total: count() }).from(toolCalls).where(toolConditions.length ? and(...toolConditions) : undefined),
+  ]);
+
+  const items = [...queryRows, ...toolRows]
+    .sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime())
+    .slice(offset, offset + limit)
+    .map((item) => ({
+      ...item,
+      createdAt: item.createdAt.toISOString(),
+      args: sanitizeToolArgs(item.args),
+      hint: errorHint(item.error, item.status),
+    }));
+  return { items, total: (queryCount[0]?.total ?? 0) + (toolCount[0]?.total ?? 0) };
+}
+
+export const activityRoutes = new Hono()
+  .get("/", zValidator("query", activityQuerySchema), async (c) => {
+    const { limit, offset, ...filters } = c.req.valid("query");
+    return c.json(await loadActivity(filters, limit, offset));
+  })
+  // Export the filtered activity. Query text is never selected, so exported rows contain no SQL.
+  .get("/export", zValidator("query", activityExportSchema), async (c) => {
+    const { format, ...filters } = c.req.valid("query");
+    const { items, total } = await loadActivity(filters, ACTIVITY_EXPORT_LIMIT, 0);
+    const truncated = total > items.length;
+    const stamp = new Date().toISOString().slice(0, 10);
+    if (format === "json") {
+      c.header("Content-Disposition", `attachment; filename="db-mcp-activity-${stamp}.json"`);
+      return c.json({ exportedAt: new Date().toISOString(), filters, total, truncated, limit: ACTIVITY_EXPORT_LIMIT, items });
+    }
+    c.header("Content-Type", "text/csv; charset=utf-8");
+    c.header("Content-Disposition", `attachment; filename="db-mcp-activity-${stamp}.csv"`);
+    c.header("X-Truncated", String(truncated));
+    return c.body(toCsv(items as unknown as Record<string, unknown>[], EXPORT_COLUMNS));
+  });
