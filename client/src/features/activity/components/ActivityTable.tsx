@@ -18,7 +18,8 @@ function formatRelativeTime(value: string): string {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const variant = status === "success" ? "secondary" : status === "error" || status === "timeout" || status === "blocked" ? "destructive" : "outline";
+  if (status === "success") return null;
+  const variant = status === "error" || status === "timeout" || status === "blocked" ? "destructive" : "outline";
   return <Badge variant={variant} className="capitalize">{status}</Badge>;
 }
 
@@ -40,13 +41,13 @@ export function ActivityTable({ items }: { items: ActivityItem[] }) {
       <div ref={parentRef} className="max-h-[min(60vh,620px)] overflow-auto" role="rowgroup" aria-label="Activity events">
         {items.length > 0 && <div style={{ height: virtualizer.getTotalSize(), position: "relative", width: "100%" }}>{rows.map((virtualRow) => {
           const item = items[virtualRow.index];
-          return <button key={item.id} type="button" role="row" aria-label={`${item.tool}, ${item.status}, ${formatRelativeTime(item.createdAt)}`} onClick={() => setSelected(item)} className="absolute left-0 top-0 grid w-full grid-cols-[minmax(75px,0.8fr)_minmax(90px,1fr)_minmax(80px,0.8fr)] items-center gap-2 border-b border-border px-2 text-left text-ui-xs transition-colors hover:bg-muted/60 focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-ring sm:grid-cols-[minmax(96px,0.8fr)_minmax(80px,0.65fr)_minmax(130px,1.1fr)_minmax(130px,1.2fr)_72px_64px_90px] sm:gap-2 sm:px-3 sm:text-ui-xs" style={{ height: virtualRow.size, transform: `translateY(${virtualRow.start}px)` }}>
+          return <button key={item.id} type="button" role="row" aria-label={`${item.tool}, ${item.status}, ${formatRelativeTime(item.createdAt)}`} onClick={() => setSelected(item)} className={["absolute left-0 top-0 grid w-full grid-cols-[minmax(75px,0.8fr)_minmax(90px,1fr)_minmax(80px,0.8fr)] items-center gap-2 border-b border-border px-2 text-left text-ui-xs transition-colors hover:bg-muted/60 focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-ring sm:grid-cols-[minmax(96px,0.8fr)_minmax(80px,0.65fr)_minmax(130px,1.1fr)_minmax(130px,1.2fr)_72px_64px_90px] sm:gap-2 sm:px-3 sm:text-ui-xs", item.status !== "success" && "bg-danger-subtle/30"].filter(Boolean).join(" ")} style={{ height: virtualRow.size, transform: `translateY(${virtualRow.start}px)` }}>
             <time dateTime={item.createdAt} title={new Date(item.createdAt).toLocaleString()} className="truncate text-muted-foreground">{formatRelativeTime(item.createdAt)}</time>
             <span className="hidden sm:inline-flex"><SourceLabel source={item.source} /></span>
             <span className="truncate font-mono" title={item.tool}>{item.tool}</span>
             <span className="hidden truncate sm:inline-block" title={item.databaseName ?? undefined}>{item.databaseName ?? <span className="text-muted-foreground">—</span>}</span>
-            <span className="hidden font-mono text-muted-foreground sm:inline-block">{item.durationMs === null ? "—" : `${item.durationMs} ms`}</span>
-            <span className="hidden font-mono text-muted-foreground sm:inline-block">{item.rows ?? "—"}</span>
+            <span className="hidden font-mono text-muted-foreground sm:inline-block">{item.durationMs === null ? "" : `${item.durationMs} ms`}</span>
+            <span className="hidden font-mono text-muted-foreground sm:inline-block">{item.rows ?? ""}</span>
             <span><StatusBadge status={item.status} /></span>
           </button>;
         })}</div>}

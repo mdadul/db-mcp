@@ -57,6 +57,24 @@ export function contrastRatio(foreground: string, background: string): number | 
   return (values[0] + 0.05) / (values[1] + 0.05);
 }
 
+const ACCENT_FOREGROUND_CANDIDATES = ["#ffffff", "#111111"] as const;
+
+export type AccentForeground = (typeof ACCENT_FOREGROUND_CANDIDATES)[number];
+
+/**
+ * Pick near-white or near-black text for a filled accent surface.
+ * Maximizes the minimum contrast against the base and hover accents so primary
+ * buttons stay legible in both states. If neither candidate reaches AA, returns
+ * the better of the two.
+ */
+export function pickAccentForeground(accent: string, accentHover: string): AccentForeground {
+  const score = (candidate: AccentForeground) => Math.min(
+    contrastRatio(candidate, accent) ?? 0,
+    contrastRatio(candidate, accentHover) ?? 0,
+  );
+  return ACCENT_FOREGROUND_CANDIDATES.reduce((best, candidate) => score(candidate) > score(best) ? candidate : best);
+}
+
 export interface ContrastFinding {
   variant: "light" | "dark";
   pair: string;

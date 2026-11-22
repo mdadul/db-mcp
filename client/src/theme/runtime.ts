@@ -1,3 +1,4 @@
+import { pickAccentForeground } from "./contrast";
 import { themeSettingsSchema, type SemanticToken, type ThemeDefinition, type ThemeSettings, type ThemeVariant } from "./schema";
 import { builtInThemes, getBuiltInTheme } from "./themes";
 import { platform } from "@/platform";
@@ -144,6 +145,7 @@ export function resolveThemeSnapshot(settingsInput: ThemeApplication): ThemeSnap
   const active = ACCENTS[resolvedSettings.accent][mode];
   if (theme.allowsAccent) {
     [variables["--accent"], variables["--accent-hover"], variables["--accent-subtle"], variables["--focus-ring"]] = active;
+    variables["--accent-foreground"] = pickAccentForeground(active[0], active[1]);
   }
   variables["--background-compat"] = "var(--background)";
   variables["--foreground"] = "var(--text)";

@@ -5,37 +5,31 @@ export interface DbEngineIconProps {
   className?: string;
 }
 
-// Database icon registry - easy to extend for new database types
+// Local SVG marks keep 16px engine icons crisp without runtime network requests.
 const DB_ICONS = {
-  postgresql: { src: "/postgre.png", label: "PostgreSQL" },
-  mysql: { src: "/mysql.png", label: "MySQL" },
-  sqlite: { src: "/sqlite.webp", label: "SQLite" },
-  redshift: { src: "/redshift.png", label: "Amazon Redshift" },
-  mongodb: { src: "/mongodb.svg", label: "MongoDB" },
+  postgresql: { src: "/engines/postgresql.svg", label: "PostgreSQL" },
+  mysql: { src: "/engines/mysql.svg", label: "MySQL" },
+  sqlite: { src: "/engines/sqlite.svg", label: "SQLite" },
+  redshift: { src: "/engines/redshift.svg", label: "Amazon Redshift" },
+  mongodb: { src: "/engines/mongodb.svg", label: "MongoDB" },
 } as const;
 
-export function DbEngineIcon({ type, className = "w-4 h-4" }: DbEngineIconProps) {
-  const normalized = type?.toLowerCase() ?? "postgresql";
-  const iconConfig = DB_ICONS[normalized as keyof typeof DB_ICONS];
+const FALLBACK_ICON = { src: "/engines/database.svg", label: "Database" };
 
-  if (!iconConfig) {
-    // Fallback to PostgreSQL if unknown type
-    return (
-      <img
-        src={DB_ICONS.postgresql.src}
-        alt="Database"
-        title={`Unknown database type: ${type}`}
-        className={`inline-block object-contain ${className}`}
-      />
-    );
-  }
+export function DbEngineIcon({ type, className = "w-4 h-4" }: DbEngineIconProps) {
+  const normalized = type?.toLowerCase() ?? "";
+  const hasIcon = Object.hasOwn(DB_ICONS, normalized);
+  const iconConfig = hasIcon ? DB_ICONS[normalized as keyof typeof DB_ICONS] : FALLBACK_ICON;
 
   return (
     <img
       src={iconConfig.src}
       alt={iconConfig.label}
-      title={iconConfig.label}
-      className={`inline-block object-contain ${className}`}
+      title={hasIcon ? iconConfig.label : `Unknown database type: ${type}`}
+      width={16}
+      height={16}
+      draggable={false}
+      className={`inline-block shrink-0 object-contain ${className}`}
     />
   );
 }

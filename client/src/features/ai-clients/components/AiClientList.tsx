@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, ChevronRight, Copy, Download, FileCode2, FolderOpen, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Copy, Download, FileCode2, FolderOpen, MoreHorizontal, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -8,6 +8,8 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/Dialog";
 import { ConfirmModal } from "@/components/brand/ConfirmModal";
+import { AiClientIcon } from "@/components/brand/AiClientIcon";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { CopyButton } from "@/components/ui/CopyButton";
 import { CodeBlock } from "@/components/ui/CodeBlock";
 import { platform } from "@/platform";
@@ -62,7 +64,8 @@ export function AiClientList({ compact = false, mcpUrl = "http://127.0.0.1:4080/
       const result = await platform.uninstallAiClient(removeTarget.id);
       await queryClient.invalidateQueries({ queryKey: CLIENT_QUERY_KEY });
       setRemoveTarget(null);
-      toast.success(`${removeTarget.name} configuration removed`, { description: result.backupPath ? `Backup saved to ${result.backupPath}` : result.configPath });
+      const removed = removeTarget;
+      toast.success(`${removed.name} configuration removed`, { description: result.backupPath ? `Backup saved to ${result.backupPath}` : result.configPath, action: { label: "Undo", onClick: () => void undoRemove(removed) } });
     } catch (error: unknown) { toast.error(error instanceof Error ? error.message : "Could not remove client configuration"); }
     finally { setWorking(false); }
   };
@@ -84,7 +87,7 @@ export function AiClientList({ compact = false, mcpUrl = "http://127.0.0.1:4080/
       </>}
     </div>
     {compact && <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-muted/40 px-3 py-2"><div className="min-w-0"><p className="text-ui-xs font-medium text-muted-foreground">MCP URL</p><code className="block truncate font-mono text-ui-xs">{mcpUrl}</code></div><CopyButton value={mcpUrl} label="Copy URL" /></div>}
-    {!compact && <section className="mt-7" aria-labelledby="other-clients-title"><div className="mb-3"><h2 id="other-clients-title" className="text-ui font-semibold">Other clients</h2><p className="mt-1 text-ui-sm text-muted-foreground">Add this MCP server to any app that supports remote HTTP servers.</p></div><div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(220px,0.6fr)]"><div className="min-w-0 rounded-lg border border-border bg-card p-3"><div className="mb-2 flex items-center justify-between"><span className="text-ui-xs font-medium text-muted-foreground">Generic JSON</span><CopyButton value={genericSnippet} label="Copy JSON" /></div><CodeBlock value={genericSnippet} /></div><div className="rounded-lg border border-border bg-card p-3"><p className="text-ui-xs font-medium text-muted-foreground">MCP endpoint</p><code className="mt-1 block break-all font-mono text-ui-sm">{mcpUrl}</code><p className="mt-2 text-ui-xs text-muted-foreground">Paste the URL and JSON into your client's MCP server settings, then restart that client.</p><CopyButton value={mcpUrl} label="Copy URL" /></div></div></section>}
+    {!compact && <section className="mt-7" aria-labelledby="other-clients-title"><div className="mb-3"><h2 id="other-clients-title" className="text-ui font-semibold">Other clients</h2><p className="mt-1 text-ui-sm text-muted-foreground">Add this MCP server to any app that supports remote HTTP servers.</p></div><div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(220px,0.6fr)]"><div className="min-w-0 rounded-lg border border-border bg-card p-3"><div className="mb-2 flex items-center justify-between"><span className="text-ui-xs font-medium text-muted-foreground">Generic JSON</span><CopyButton value={genericSnippet} label="Copy JSON" /></div><CodeBlock value={genericSnippet} /></div><p className="self-start rounded-lg border border-border bg-muted/40 p-3 text-ui-sm text-muted-foreground">Paste the MCP URL from the header, or this JSON, into your client's MCP server settings, then restart that client.</p></div></section>}
 
     <Dialog open={Boolean(installTarget)} onOpenChange={(open) => { if (!open && !working) { setInstallTarget(null); setPreview(null); } }}>
       <DialogContent className="max-w-3xl">
@@ -100,6 +103,11 @@ export function AiClientList({ compact = false, mcpUrl = "http://127.0.0.1:4080/
     toast.success(`${client.name} configured`, { description: result.backupPath ? `Backup saved to ${result.backupPath}` : result.configPath, action: { label: "Undo", onClick: () => void undoInstall(client.id) } });
   }
 
+  async function undoRemove(client: AiClient) {
+    try { await platform.installAiClient(client.id); await queryClient.invalidateQueries({ queryKey: CLIENT_QUERY_KEY }); toast.success(`${client.name} configuration restored`); }
+    catch (error: unknown) { toast.error(error instanceof Error ? error.message : "Could not restore configuration"); }
+  }
+
   async function undoInstall(id: AiClientId) {
     try { const result = await platform.uninstallAiClient(id); await queryClient.invalidateQueries({ queryKey: CLIENT_QUERY_KEY }); toast.success("Configuration restored", { description: result.backupPath ? `Backup saved to ${result.backupPath}` : result.configPath }); }
     catch (error: unknown) { toast.error(error instanceof Error ? error.message : "Could not undo configuration"); }
@@ -109,10 +117,19 @@ export function AiClientList({ compact = false, mcpUrl = "http://127.0.0.1:4080/
 function AiClientRow({ client, mcpUrl, onCopy, onReveal, onInstall, onRemove }: { client: AiClient; mcpUrl: string; onCopy: () => void; onReveal: () => void; onInstall: () => void; onRemove: () => void }) {
   const state = client.configured ? "Connected" : client.detected ? "Detected" : "Not installed";
   const command = `claude mcp add --transport http db-mcp ${mcpUrl}`;
+  const copyPath = () => { if (client.configPath) void navigator.clipboard.writeText(client.configPath).then(() => toast.success("Config path copied")).catch(() => toast.error("Could not copy path")); };
   return <article className="flex min-h-14 flex-wrap items-center gap-x-3 gap-y-2 border-b border-border px-3 py-2.5 last:border-b-0">
-    <span className="flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-muted text-ui-xs font-semibold" aria-hidden="true">{client.name.split(/\s+/).map((part) => part[0]).slice(0, 2).join("")}</span>
-    <div className="min-w-[130px] flex-1"><div className="flex flex-wrap items-center gap-2"><h2 className="text-ui-sm font-medium">{client.name}</h2><Badge variant={client.configured ? "secondary" : "outline"}>{state}</Badge></div><div className="mt-0.5 flex min-w-0 items-center gap-1.5"><p className="max-w-[360px] truncate font-mono text-ui-xs text-muted-foreground" title={client.configPath ?? undefined}>{client.configPath ?? "No config file found"}</p>{client.configPath && <button type="button" className="inline-flex shrink-0 items-center gap-1 text-ui-xs text-muted-foreground hover:text-foreground" onClick={() => void navigator.clipboard.writeText(client.configPath ?? "").then(() => toast.success("Config path copied")).catch(() => toast.error("Could not copy path"))}><Copy className="size-3" />Copy path</button>}<button type="button" className="inline-flex shrink-0 items-center gap-1 text-ui-xs text-muted-foreground hover:text-foreground" onClick={onReveal}><FolderOpen className="size-3" />Reveal</button></div></div>
-    <div className="ml-auto flex items-center gap-1">{client.id === "claude-code" ? <CopyButton value={command} label="Copy command" /> : <>{client.autoInstall && !client.configured && <Button size="sm" onClick={onInstall}><Download data-icon="inline-start" />Add db-mcp</Button>}{client.configured && <Button size="sm" variant="outline" onClick={onRemove}><Trash2 data-icon="inline-start" />Remove</Button>}<Button size="sm" variant="ghost" onClick={onCopy}><Copy data-icon="inline-start" />Copy config</Button></>}</div>
+    <span className="flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-surface"><AiClientIcon id={client.id} name={client.name} /></span>
+    <div className="min-w-[130px] flex-1"><div className="flex flex-wrap items-center gap-2"><h2 className="text-ui-sm font-medium">{client.name}</h2><Badge variant="outline" className={client.configured ? "border-success/30 bg-success-subtle text-success" : "text-muted-foreground"}>{state}</Badge></div><p className="mt-0.5 max-w-[360px] truncate font-mono text-ui-xs text-muted-foreground" title={client.configPath ?? undefined}>{client.configPath ?? "No config file found"}</p></div>
+    <div className="ml-auto flex items-center gap-1">
+      {client.id === "claude-code" ? <CopyButton value={command} label="Copy command" /> : client.autoInstall && client.detected && !client.configured && <Button size="sm" onClick={onInstall}><Download data-icon="inline-start" />Add db-mcp</Button>}
+      <DropdownMenu><DropdownMenuTrigger render={<Button variant="ghost" size="icon-xs" aria-label={`${client.name} actions`}><MoreHorizontal /></Button>} /><DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={onCopy}><Copy />Copy config</DropdownMenuItem>
+        {client.configPath && <DropdownMenuItem onClick={copyPath}><Copy />Copy path</DropdownMenuItem>}
+        <DropdownMenuItem onClick={onReveal}><FolderOpen />Reveal</DropdownMenuItem>
+        {client.configured && <><DropdownMenuSeparator /><DropdownMenuItem variant="destructive" onClick={onRemove}><Trash2 />Remove</DropdownMenuItem></>}
+      </DropdownMenuContent></DropdownMenu>
+    </div>
   </article>;
 }
 

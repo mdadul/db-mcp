@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient, type UseQueryResult } from "@tan
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { toast } from "sonner";
-import { ChevronDown, ChevronRight, Code2, Copy, Database, Eye, FolderTree, ListFilter, MoreHorizontal, Plus, RefreshCw, Search, ShieldCheck, Table2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Code2, Copy, FolderTree, ListFilter, MoreHorizontal, Pencil, Plug, Plus, RefreshCw, Search, ShieldCheck, Table2 } from "lucide-react";
 import { ResizablePanels } from "@/components/ui/ResizablePanels";
 import { DocumentTabs, type DocumentTab } from "@/components/ui/DocumentTabs";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -13,7 +13,9 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { StatusDot } from "@/components/ui/StatusDot";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { Tooltip } from "@/components/ui/Tooltip";
 import { VirtualDataGrid, VirtualDataTable } from "./VirtualDataGrid";
+import { ConnectionsHome, type RecentQueryItem, type RecentTableItem } from "./ConnectionsHome";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { DbEngineIcon } from "@/components/brand/DbEngineIcon";
 import { useServerInfo } from "@/platform/hooks";
@@ -33,8 +35,10 @@ const ACTIVE_TAB_KEY = "dbmcp.workbenchActive.v1";
 const QUERY_HISTORY_KEY = "dbmcp.queryHistory.v1";
 const PAGE_SIZES = [50, 100, 200, 500] as const;
 const quoteIdentifier = (value: string) => `"${value.replaceAll('"', '""')}"`;
-const toStatus = (status: string) => status === "enabled" ? "healthy" as const : "neutral" as const;
 const formatEstimate = (value: number | null) => value === null ? "" : value.toLocaleString();
+const READ_ONLY_TOOLTIP = "Queries pass a read-only guard before they run. Write statements are rejected before reaching the database; use a read-only database account for defense in depth.";
+const connectionStatus = (item: DatabaseConnection, testState?: "reachable" | "unreachable") => item.status === "disabled" ? { state: "neutral" as const, label: "Disabled" } : testState === "reachable" ? { state: "healthy" as const, label: "Reachable in the last connection test" } : testState === "unreachable" ? { state: "error" as const, label: "Unreachable in the last connection test" } : null;
+const connectionSubtitle = (item: DatabaseConnection) => item.type === "sqlite" ? { text: item.databaseName, title: item.databaseName } : { text: `${item.databaseName} · ${item.host}`, title: `${item.databaseName} · ${item.host}:${item.port}` };
 
 /** Database connections and read-only schema/query workbench. */
 export function ConnectionsWorkbench() {
@@ -58,6 +62,7 @@ export function ConnectionsWorkbench() {
   const connectionsQuery = useQuery({ queryKey: ["databases"], queryFn: databaseApi.list });
   const connections = connectionsQuery.data ?? [];
   const connection = connections.find((item) => item.id === selectedId);
+  const selectedConnectionStatus = connection ? connectionStatus(connection, testStates[connection.id]) : null;
   const tabs = selectedId ? tabsByConnection[selectedId] ?? [] : [];
   const activeId = selectedId ? activeByConnection[selectedId] ?? tabs[0]?.id : undefined;
   const activeTab = tabs.find((tab) => tab.id === activeId);
@@ -109,6 +114,8 @@ export function ConnectionsWorkbench() {
   useEffect(() => { if (!connectionMenu) return; const close = () => setConnectionMenu(null); window.addEventListener("click", close); window.addEventListener("keydown", close); return () => { window.removeEventListener("click", close); window.removeEventListener("keydown", close); }; }, [connectionMenu]);
 
   const visibleConnections = useMemo(() => connections.filter((item) => `${item.name} ${item.host} ${item.databaseName} ${item.type}`.toLocaleLowerCase().includes(debouncedSearch.toLocaleLowerCase())).sort((a, b) => sortMode === "engine" ? a.type.localeCompare(b.type) || a.name.localeCompare(b.name) : a.status.localeCompare(b.status) || a.name.localeCompare(b.name)), [connections, debouncedSearch, sortMode]);
+  const recentTables = useMemo(() => collectRecentTables(tabsByConnection, connections), [tabsByConnection, connections]);
+  const recentQueries = useMemo(() => collectRecentQueries(readHistoryByConnection(), connections), [connections]);
   const openTab = useCallback((kind: TabKind, table?: { schema: string; name: string }, query?: string) => {
     if (!selectedId) return;
     const currentTabs = tabsByConnection[selectedId] ?? [];
@@ -158,6 +165,28 @@ export function ConnectionsWorkbench() {
     setOffset(0);
     openTab(kind, { schema, name });
   }, [openTab]);
+  const openRecentTable = (item: RecentTableItem) => {
+    const currentTabs = tabsByConnection[item.connectionId] ?? [];
+    const existing = currentTabs.find((tab) => tab.table === item.table && tab.schema === item.schema && (tab.kind === "data" || tab.kind === "structure"));
+    const nextTab: WorkbenchTab = existing ?? { id: `data-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, kind: "data", label: item.table, table: item.table, schema: item.schema };
+    if (!existing) setTabsByConnection((current) => ({ ...current, [item.connectionId]: [...(current[item.connectionId] ?? []), nextTab] }));
+    else if (existing.kind !== "data") setTabsByConnection((current) => ({ ...current, [item.connectionId]: (current[item.connectionId] ?? []).map((tab) => tab.id === existing.id ? { ...tab, kind: "data" } : tab) }));
+    setActiveByConnection((current) => ({ ...current, [item.connectionId]: nextTab.id }));
+    setSelectedId(item.connectionId);
+    setSelectedTable({ schema: item.schema, name: item.table });
+    setOffset(0);
+    navigate(`/connections/${item.connectionId}`, { replace: true });
+  };
+  const openRecentQuery = (item: RecentQueryItem) => {
+    const currentTabs = tabsByConnection[item.connectionId] ?? [];
+    const nextTab: WorkbenchTab = { id: `query-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, kind: "query", label: `Query ${currentTabs.filter((tab) => tab.kind === "query").length + 1}`, query: item.query };
+    setTabsByConnection((current) => ({ ...current, [item.connectionId]: [...(current[item.connectionId] ?? []), nextTab] }));
+    setActiveByConnection((current) => ({ ...current, [item.connectionId]: nextTab.id }));
+    setSelectedId(item.connectionId);
+    setSelectedTable(null);
+    setQueryText(item.query);
+    navigate(`/connections/${item.connectionId}`, { replace: true });
+  };
   const runConnectionTest = async (item: DatabaseConnection) => {
     try { const result = await databaseApi.testConnection(item.id); setTestStates((current) => ({ ...current, [item.id]: result.success ? "reachable" : "unreachable" })); toast[result.success ? "success" : "error"](result.message, { description: result.hint }); }
     catch (error) { setTestStates((current) => ({ ...current, [item.id]: "unreachable" })); toast.error(error instanceof Error ? error.message : "Connection test failed"); }
@@ -189,7 +218,7 @@ export function ConnectionsWorkbench() {
     <div className="flex h-9 shrink-0 items-center gap-1 border-b border-border px-2"><span className="flex-1 text-ui-xs font-semibold">Connections</span><DropdownMenu><DropdownMenuTrigger render={<Button variant="ghost" size="icon-xs" aria-label="Group connections"><ListFilter /></Button>} /><DropdownMenuContent align="end"><DropdownMenuItem onClick={() => setSortMode("status")}>Group by status</DropdownMenuItem><DropdownMenuItem onClick={() => setSortMode("engine")}>Group by engine</DropdownMenuItem></DropdownMenuContent></DropdownMenu><Button variant="ghost" size="icon-xs" aria-label="Add connection" onClick={() => navigate("/connections/new")}><Plus /></Button></div>
     <label className="flex h-8 shrink-0 items-center gap-2 border-b border-border px-2 text-muted-foreground"><Search className="size-3.5" /><Input ref={searchRef} value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Filter connections…  ⌘F" className="h-7 border-0 bg-transparent px-0 text-ui-xs shadow-none focus-visible:ring-0" /></label>
     <div role="listbox" aria-label="Database connections" className="min-h-0 flex-1 overflow-y-auto p-1">
-    {connectionsQuery.isLoading ? <div className="space-y-2 p-2" role="status" aria-label="Loading connections">{Array.from({ length: 5 }, (_, index) => <Skeleton className="h-11 w-full" key={index} />)}</div> : connectionsQuery.isError ? <div className="p-3 text-ui-xs text-danger" role="alert">{connectionsQuery.error.message}<Button variant="ghost" size="xs" onClick={() => void connectionsQuery.refetch()}>Retry</Button></div> : visibleConnections.length === 0 ? <EmptyState title={connections.length ? "No matching connections" : "No connections yet"} description={connections.length ? "Change the search to see other connections." : "Add a database to browse its schema and run read-only queries."} action={!connections.length ? <Button size="sm" onClick={() => navigate("/connections/new")}><Plus data-icon="inline-start" />Add connection</Button> : undefined} /> : <>
+    {connectionsQuery.isLoading ? <div className="space-y-2 p-2" role="status" aria-label="Loading connections">{Array.from({ length: 5 }, (_, index) => <Skeleton className="h-11 w-full" key={index} />)}</div> : connectionsQuery.isError ? <div className="p-3 text-ui-xs text-danger" role="alert">{connectionsQuery.error.message}<Button variant="ghost" size="xs" onClick={() => void connectionsQuery.refetch()}>Retry</Button></div> : visibleConnections.length === 0 ? <EmptyState title={connections.length ? "No matching connections" : "No connections yet"} description={connections.length ? "Change the search to see other connections." : "Use the + button above to add a database, then browse its schema and run read-only queries."} /> : <>
         {groupedConnections(visibleConnections, sortMode).map(([group, items]) => <div key={group}><p className="px-2 pb-1 pt-2 text-ui-xs font-semibold uppercase tracking-wide text-muted-foreground">{group}</p>{items.map((item) => <ConnectionRow key={item.id} item={item} selected={selectedId === item.id} testState={testStates[item.id]} onSelect={() => handleSelectConnection(item)} onMenu={(event) => { event.preventDefault(); event.stopPropagation(); setConnectionMenu({ id: item.id, x: event.clientX, y: event.clientY }); }} onContextMenu={(event) => { event.preventDefault(); setConnectionMenu({ id: item.id, x: event.clientX, y: event.clientY }); }} />)}</div>)}
       </>}
     </div>
@@ -197,26 +226,29 @@ export function ConnectionsWorkbench() {
 
   const schemaPane = <section className={`relative flex h-full min-h-0 min-w-0 flex-col overflow-hidden border-r border-border bg-surface ${collapsedSchema ? "hidden" : ""}`} aria-label="Database schema pane">
     <div className="flex h-9 shrink-0 items-center gap-1 border-b border-border px-2"><span className="flex-1 text-ui-xs font-semibold">Schema</span>{connection && <Button variant="ghost" size="icon-xs" aria-label="Refresh schema" title="Refresh schema" onClick={() => void schemaQuery.refetch()}><RefreshCw /></Button>}<Button variant="ghost" size="icon-xs" aria-label="Collapse schema pane" onClick={() => setCollapsedSchema(true)}><ChevronDown className="rotate-90" /></Button></div>
-    {!connection ? <EmptyState title="Select a connection" description="Choose a database to inspect its tables and views." /> : connection.status === "disabled" ? <div className="m-2 rounded-md border border-warning/30 bg-warning-subtle p-3 text-ui-xs" role="status">This connection is disabled. <button className="font-medium text-primary underline" onClick={() => toggleStatus.mutate(connection)}>Enable to load schema</button></div> : <>
+    {!connection ? null : connection.status === "disabled" ? <div className="m-2 rounded-md border border-warning/30 bg-warning-subtle p-3 text-ui-xs" role="status">This connection is disabled. <button className="font-medium text-primary underline" onClick={() => toggleStatus.mutate(connection)}>Enable to load schema</button></div> : <>
       <label className="flex h-8 shrink-0 items-center gap-2 border-b border-border px-2 text-muted-foreground"><Search className="size-3.5" /><Input value={schemaFilter} onChange={(event) => setSchemaFilter(event.target.value)} placeholder="Filter tables…" className="h-7 border-0 bg-transparent px-0 text-ui-xs shadow-none focus-visible:ring-0" /></label>
       {schemaQuery.isLoading ? <div className="space-y-2 p-2" role="status" aria-label="Loading schema">{Array.from({ length: 8 }, (_, index) => <Skeleton className="h-6 w-full" key={index} />)}</div> : schemaQuery.isError ? <div className="p-3 text-ui-xs text-danger" role="alert">{schemaQuery.error.message}<Button variant="ghost" size="xs" onClick={() => void schemaQuery.refetch()}>Retry</Button></div> : schemaQuery.data?.schemas.length ? <SchemaTreePane connectionId={selectedId} tree={schemaQuery.data} selectedTable={selectedTable} onOpenData={(schema, table) => selectTable(schema, table, "data")} onOpenStructure={(schema, table) => selectTable(schema, table, "structure")} onQuery={openTableQuery} onCopy={(value) => void copy(value, "Name")} /> : <EmptyState title="No tables found" description={schemaFilter ? "Try a different filter." : "This database has no visible tables or collections."} />}
     </>}
   </section>;
 
   const mainPane = <section className="relative flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-background" aria-label="Database workbench">
-    {connection && <div className="flex h-9 shrink-0 items-center gap-2 border-b border-border px-3"><DbEngineIcon type={connection.type} className="size-4" /><span className="max-w-52 truncate text-ui-sm font-semibold">{connection.name}</span><span className="rounded border border-border px-1.5 py-0.5 text-ui-xs uppercase text-muted-foreground">{connection.type}</span><StatusDot state={testStates[connection.id] === "reachable" ? "healthy" : testStates[connection.id] === "unreachable" ? "error" : toStatus(connection.status)} /><span className="flex-1" /><Button variant="ghost" size="xs" onClick={() => void runConnectionTest(connection)}>Test</Button><Button variant="ghost" size="xs" onClick={() => navigate(`/connections/${connection.id}/edit`)}>Edit</Button><Button variant="ghost" size="xs" onClick={() => openQueryTab()}><Plus data-icon="inline-start" />Query</Button><Button variant="ghost" size="icon-xs" aria-label="Refresh schema" onClick={() => void schemaQuery.refetch()}><RefreshCw /></Button>{collapsedSchema && <Button variant="outline" size="xs" onClick={() => setCollapsedSchema(false)}><FolderTree data-icon="inline-start" />Schema</Button>}</div>}
+    {connection && <div className="flex h-9 shrink-0 items-center gap-2 border-b border-border px-3"><DbEngineIcon type={connection.type} className="size-4" /><span className="max-w-52 truncate text-ui-sm font-semibold">{connection.name}</span><span className="rounded border border-border px-1.5 py-0.5 text-ui-xs uppercase text-muted-foreground">{connection.type}</span>{selectedConnectionStatus && <Tooltip content={selectedConnectionStatus.label}><span className="inline-flex" tabIndex={0} aria-label={selectedConnectionStatus.label}><StatusDot state={selectedConnectionStatus.state} /></span></Tooltip>}<span className="flex-1" /><Tooltip content={READ_ONLY_TOOLTIP}><span className="inline-flex cursor-default items-center gap-1 rounded border border-success/30 bg-success-subtle px-1.5 py-0.5 text-ui-xs text-success" tabIndex={0}><ShieldCheck className="size-3" />Read-only</span></Tooltip>{collapsedSchema && <Button variant="outline" size="xs" onClick={() => setCollapsedSchema(false)}><FolderTree data-icon="inline-start" />Schema</Button>}<DropdownMenu><DropdownMenuTrigger render={<Button variant="ghost" size="icon-xs" aria-label="Connection actions"><MoreHorizontal /></Button>} /><DropdownMenuContent align="end"><DropdownMenuItem onClick={() => void runConnectionTest(connection)}><Plug className="size-3.5" />Test connection</DropdownMenuItem><DropdownMenuItem onClick={() => navigate(`/connections/${connection.id}/edit`)}><Pencil className="size-3.5" />Edit connection</DropdownMenuItem><DropdownMenuItem onClick={() => void schemaQuery.refetch()}><RefreshCw className="size-3.5" />Refresh schema</DropdownMenuItem></DropdownMenuContent></DropdownMenu></div>}
     {connection?.status === "disabled" && <div className="flex shrink-0 items-center justify-between border-b border-warning/30 bg-warning-subtle px-3 py-2 text-ui-sm" role="status"><span>This connection is disabled. Enable it to browse or query this database.</span><Button variant="outline" size="xs" onClick={() => toggleStatus.mutate(connection)}>Enable</Button></div>}
-    {!connection ? <EmptyState title="Select a connection" description="Choose a database from the left pane, then open a table or start a query." icon={<Database className="size-7" />} action={<Button size="sm" onClick={() => navigate("/connections/new")}><Plus data-icon="inline-start" />Add connection</Button>} /> : <>
+    {!connection ? connectionsQuery.isLoading && selectedId ? <div role="status" aria-label="Loading connection" className="space-y-3 p-4"><Skeleton className="h-4 w-48" /><Skeleton className="h-8 w-full" /><Skeleton className="h-32 w-full" /></div> : <ConnectionsHome connections={connections} testStates={testStates} recentTables={recentTables} recentQueries={recentQueries} mcpUrl={serverInfo?.mcpUrl ?? "http://127.0.0.1:4080/mcp"} onNewConnection={() => navigate("/connections/new")} onOpenTable={openRecentTable} onOpenQuery={openRecentQuery} onOpenAiClients={() => navigate("/ai-clients")} /> : <>
       <div className="relative z-30 flex min-h-(--control-h-lg) min-w-0 shrink-0 items-end overflow-hidden border-b border-border"><DocumentTabs tabs={tabs as DocumentTab[]} activeId={activeId} onSelect={(tabId) => { setActiveByConnection((current) => ({ ...current, [connection.id]: tabId })); const selected = tabs.find((tab) => tab.id === tabId); setSelectedTable(selected?.table ? { schema: selected.schema ?? "", name: selected.table } : null); }} onClose={closeTab} className="min-w-0 flex-1 px-2" /><Button variant="ghost" size="icon-xs" aria-label="New query tab" title="New query (⌘T)" className="mb-1 mr-1" onClick={() => openQueryTab()}><Plus /></Button></div>
       {!activeTab ? <EmptyState title="Open a table or query" description="Choose an object in the schema pane or create a query tab." action={<Button size="sm" onClick={() => openQueryTab()}>New query</Button>} /> : activeTab.kind === "query" ? <QueryWorkspace connection={connection} schema={languageSchema} queryText={queryText} onQueryChange={(value) => { setQueryText(value); setTabsByConnection((current) => ({ ...current, [connection.id]: (current[connection.id] ?? []).map((tab) => tab.id === activeTab.id ? { ...tab, query: value } : tab) })); }} limit={queryLimit} onLimitChange={setQueryLimit} onRun={() => void runQuery()} result={queryResult} error={queryError} history={queryHistory} historyOpen={historyOpen} onHistoryOpen={setHistoryOpen} onUseHistory={(query) => { setQueryText(query); setTabsByConnection((current) => ({ ...current, [connection.id]: (current[connection.id] ?? []).map((tab) => tab.id === activeTab.id ? { ...tab, query } : tab) })); setHistoryOpen(false); }} editorRef={queryEditorRef} onCopy={(text) => void copy(text, "Query results")} /> : activeTab.kind === "structure" ? <StructureView query={structureQuery} onOpenTable={(schema, table) => selectTable(schema, table, "data")} /> : <DataWorkspace query={rowsQuery} table={activeTab.table ?? ""} pageSize={pageSize} onPageSize={(size) => { setPageSize(size); setOffset(0); }} offset={offset} onOffset={setOffset} orderBy={orderBy} direction={direction} onSort={(column) => { setOrderBy(column); setDirection((current) => orderBy === column ? current === "asc" ? "desc" : "asc" : "asc"); }} selectedCell={cell} onSelectCell={setCell} onCopy={(text) => void copy(text, "Cell")} />}
     </>}
   </section>;
 
   return <div className="relative h-full min-h-0 min-w-0 overflow-hidden" onClick={() => connectionMenu && setConnectionMenu(null)}>
-    {narrowViewport ? <div className="flex h-full min-h-0 min-w-0"><div className="w-56 min-w-44 shrink-0">{connectionsPane}</div><div className="min-h-0 min-w-0 flex-1">{mainPane}</div>{!collapsedSchema && connection && <div className="absolute inset-y-0 left-56 z-30 w-[min(320px,75vw)] border-r border-border bg-surface shadow-xl">{schemaPane}</div>}</div> : <ResizablePanels id="connections-workbench" className="h-full" panels={[
+    {narrowViewport ? <div className="flex h-full min-h-0 min-w-0"><div className="w-56 min-w-44 shrink-0">{connectionsPane}</div><div className="min-h-0 min-w-0 flex-1">{mainPane}</div>{!collapsedSchema && connection && <div className="absolute inset-y-0 left-56 z-30 w-[min(320px,75vw)] border-r border-border bg-surface shadow-xl">{schemaPane}</div>}</div> : connection ? <ResizablePanels key="workbench" id="connections-workbench" className="h-full" panels={[
       { id: "connections", defaultSize: 20, minSize: 14, maxSize: 28, content: connectionsPane },
       { id: "schema", defaultSize: 24, minSize: 14, maxSize: 35, content: schemaPane },
       { id: "main", defaultSize: 56, minSize: 35, content: mainPane },
+    ]} /> : <ResizablePanels key="home" id="connections-workbench-home" className="h-full" panels={[
+      { id: "connections", defaultSize: 24, minSize: 16, maxSize: 34, content: connectionsPane },
+      { id: "main", defaultSize: 76, minSize: 40, content: mainPane },
     ]} />}
     {connectionMenu && connectionsForMenu && <ConnectionContextMenu item={connectionsForMenu} point={connectionMenu} onOpen={() => handleSelectConnection(connectionsForMenu)} onEdit={() => navigate(`/connections/${connectionsForMenu.id}/edit`)} onTest={() => void runConnectionTest(connectionsForMenu)} onDuplicate={async () => { try { const duplicate = await databaseApi.duplicate(connectionsForMenu.id); await queryClient.invalidateQueries({ queryKey: ["databases"] }); toast.success(`Duplicated as ${duplicate.name}`); navigate(`/connections/${duplicate.id}/edit?duplicate=1`); } catch (error) { toast.error(error instanceof Error ? error.message : "Could not duplicate connection"); } }} onCopyUrl={() => void copyConnectionUrl(connectionsForMenu)} onCopyMcp={() => void copy(JSON.stringify({ mcpServers: { "db-mcp": { url: serverInfo?.mcpUrl ?? "http://127.0.0.1:4080/mcp" } } }, null, 2), `${connectionsForMenu.name} MCP config`)} onToggle={() => toggleStatus.mutate(connectionsForMenu)} onDelete={() => setDeleteTarget(connectionsForMenu)} />}
     <ConfirmDialog open={Boolean(deleteTarget)} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }} title="Delete connection?" description={`This removes “${deleteTarget?.name ?? "connection"}” from this computer and disconnects AI clients from it.`} confirmLabel="Delete connection" pending={deleteConnection.isPending} onConfirm={() => { if (deleteTarget) deleteConnection.mutate(deleteTarget); }} />
@@ -235,6 +267,38 @@ function readActiveTabs(): Record<string, string> {
   try { const value: unknown = JSON.parse(localStorage.getItem(ACTIVE_TAB_KEY) ?? "{}"); if (typeof value === "object" && value !== null) return value as Record<string, string>; } catch { /* Start with no remembered active tab. */ }
   return {};
 }
+function collectRecentTables(tabsByConnection: Record<string, WorkbenchTab[]>, connections: DatabaseConnection[]): RecentTableItem[] {
+  const byId = new Map(connections.map((item) => [item.id, item]));
+  const seen = new Set<string>();
+  const result: RecentTableItem[] = [];
+  for (const [connectionId, tabs] of Object.entries(tabsByConnection)) {
+    const connection = byId.get(connectionId);
+    if (!connection) continue;
+    for (const tab of [...tabs].reverse()) {
+      if (!tab.table) continue;
+      const schema = tab.schema ?? "";
+      const key = `${connectionId}:${schema}:${tab.table}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      result.push({ connectionId, connectionName: connection.name, engine: connection.type, schema, table: tab.table });
+      if (result.length === 5) return result;
+    }
+  }
+  return result;
+}
+function collectRecentQueries(historyByConnection: Record<string, string[]>, connections: DatabaseConnection[]): RecentQueryItem[] {
+  const byId = new Map(connections.map((item) => [item.id, item]));
+  const result: RecentQueryItem[] = [];
+  for (const [connectionId, queries] of Object.entries(historyByConnection)) {
+    const connection = byId.get(connectionId);
+    if (!connection) continue;
+    for (const query of queries) {
+      result.push({ connectionId, connectionName: connection.name, engine: connection.type, query });
+      if (result.length === 5) return result;
+    }
+  }
+  return result;
+}
 function defaultQuery(connection: DatabaseConnection | undefined): string { return connection?.type === "mongodb" ? '{"collection":"collection_name","filter":{},"limit":100}' : "SELECT 1"; }
 
 function groupedConnections(items: DatabaseConnection[], mode: "status" | "engine"): [string, DatabaseConnection[]][] {
@@ -247,9 +311,10 @@ function groupedConnections(items: DatabaseConnection[], mode: "status" | "engin
 }
 
 function ConnectionRow({ item, selected, testState, onSelect, onMenu, onContextMenu }: { item: DatabaseConnection; selected: boolean; testState?: "reachable" | "unreachable"; onSelect: () => void; onMenu: (event: MouseEvent<HTMLButtonElement>) => void; onContextMenu: (event: MouseEvent<HTMLDivElement>) => void }) {
-  const state = testState === "reachable" ? "healthy" : testState === "unreachable" ? "error" : item.status === "disabled" ? "neutral" : "warning";
-  return <div role="option" aria-selected={selected} aria-label={`${item.name}, ${item.status === "disabled" ? "disabled" : testState ?? "untested"}`} tabIndex={0} onClick={onSelect} onContextMenu={onContextMenu} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onSelect(); } else if (event.key === "ArrowDown" || event.key === "ArrowUp") { event.preventDefault(); const rows = [...(event.currentTarget.parentElement?.querySelectorAll<HTMLElement>("[role='option']") ?? [])]; const index = rows.indexOf(event.currentTarget); rows[Math.max(0, Math.min(rows.length - 1, index + (event.key === "ArrowDown" ? 1 : -1)))]?.focus(); } }} className={`group flex h-12 min-w-0 cursor-default items-center gap-2 rounded px-2 outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring ${selected ? "bg-accent-subtle text-foreground" : "text-muted-foreground"}`}>
-    <DbEngineIcon type={item.type} className="size-4 shrink-0" /><div className="min-w-0 flex-1"><div className="flex items-center gap-1.5"><span className="min-w-0 truncate text-ui-sm font-medium text-foreground">{item.name}</span><span title={item.status === "disabled" ? "Disabled" : testState ?? "Untested"}><StatusDot state={testState ? state : item.status === "disabled" ? "neutral" : "warning"} /></span></div><p className="truncate text-ui-xs text-muted-foreground">{item.type === "sqlite" ? item.databaseName : `${item.host}:${item.port} · ${item.databaseName}`}</p></div><Button variant="ghost" size="icon-xs" aria-label={`Actions for ${item.name}`} onClick={onMenu}><MoreHorizontal /></Button>
+  const status = connectionStatus(item, testState);
+  const subtitle = connectionSubtitle(item);
+  return <div role="option" aria-selected={selected} aria-label={`${item.name}, ${status?.label ?? "Not tested"}`} tabIndex={0} onClick={onSelect} onContextMenu={onContextMenu} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onSelect(); } else if (event.key === "ArrowDown" || event.key === "ArrowUp") { event.preventDefault(); const rows = [...(event.currentTarget.parentElement?.querySelectorAll<HTMLElement>("[role='option']") ?? [])]; const index = rows.indexOf(event.currentTarget); rows[Math.max(0, Math.min(rows.length - 1, index + (event.key === "ArrowDown" ? 1 : -1)))]?.focus(); } }} className={`group flex h-12 min-w-0 cursor-default items-center gap-2 rounded px-2 outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring ${selected ? "bg-accent-subtle text-foreground" : "text-muted-foreground"}`}>
+    <DbEngineIcon type={item.type} className="size-4 shrink-0" /><div className="min-w-0 flex-1"><div className="flex items-center gap-1.5"><span className="min-w-0 truncate text-ui-sm font-medium text-foreground">{item.name}</span>{status && <Tooltip content={status.label}><span role="img" aria-label={status.label} className="inline-flex"><StatusDot state={status.state} /></span></Tooltip>}</div><p className="truncate text-ui-xs text-muted-foreground" title={subtitle.title}>{subtitle.text}</p></div><Button variant="ghost" size="icon-xs" aria-label={`Actions for ${item.name}`} onClick={onMenu}><MoreHorizontal /></Button>
   </div>;
 }
 
@@ -327,7 +392,7 @@ function QueryWorkspace({ connection, schema, queryText, onQueryChange, limit, o
   useEffect(() => { let mounted = true; void (mongodb ? loadJsonLanguage() : loadSqlLanguage(schema)).then((extension) => { if (mounted) setLanguage(extension); }); return () => { mounted = false; }; }, [mongodb, schema]);
   const resultRows = result ? { rows: result.rows, columns: result.columns.map((column) => ({ name: column.name, dataType: "" })), executionTimeMs: result.executionTimeMs, hasMore: result.truncated, offset: 0, limit } : undefined;
   const queryHistoryBox = historyOpen && <div className="absolute right-2 top-8 z-30 max-h-60 w-[min(420px,90vw)] overflow-auto rounded-md border border-border bg-popover p-1 shadow-lg" role="listbox" aria-label="Query history">{history.length ? history.map((item, index) => <button key={`${index}-${item}`} role="option" className="block w-full truncate rounded px-2 py-1.5 text-left text-code hover:bg-muted" onClick={() => onUseHistory(item)}>{item}</button>) : <p className="px-2 py-3 text-ui-xs text-muted-foreground">Run a query to build history.</p>}</div>;
-  return <div className="flex min-h-0 flex-1 flex-col"><div className="relative flex h-8 shrink-0 items-center gap-2 border-b border-border px-2"><span className="inline-flex items-center gap-1 rounded border border-success/30 bg-success-subtle px-1.5 py-0.5 text-ui-xs text-success" title="Write statements are rejected by the server"><ShieldCheck className="size-3" />Read-only</span><span className="text-ui-xs text-muted-foreground">{mongodb ? "MongoDB JSON query · { collection, filter, projection, sort, limit }" : "SQL · writes are blocked"}</span><span className="flex-1" /><Button variant="ghost" size="xs" title="Write statements are rejected by the server" onClick={() => toast.info("The server rejects write statements; use a read-only database account too.")}>Why read-only?</Button><label className="flex items-center gap-1 text-ui-xs text-muted-foreground">Limit<Input type="number" min={1} max={1000} value={limit} onChange={(event) => onLimitChange(Number(event.target.value))} className="h-6 w-16 px-1 text-ui-xs" /></label><div className="relative"><Button variant="outline" size="xs" aria-expanded={historyOpen} onClick={() => onHistoryOpen(!historyOpen)}>History<ChevronDown data-icon="inline-end" /></Button>{queryHistoryBox}</div><Button size="xs" onClick={onRun}><Code2 data-icon="inline-start" />Run <kbd className="ml-1 rounded bg-primary-foreground/15 px-1 text-ui-xs">⌘↵</kbd></Button></div>
+  return <div className="flex min-h-0 flex-1 flex-col"><div className="relative flex h-8 shrink-0 items-center gap-2 border-b border-border px-2"><span className="text-ui-xs text-muted-foreground">{mongodb ? "MongoDB JSON query · { collection, filter, projection, sort, limit }" : "SQL · writes are blocked"}</span><span className="flex-1" /><label className="flex items-center gap-1 text-ui-xs text-muted-foreground">Limit<Input type="number" min={1} max={1000} value={limit} onChange={(event) => onLimitChange(Number(event.target.value))} className="h-6 w-16 px-1 text-ui-xs" /></label><div className="relative"><Button variant="outline" size="xs" aria-expanded={historyOpen} onClick={() => onHistoryOpen(!historyOpen)}>History<ChevronDown data-icon="inline-end" /></Button>{queryHistoryBox}</div><Button size="xs" onClick={onRun}><Code2 data-icon="inline-start" />Run <kbd className="ml-1 rounded bg-primary-foreground/15 px-1 text-ui-xs">⌘↵</kbd></Button></div>
     {mongodb && <div className="border-b border-border bg-info-subtle px-3 py-1.5 text-ui-xs text-info">Use a read-only JSON query: <code className="font-mono">{"{\"collection\":\"orders\",\"filter\":{},\"limit\":20}"}</code></div>}
     <div className="min-h-32 shrink-0 border-b border-border" aria-label="Read-only query editor"><Suspense fallback={<div className="p-3" role="status" aria-label="Loading query editor"><Skeleton className="h-32 w-full" /></div>}><SqlEditor value={queryText} height="160px" extensions={[...(language ? [language] : []), EditorView.theme({ ".cm-content, .cm-gutter": { fontFamily: "var(--font-mono)", fontSize: "var(--font-size-code)", fontFeatureSettings: "var(--font-feature-settings)" } })]} onChange={onQueryChange} onCreateEditor={(view) => { editorRef.current = { view }; }} basicSetup={{ lineNumbers: true, foldGutter: true, highlightActiveLine: true }} theme={document.documentElement.classList.contains("dark") ? "dark" : "light"} className="font-mono" /></Suspense></div>
     <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">{error && <div className="relative z-30 shrink-0 border-b border-danger/30 bg-danger-subtle px-3 py-2 text-ui-xs text-danger" role="alert"><strong>{error}</strong>{result?.hint && <p className="mt-0.5">{result.hint}</p>}</div>}{result?.success && result.truncated && <div className="relative z-30 shrink-0 border-b border-warning/30 bg-warning-subtle px-3 py-1.5 text-ui-xs text-warning" role="status">Results truncated at {limit} rows. {result.hint}</div>}{result ? <><VirtualDataGrid rows={resultRows?.rows ?? []} columns={resultRows?.columns ?? []} onSort={() => undefined} direction="asc" onCopy={onCopy} /><div className="relative z-30 flex h-7 shrink-0 items-center gap-3 border-t border-border bg-surface px-3 text-ui-xs text-muted-foreground"><span>{result.rowCount} rows</span><span>{result.executionTimeMs} ms</span>{result.truncated && <span className="text-warning">Truncated</span>}</div></> : !error && <div className="flex min-h-0 flex-1 items-center justify-center text-ui-xs text-muted-foreground">Run a read-only query to see results here.</div>}</div>
