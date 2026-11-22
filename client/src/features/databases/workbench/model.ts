@@ -33,9 +33,11 @@ export function connectionStatus(item: DatabaseConnection, testState?: TestState
   return null;
 }
 
-export function connectionSubtitle(item: DatabaseConnection) {
-  if (item.type === "sqlite") return { text: item.databaseName, title: item.databaseName };
-  return { text: `${item.databaseName} · ${item.host}`, title: `${item.databaseName} · ${item.host}:${item.port}` };
+/** Secondary line in the connection list: engine and database name. Host and port stay in the connection details. */
+export function connectionMeta(item: DatabaseConnection) {
+  const engine = DB_ENGINES.find((entry) => entry.type === item.type)?.label ?? item.type;
+  const text = [engine, item.databaseName].filter(Boolean).join(" · ");
+  return { text, title: text };
 }
 
 function readJson<T>(key: string, fallback: T): T {
