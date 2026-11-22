@@ -24,6 +24,7 @@ import { QueryWorkspace } from "../workbench/QueryWorkspace";
 import { StructureView } from "../workbench/StructureView";
 import { useQueryEditor } from "../workbench/useQueryEditor";
 import { useFavouriteTables } from "../workbench/useFavouriteTables";
+import { useSavedQueries } from "../workbench/useSavedQueries";
 import { useTableBrowser } from "../workbench/useTableBrowser";
 import { useWorkbenchTabs } from "../workbench/useWorkbenchTabs";
 import { READ_ONLY_TOOLTIP, browseQuery, collectRecentQueries, collectRecentTables, connectionStatus, readStoredHistory, recentTablesFor, type TableRef, type TestState } from "../workbench/model";
@@ -55,6 +56,7 @@ export function ConnectionsWorkbench() {
   const editor = useQueryEditor({ selectedId, connection, activeTab, activeId, updateTabQuery: workbench.updateTabQuery });
   const browser = useTableBrowser(selectedId, selectedTable, activeTab?.kind);
   const favourites = useFavouriteTables(selectedId);
+  const saved = useSavedQueries(selectedId);
   const recentForConnection = useMemo(() => recentTablesFor(selectedId ? tabsByConnection[selectedId] ?? [] : []), [selectedId, tabsByConnection]);
 
   useEffect(() => { const timer = window.setTimeout(() => setDebouncedSchemaFilter(schemaFilter), 150); return () => window.clearTimeout(timer); }, [schemaFilter]);
@@ -105,7 +107,7 @@ export function ConnectionsWorkbench() {
       if (mod && event.key.toLowerCase() === "f") { event.preventDefault(); searchRef.current?.focus(); }
       if (mod && event.key.toLowerCase() === "t") { event.preventDefault(); openQueryTab(); }
       if (mod && event.key.toLowerCase() === "w" && activeId && selectedId) { event.preventDefault(); workbench.closeTab(selectedId, activeId); }
-      if (mod && event.key === "Enter" && activeTab?.kind === "query") { event.preventDefault(); void editor.runQuery(); }
+      if (mod && event.key === "Enter" && activeTab?.kind === "query") { event.preventDefault(); void editor.runQuery(event.shiftKey ? "all" : "current"); }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
@@ -180,7 +182,7 @@ export function ConnectionsWorkbench() {
       : <>
         <div className="relative z-30 flex min-h-(--control-h-lg) min-w-0 shrink-0 items-end overflow-hidden border-b border-border"><DocumentTabs tabs={tabs as DocumentTab[]} activeId={activeId} onSelect={(tabId) => workbench.selectTab(connection.id, tabId)} onClose={(tabId) => workbench.closeTab(connection.id, tabId)} className="min-w-0 flex-1 px-2" /><Button variant="ghost" size="icon-xs" aria-label="New query tab" title="New query (⌘T)" className="mb-1 mr-1" onClick={() => openQueryTab()}><Plus /></Button></div>
         {!activeTab ? <EmptyState title="Open a table or query" description="Choose an object in the schema pane or create a query tab." action={<Button size="sm" onClick={() => openQueryTab()}>New query</Button>} />
-          : activeTab.kind === "query" ? <QueryWorkspace connection={connection} schema={languageSchema} queryText={editor.queryText} onQueryChange={editor.setQueryText} limit={editor.queryLimit} onLimitChange={editor.setQueryLimit} onRun={() => void editor.runQuery()} result={editor.result} error={editor.error} history={editor.history} historyOpen={editor.historyOpen} onHistoryOpen={editor.setHistoryOpen} onUseHistory={editor.useHistoryItem} editorRef={editor.editorRef} onCopy={(text) => void copy(text, "Query results")} />
+          : activeTab.kind === "query" ? <QueryWorkspace connection={connection} schema={languageSchema} editor={editor} saved={saved} onCopy={(text) => void copy(text, "Query results")} />
             : activeTab.kind === "structure" ? <StructureView query={structureQuery} onOpenTable={(schema, name) => openTable(schema, name, "data")} />
               : <VirtualDataTable data={browser.rowsQuery.data} isLoading={browser.rowsQuery.isLoading} error={browser.rowsQuery.isError ? browser.rowsQuery.error.message : undefined} onRetry={() => void browser.rowsQuery.refetch()} pageSize={browser.pageSize} onPageSize={browser.changePageSize} onOffset={browser.setOffset} onSort={browser.sort} orderBy={browser.orderBy} direction={browser.direction} onCopy={(text) => void copy(text, "Cell")} />}
       </>}

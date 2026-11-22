@@ -3,8 +3,10 @@ import type { EditorView } from "@codemirror/view";
 import { databaseApi } from "../api/databaseApi";
 import type { DatabaseConnection } from "../types";
 import { HISTORY_LIMIT, defaultQuery, readStoredHistory, writeStoredHistory, type WorkbenchTab } from "./model";
+import { statementAt, splitStatements } from "./sqlText";
 
 export type QueryResult = Awaited<ReturnType<typeof databaseApi.executeQuery>>;
+export interface QueryRun { id: string; sql: string; result: QueryResult | null; error: string | null; }
 
 /** Mongo queries are JSON objects; the row limit is folded into the payload. */
 function mongoPayload(query: string, limit: number): string {
@@ -13,7 +15,7 @@ function mongoPayload(query: string, limit: number): string {
   return JSON.stringify({ ...dsl, limit });
 }
 
-/** Query text, run state and per-connection history for the active query tab. */
+/** Query text, run state (one result per statement) and per-connection history for the active query tab. */
 export function useQueryEditor({ selectedId, connection, activeTab, activeId, updateTabQuery }: {
   selectedId: string;
   connection: DatabaseConnection | undefined;
@@ -23,15 +25,16 @@ export function useQueryEditor({ selectedId, connection, activeTab, activeId, up
 }) {
   const [queryText, setQueryTextState] = useState("SELECT 1");
   const [queryLimit, setQueryLimit] = useState(100);
-  const [result, setResult] = useState<QueryResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [runs, setRuns] = useState<QueryRun[]>([]);
+  const [activeRunIndex, setActiveRunIndex] = useState(0);
+  const [running, setRunning] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [history, setHistory] = useState<string[]>(() => (selectedId ? readStoredHistory()[selectedId] ?? [] : []));
   const editorRef = useRef<{ view?: EditorView } | null>(null);
 
   useEffect(() => { if (selectedId) setHistory(readStoredHistory()[selectedId] ?? []); }, [selectedId]);
   useEffect(() => { if (activeTab?.kind === "query") setQueryTextState(activeTab.query ?? defaultQuery(connection)); }, [activeTab?.id, connection?.id, connection?.type]);
-  useEffect(() => { setResult(null); setError(null); }, [activeId, selectedId]);
+  useEffect(() => { setRuns([]); setActiveRunIndex(0); }, [activeId, selectedId]);
 
   /** Edits the text and keeps it on the tab so it survives a reload. */
   const setQueryText = useCallback((value: string) => {
@@ -44,26 +47,55 @@ export function useQueryEditor({ selectedId, connection, activeTab, activeId, up
     setHistoryOpen(false);
   }, [setQueryText]);
 
-  const runQuery = useCallback(async () => {
-    if (!selectedId || !queryText.trim()) return;
+  /**
+   * Runs the selection, the statement under the cursor, or every statement.
+   * `explain` prefixes each statement with EXPLAIN (SQL engines only).
+   */
+  const runQuery = useCallback(async (scope: "current" | "all" = "current", explain = false) => {
+    if (!selectedId || !queryText.trim() || running) return;
     const view = editorRef.current?.view;
-    const selected = view?.state.selection.main;
-    const selection = selected && selected.from !== selected.to ? view?.state.doc.sliceString(selected.from, selected.to) : "";
-    const query = selection || queryText;
-    setError(null);
-    setResult(null);
-    try {
-      const payload = connection?.type === "mongodb" ? mongoPayload(query, queryLimit) : query;
-      const response = await databaseApi.executeQuery(selectedId, payload, queryLimit);
-      setResult(response);
-      if (!response.success) setError(response.error ?? "Query failed");
-      const next = [query, ...history.filter((item) => item !== query)].slice(0, HISTORY_LIMIT);
-      setHistory(next);
-      writeStoredHistory({ ...readStoredHistory(), [selectedId]: next });
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Query failed");
-    }
-  }, [connection?.type, history, queryLimit, queryText, selectedId]);
+    const main = view?.state.selection.main;
+    const selection = main && main.from !== main.to ? view?.state.doc.sliceString(main.from, main.to) : "";
+    const isMongo = connection?.type === "mongodb";
 
-  return { queryText, setQueryText, queryLimit, setQueryLimit, result, error, history, historyOpen, setHistoryOpen, useHistoryItem, runQuery, editorRef };
+    let statements: string[];
+    if (isMongo || selection) statements = [selection || queryText];
+    else if (scope === "all") statements = splitStatements(queryText).map((statement) => statement.text);
+    else statements = [statementAt(queryText, main?.head ?? queryText.length)?.text ?? queryText.trim()];
+
+    const executed = explain && !isMongo ? statements.map((statement) => `EXPLAIN ${statement}`) : statements;
+    setRunning(true);
+    setActiveRunIndex(0);
+    const collected: QueryRun[] = [];
+    let nextHistory = history;
+    try {
+      for (let index = 0; index < executed.length; index += 1) {
+        const original = statements[index]!;
+        const payload = isMongo ? mongoPayload(original, queryLimit) : executed[index]!;
+        try {
+          const result = await databaseApi.executeQuery(selectedId, payload, queryLimit);
+          collected.push({ id: `run-${index}`, sql: original, result, error: result.success ? null : result.error ?? "Query failed" });
+        } catch (caught) {
+          collected.push({ id: `run-${index}`, sql: original, result: null, error: caught instanceof Error ? caught.message : "Query failed" });
+        }
+        nextHistory = [original, ...nextHistory.filter((item) => item !== original)].slice(0, HISTORY_LIMIT);
+      }
+    } catch (caught) {
+      collected.push({ id: "run-parse", sql: queryText, result: null, error: caught instanceof Error ? caught.message : "Query failed" });
+    } finally {
+      setRuns(collected);
+      setHistory(nextHistory);
+      writeStoredHistory({ ...readStoredHistory(), [selectedId]: nextHistory });
+      setRunning(false);
+    }
+  }, [connection?.type, history, queryLimit, queryText, running, selectedId]);
+
+  return {
+    queryText, setQueryText, queryLimit, setQueryLimit,
+    runs, activeRunIndex, setActiveRunIndex, activeRun: runs[activeRunIndex], running,
+    historyOpen, setHistoryOpen, history, useHistoryItem,
+    runQuery, explainQuery: () => runQuery("current", true), editorRef,
+  };
 }
+
+export type QueryEditor = ReturnType<typeof useQueryEditor>;
