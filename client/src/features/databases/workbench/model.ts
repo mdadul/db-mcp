@@ -9,6 +9,7 @@ export type TestState = "reachable" | "unreachable";
 export const STORAGE_KEY = "dbmcp.workbench.v1";
 export const ACTIVE_TAB_KEY = "dbmcp.workbenchActive.v1";
 export const QUERY_HISTORY_KEY = "dbmcp.queryHistory.v1";
+export const FAVOURITES_KEY = "dbmcp.favouriteTables.v1";
 export const HISTORY_LIMIT = 50;
 export const READ_ONLY_TOOLTIP = "Queries pass a read-only guard before they run. Write statements are rejected before reaching the database; use a read-only database account for defense in depth.";
 
@@ -51,6 +52,27 @@ export const readStoredTabs = () => readJson<Record<string, WorkbenchTab[]>>(STO
 export const readStoredActiveTabs = () => readJson<Record<string, string>>(ACTIVE_TAB_KEY, {});
 export const readStoredHistory = () => readJson<Record<string, string[]>>(QUERY_HISTORY_KEY, {});
 export const writeStoredHistory = (history: Record<string, string[]>) => localStorage.setItem(QUERY_HISTORY_KEY, JSON.stringify(history));
+export const readStoredFavourites = () => readJson<Record<string, string[]>>(FAVOURITES_KEY, {});
+export const writeStoredFavourites = (favourites: Record<string, string[]>) => localStorage.setItem(FAVOURITES_KEY, JSON.stringify(favourites));
+
+/** Stable key for a table, safe for schema names that contain dots. */
+export const tableKey = (table: TableRef) => JSON.stringify([table.schema, table.name]);
+
+/** Most recent distinct tables opened on one connection, newest first. */
+export function recentTablesFor(tabs: WorkbenchTab[]): TableRef[] {
+  const seen = new Set<string>();
+  const result: TableRef[] = [];
+  for (const tab of [...tabs].reverse()) {
+    if (!tab.table) continue;
+    const ref: TableRef = { schema: tab.schema ?? "", name: tab.table };
+    const key = tableKey(ref);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(ref);
+    if (result.length === 5) break;
+  }
+  return result;
+}
 
 export function collectRecentTables(tabsByConnection: Record<string, WorkbenchTab[]>, connections: DatabaseConnection[]): RecentTableItem[] {
   const byId = new Map(connections.map((item) => [item.id, item]));

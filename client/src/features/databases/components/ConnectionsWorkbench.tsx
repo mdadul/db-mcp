@@ -23,9 +23,10 @@ import { SchemaPane } from "../workbench/SchemaPane";
 import { QueryWorkspace } from "../workbench/QueryWorkspace";
 import { StructureView } from "../workbench/StructureView";
 import { useQueryEditor } from "../workbench/useQueryEditor";
+import { useFavouriteTables } from "../workbench/useFavouriteTables";
 import { useTableBrowser } from "../workbench/useTableBrowser";
 import { useWorkbenchTabs } from "../workbench/useWorkbenchTabs";
-import { READ_ONLY_TOOLTIP, browseQuery, collectRecentQueries, collectRecentTables, connectionStatus, readStoredHistory, type TableRef, type TestState } from "../workbench/model";
+import { READ_ONLY_TOOLTIP, browseQuery, collectRecentQueries, collectRecentTables, connectionStatus, readStoredHistory, recentTablesFor, type TableRef, type TestState } from "../workbench/model";
 
 /** Connections home and read-only schema/query workbench. Layout and orchestration only; state lives in ../workbench. */
 export function ConnectionsWorkbench() {
@@ -53,6 +54,8 @@ export function ConnectionsWorkbench() {
   const { tabs, activeId, activeTab, selectedTable, setSelectedTable, tabsByConnection } = workbench;
   const editor = useQueryEditor({ selectedId, connection, activeTab, activeId, updateTabQuery: workbench.updateTabQuery });
   const browser = useTableBrowser(selectedId, selectedTable, activeTab?.kind);
+  const favourites = useFavouriteTables(selectedId);
+  const recentForConnection = useMemo(() => recentTablesFor(selectedId ? tabsByConnection[selectedId] ?? [] : []), [selectedId, tabsByConnection]);
 
   useEffect(() => { const timer = window.setTimeout(() => setDebouncedSchemaFilter(schemaFilter), 150); return () => window.clearTimeout(timer); }, [schemaFilter]);
   const schemaQuery = useQuery({ queryKey: ["database-schema", selectedId, debouncedSchemaFilter], queryFn: () => databaseApi.getSchemaTree(selectedId, debouncedSchemaFilter || undefined), enabled: Boolean(selectedId && connection?.status === "enabled"), retry: 1, staleTime: 30_000 });
@@ -151,7 +154,7 @@ export function ConnectionsWorkbench() {
 
   const connectionsPane = <ExplorerPane query={connectionsQuery} selectedId={selectedId} testStates={testStates} searchRef={searchRef} onSelect={handleSelectConnection} onOpenMenu={(item, x, y) => setConnectionMenu({ id: item.id, x, y })} onAdd={() => navigate("/connections/new")} />;
 
-  const schemaPane = <SchemaPane connection={connection} query={schemaQuery} filter={schemaFilter} onFilter={setSchemaFilter} selectedTable={selectedTable} collapsed={collapsedSchema} onCollapse={() => setCollapsedSchema(true)} onRefresh={() => void schemaQuery.refetch()} onOpenData={(schema, name) => openTable(schema, name, "data")} onOpenStructure={(schema, name) => openTable(schema, name, "structure")} onQuery={openTableQuery} onCopy={(value) => void copy(value, "Name")} onEnable={(item) => toggleStatus.mutate(item)} />;
+  const schemaPane = <SchemaPane connection={connection} connections={connections} onSwitchConnection={handleSelectConnection} query={schemaQuery} filter={schemaFilter} onFilter={setSchemaFilter} selectedTable={selectedTable} recentTables={recentForConnection} favouriteKeys={favourites.favouriteKeys} onToggleFavourite={favourites.toggle} collapsed={collapsedSchema} onCollapse={() => setCollapsedSchema(true)} onRefresh={() => void schemaQuery.refetch()} onOpenData={(schema, name) => openTable(schema, name, "data")} onOpenStructure={(schema, name) => openTable(schema, name, "structure")} onQuery={openTableQuery} onCopy={(value) => void copy(value, "Name")} onEnable={(item) => toggleStatus.mutate(item)} />;
 
   const mainPane = <section className="relative flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-background" aria-label="Database workbench">
     {connection && <div className="flex h-9 shrink-0 items-center gap-2 border-b border-border px-3">
