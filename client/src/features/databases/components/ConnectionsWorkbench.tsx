@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { FolderTree, MoreHorizontal, Pencil, Plug, Plus, RefreshCw, ShieldCheck } from "lucide-react";
+import { MoreHorizontal, Pencil, Plug, Plus, RefreshCw, ShieldCheck } from "lucide-react";
 import { ResizablePanels } from "@/components/ui/ResizablePanels";
 import { DocumentTabs, type DocumentTab } from "@/components/ui/DocumentTabs";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -15,15 +15,14 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { DbEngineIcon } from "@/components/brand/DbEngineIcon";
 import { useServerInfo } from "@/platform/hooks";
 import { databaseApi } from "../api/databaseApi";
-import type { DatabaseConnection, SchemaTree } from "../types";
+import type { DatabaseConnection } from "../types";
 import { ConnectionsHome, type RecentQueryItem, type RecentTableItem } from "./ConnectionsHome";
 import { VirtualDataTable } from "./VirtualDataGrid";
 import { ConnectionContextMenu, ExplorerPane } from "../workbench/ExplorerPane";
-import { SchemaPane } from "../workbench/SchemaPane";
+import { ConnectionTree } from "../workbench/ConnectionTree";
 import { QueryWorkspace } from "../workbench/QueryWorkspace";
 import { StructureView } from "../workbench/StructureView";
 import { useQueryEditor } from "../workbench/useQueryEditor";
-import { useFavouriteTables } from "../workbench/useFavouriteTables";
 import { useSavedQueries } from "../workbench/useSavedQueries";
 import { useTableBrowser } from "../workbench/useTableBrowser";
 import { useWorkbenchTabs } from "../workbench/useWorkbenchTabs";
@@ -39,10 +38,6 @@ export function ConnectionsWorkbench() {
   const queryClient = useQueryClient();
   const { data: serverInfo } = useServerInfo();
   const [selectedId, setSelectedId] = useState(routeId ?? "");
-  const [schemaFilter, setSchemaFilter] = useState("");
-  const [debouncedSchemaFilter, setDebouncedSchemaFilter] = useState("");
-  const [collapsedSchema, setCollapsedSchema] = useState(false);
-  const [narrowViewport, setNarrowViewport] = useState(() => window.innerWidth < 1100);
   const [deleteTarget, setDeleteTarget] = useState<DatabaseConnection | null>(null);
   const [pendingEnable, setPendingEnable] = useState<DatabaseConnection | null>(null);
   const [sessionTests, setSessionTests] = useState<Record<string, TestState>>({});
@@ -64,12 +59,9 @@ export function ConnectionsWorkbench() {
   const { tabs, activeId, activeTab, selectedTable, setSelectedTable, tabsByConnection } = workbench;
   const editor = useQueryEditor({ selectedId, connection, activeTab, activeId, updateTabQuery: workbench.updateTabQuery });
   const browser = useTableBrowser(selectedId, selectedTable, activeTab?.kind);
-  const favourites = useFavouriteTables(selectedId);
   const saved = useSavedQueries(selectedId);
-  const recentForConnection = useMemo(() => recentTablesFor(selectedId ? tabsByConnection[selectedId] ?? [] : []), [selectedId, tabsByConnection]);
-
-  useEffect(() => { const timer = window.setTimeout(() => setDebouncedSchemaFilter(schemaFilter), 150); return () => window.clearTimeout(timer); }, [schemaFilter]);
-  const schemaQuery = useQuery({ queryKey: ["database-schema", selectedId, debouncedSchemaFilter], queryFn: () => databaseApi.getSchemaTree(selectedId, debouncedSchemaFilter || undefined), enabled: Boolean(selectedId && connection?.status === "enabled"), retry: 1, staleTime: 30_000 });
+  // Unfiltered schema for SQL autocomplete. The explorer's per-connection trees share this cache entry.
+  const schemaQuery = useQuery({ queryKey: ["database-schema", selectedId, ""], queryFn: () => databaseApi.getSchemaTree(selectedId), enabled: Boolean(selectedId && connection?.status === "enabled"), retry: 1, staleTime: 30_000 });
 
   const favouriteMutation = useMutation({ mutationFn: (item: DatabaseConnection) => databaseApi.update(item.id, { favourite: !item.favourite }), onSuccess: async (item) => { await queryClient.invalidateQueries({ queryKey: ["databases"] }); toast.success(item.favourite ? `${item.name} added to favourites` : `${item.name} removed from favourites`); }, onError: (error) => toast.error(error instanceof Error ? error.message : "Could not update favourite") });
   const toggleStatus = useMutation({ mutationFn: (item: DatabaseConnection) => databaseApi.toggleStatus(item.id, item.status === "enabled" ? "disabled" : "enabled"), onSuccess: async (item) => { await queryClient.invalidateQueries({ queryKey: ["databases"] }); toast.success(`${item.name} ${item.status}`); } });
@@ -82,8 +74,6 @@ export function ConnectionsWorkbench() {
 
   useEffect(() => { if (routeId && routeId !== selectedId) setSelectedId(routeId); }, [routeId, selectedId]);
   useEffect(() => { if (selectedId && !routeId) navigate(`/connections/${selectedId}`, { replace: true }); }, [selectedId, routeId, navigate]);
-  useEffect(() => { const resize = () => setNarrowViewport(window.innerWidth < 1100); window.addEventListener("resize", resize); return () => window.removeEventListener("resize", resize); }, []);
-  useEffect(() => { if (narrowViewport) setCollapsedSchema(true); }, [narrowViewport]);
   useEffect(() => {
     if (!connectionMenu) return;
     const close = () => setConnectionMenu(null);
@@ -99,7 +89,6 @@ export function ConnectionsWorkbench() {
   const { openTab } = workbench;
   const openQueryTab = useCallback((query?: string) => { if (selectedId) openTab(selectedId, "query", undefined, query); }, [openTab, selectedId]);
   const openTable = (schema: string, name: string, kind: "data" | "structure") => { browser.resetPage(); workbench.openTab(selectedId, kind, { schema, name }); };
-  const openTableQuery = (schema: string, name: string) => openQueryTab(browseQuery(connection, { schema, name }));
 
   // Analyst "open in SQL editor" hands the query over through sessionStorage.
   useEffect(() => {
@@ -169,9 +158,32 @@ export function ConnectionsWorkbench() {
   const structureQuery = browser.structureQuery;
   const languageSchema = schemaQuery.data ? Object.fromEntries(schemaQuery.data.schemas.map((schema) => [schema.name, Object.fromEntries(schema.tables.map((table) => [table.name, table.name === selectedTable?.name ? structureQuery.data?.columns.map((column) => column.name) ?? [] : []]))])) : undefined;
 
-  const connectionsPane = <ExplorerPane query={connectionsQuery} selectedId={selectedId} testStates={testStates} searchRef={searchRef} onExport={() => downloadText("db-mcp-connections.json", connectionListExport(connections), "application/json")} onSelect={handleSelectConnection} onOpenMenu={(item, x, y) => setConnectionMenu({ id: item.id, x, y })} onAdd={() => navigate("/connections/new")} />;
+  // Table actions from the explorer may target a connection that is not selected yet, so they select it first.
+  const focusConnection = (id: string) => {
+    if (id === selectedId) return;
+    setSelectedId(id);
+    navigate(`/connections/${id}`, { replace: true });
+  };
+  const openTableFrom = (item: DatabaseConnection, schema: string, name: string, kind: "data" | "structure") => {
+    browser.resetPage();
+    workbench.openTab(item.id, kind, { schema, name });
+    focusConnection(item.id);
+  };
+  const queryTableFrom = (item: DatabaseConnection, schema: string, name: string) => {
+    workbench.openTab(item.id, "query", undefined, browseQuery(item, { schema, name }));
+    focusConnection(item.id);
+  };
+  const renderTree = (item: DatabaseConnection) => <ConnectionTree
+    connection={item}
+    selectedTable={item.id === selectedId ? selectedTable : null}
+    recentTables={recentTablesFor(tabsByConnection[item.id] ?? [])}
+    onOpenData={(schema, name) => openTableFrom(item, schema, name, "data")}
+    onOpenStructure={(schema, name) => openTableFrom(item, schema, name, "structure")}
+    onQuery={(schema, name) => queryTableFrom(item, schema, name)}
+    onCopy={(value) => void copy(value, "Name")}
+    onEnable={() => requestToggle(item)} />;
 
-  const schemaPane = <SchemaPane connection={connection} connections={connections} onSwitchConnection={handleSelectConnection} query={schemaQuery} filter={schemaFilter} onFilter={setSchemaFilter} selectedTable={selectedTable} recentTables={recentForConnection} favouriteKeys={favourites.favouriteKeys} onToggleFavourite={favourites.toggle} collapsed={collapsedSchema} onCollapse={() => setCollapsedSchema(true)} onRefresh={() => void schemaQuery.refetch()} onOpenData={(schema, name) => openTable(schema, name, "data")} onOpenStructure={(schema, name) => openTable(schema, name, "structure")} onQuery={openTableQuery} onCopy={(value) => void copy(value, "Name")} onEnable={(item) => requestToggle(item)} />;
+  const connectionsPane = <ExplorerPane query={connectionsQuery} selectedId={selectedId} testStates={testStates} searchRef={searchRef} renderTree={renderTree} onExport={() => downloadText("db-mcp-connections.json", connectionListExport(connections), "application/json")} onSelect={handleSelectConnection} onOpenMenu={(item, x, y) => setConnectionMenu({ id: item.id, x, y })} onAdd={() => navigate("/connections/new")} />;
 
   const mainPane = <section className="relative flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-background" aria-label="Database workbench">
     {connection && <div className="flex h-9 shrink-0 items-center gap-2 border-b border-border px-3">
@@ -185,13 +197,12 @@ export function ConnectionsWorkbench() {
       {selectedConnectionStatus && <Tooltip content={selectedConnectionStatus.label}><span className="inline-flex" tabIndex={0} aria-label={selectedConnectionStatus.label}><StatusDot state={selectedConnectionStatus.state} /></span></Tooltip>}
       <span className="flex-1" />
       <Tooltip content={READ_ONLY_TOOLTIP}><span className="inline-flex cursor-default items-center gap-1 rounded border border-success/30 bg-success-subtle px-1.5 py-0.5 text-ui-xs text-success" tabIndex={0}><ShieldCheck className="size-3" />Read-only</span></Tooltip>
-      {collapsedSchema && <Button variant="outline" size="xs" onClick={() => setCollapsedSchema(false)}><FolderTree data-icon="inline-start" />Schema</Button>}
       <DropdownMenu>
         <DropdownMenuTrigger render={<Button variant="ghost" size="icon-xs" aria-label="Connection actions"><MoreHorizontal /></Button>} />
         <DropdownMenuContent align="end">
           <DropdownMenuItem onClick={() => void runConnectionTest(connection)}><Plug className="size-3.5" />Test connection</DropdownMenuItem>
           <DropdownMenuItem onClick={() => navigate(`/connections/${connection.id}/edit`)}><Pencil className="size-3.5" />Edit connection</DropdownMenuItem>
-          <DropdownMenuItem onClick={() => void schemaQuery.refetch()}><RefreshCw className="size-3.5" />Refresh schema</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => void queryClient.invalidateQueries({ queryKey: ["database-schema", connection.id] })}><RefreshCw className="size-3.5" />Refresh schema</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </div>}
@@ -219,18 +230,10 @@ export function ConnectionsWorkbench() {
     onDelete={() => setDeleteTarget(connectionsForMenu)} /> : null;
 
   return <div className="relative h-full min-h-0 min-w-0 overflow-hidden" onClick={() => connectionMenu && setConnectionMenu(null)}>
-    {narrowViewport
-      ? <div className="flex h-full min-h-0 min-w-0"><div className="w-56 min-w-44 shrink-0">{connectionsPane}</div><div className="min-h-0 min-w-0 flex-1">{mainPane}</div>{!collapsedSchema && connection && <div className="absolute inset-y-0 left-56 z-30 w-[min(320px,75vw)] border-r border-border bg-surface shadow-xl">{schemaPane}</div>}</div>
-      : connection
-        ? <ResizablePanels key="workbench" id="connections-workbench" className="h-full" panels={[
-          { id: "connections", defaultSize: 20, minSize: 14, maxSize: 28, content: connectionsPane },
-          { id: "schema", defaultSize: 24, minSize: 14, maxSize: 35, content: schemaPane },
-          { id: "main", defaultSize: 56, minSize: 35, content: mainPane },
-        ]} />
-        : <ResizablePanels key="home" id="connections-workbench-home" className="h-full" panels={[
-          { id: "connections", defaultSize: 24, minSize: 16, maxSize: 34, content: connectionsPane },
-          { id: "main", defaultSize: 76, minSize: 40, content: mainPane },
-        ]} />}
+    <ResizablePanels id="connections-workbench" className="h-full" panels={[
+      { id: "connections", defaultSize: 24, minSize: 16, maxSize: 40, content: connectionsPane },
+      { id: "main", defaultSize: 76, minSize: 40, content: mainPane },
+    ]} />
     {connectionMenuActions}
     <ConfirmDialog open={Boolean(pendingEnable)} onOpenChange={(open) => { if (!open) setPendingEnable(null); }} title="Allow AI access to a production connection?" description={`AI clients and the analyst will be able to run read-only queries against “${pendingEnable?.name ?? "this connection"}”. Use a read-only database account. You will only be asked once for this connection.`} confirmLabel="Enable AI access" pending={toggleStatus.isPending} onConfirm={() => { if (pendingEnable) { acknowledgeProduction(pendingEnable.id); toggleStatus.mutate(pendingEnable); setPendingEnable(null); } }} />
     <ConfirmDialog open={Boolean(deleteTarget)} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }} title="Delete connection?" description={`This removes “${deleteTarget?.name ?? "connection"}” from this computer and disconnects AI clients from it.`} confirmLabel="Delete connection" pending={deleteConnection.isPending} onConfirm={() => { if (deleteTarget) deleteConnection.mutate(deleteTarget); }} />
