@@ -2,7 +2,7 @@ import { Fragment, useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Command } from "cmdk";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Activity, Bot, Command as CommandIcon, Copy, Database, EllipsisVertical, FolderOpen, Keyboard, PanelLeft, Plus, RotateCw, Settings, Users } from "lucide-react";
+import { Activity, Command as CommandIcon, Copy, Database, EllipsisVertical, FolderOpen, Keyboard, PanelLeft, Plus, RotateCw, Settings, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
 import { Kbd } from "@/components/ui/Kbd";
@@ -21,7 +21,6 @@ const RAIL_EXPANDED_KEY = "dbmcp.railExpanded";
 
 const navigation = [
   { to: "/connections", label: "Connections", icon: Database, shortcut: "gotoConnections" },
-  { to: "/analyst", label: "Analyst", icon: Bot, shortcut: "gotoAnalyst" },
   { to: "/ai-clients", label: "AI Clients", icon: Users, shortcut: "gotoAiClients" },
   { to: "/activity", label: "Activity", icon: Activity, shortcut: "gotoActivity" },
   { to: "/settings", label: "Settings", icon: Settings, shortcut: "gotoSettings" },

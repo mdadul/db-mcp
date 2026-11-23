@@ -13,13 +13,9 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^4.0.107",
-    "@ai-sdk/openai": "^4.0.122",
-    "@ai-sdk/openai-compatible": "^3.0.94",
     "@hono/node-server": "^2.0.11",
     "@hono/zod-validator": "^0.9.0",
     "@modelcontextprotocol/sdk": "^1.29.0",
-    "ai": "^7.0.179",
     "better-sqlite3": "^12.2.0",
     "drizzle-orm": "^0.45.2",
     "hono": "^4.12.32",

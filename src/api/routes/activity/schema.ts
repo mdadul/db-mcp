@@ -6,7 +6,7 @@ export const activityFilterSchema = z.object({
   databaseId: z.string().min(1).max(128).optional(),
   status: z.enum(["success", "error", "timeout", "blocked"]).optional(),
   tool: z.string().trim().min(1).max(128).optional(),
-  source: z.enum(["mcp", "agent", "app"]).optional(),
+  source: z.enum(["mcp", "app"]).optional(),
   from: isoDate,
   to: isoDate,
 });

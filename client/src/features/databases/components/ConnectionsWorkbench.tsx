@@ -87,23 +87,8 @@ export function ConnectionsWorkbench() {
     catch { toast.error(`Could not copy ${label.toLocaleLowerCase()}`); }
   };
   const { openTab } = workbench;
-  const openQueryTab = useCallback((query?: string) => { if (selectedId) openTab(selectedId, "query", undefined, query); }, [openTab, selectedId]);
+  const openQueryTab = useCallback(() => { if (selectedId) openTab(selectedId, "query"); }, [openTab, selectedId]);
   const openTable = (schema: string, name: string, kind: "data" | "structure") => { browser.resetPage(); workbench.openTab(selectedId, kind, { schema, name }); };
-
-  // Analyst "open in SQL editor" hands the query over through sessionStorage.
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    if (params.get("analystQuery") !== "1" || !routeId || connection?.id !== routeId) return;
-    try {
-      const request: unknown = JSON.parse(sessionStorage.getItem("dbmcp.analyst.openQuery") ?? "null");
-      if (request && typeof request === "object" && "databaseId" in request && request.databaseId === routeId && "sql" in request && typeof request.sql === "string") {
-        sessionStorage.removeItem("dbmcp.analyst.openQuery");
-        openQueryTab(request.sql);
-      }
-    } catch { sessionStorage.removeItem("dbmcp.analyst.openQuery"); }
-    params.delete("analystQuery");
-    navigate({ pathname: location.pathname, search: params.toString() ? `?${params}` : "" }, { replace: true });
-  }, [location.pathname, location.search, routeId, connection?.id, openQueryTab, navigate]);
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
@@ -235,7 +220,7 @@ export function ConnectionsWorkbench() {
       { id: "main", defaultSize: 76, minSize: 40, content: mainPane },
     ]} />
     {connectionMenuActions}
-    <ConfirmDialog open={Boolean(pendingEnable)} onOpenChange={(open) => { if (!open) setPendingEnable(null); }} title="Allow AI access to a production connection?" description={`AI clients and the analyst will be able to run read-only queries against “${pendingEnable?.name ?? "this connection"}”. Use a read-only database account. You will only be asked once for this connection.`} confirmLabel="Enable AI access" pending={toggleStatus.isPending} onConfirm={() => { if (pendingEnable) { acknowledgeProduction(pendingEnable.id); toggleStatus.mutate(pendingEnable); setPendingEnable(null); } }} />
+    <ConfirmDialog open={Boolean(pendingEnable)} onOpenChange={(open) => { if (!open) setPendingEnable(null); }} title="Allow AI access to a production connection?" description={`AI clients will be able to run read-only queries against “${pendingEnable?.name ?? "this connection"}”. Use a read-only database account. You will only be asked once for this connection.`} confirmLabel="Enable AI access" pending={toggleStatus.isPending} onConfirm={() => { if (pendingEnable) { acknowledgeProduction(pendingEnable.id); toggleStatus.mutate(pendingEnable); setPendingEnable(null); } }} />
     <ConfirmDialog open={Boolean(deleteTarget)} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }} title="Delete connection?" description={`This removes “${deleteTarget?.name ?? "connection"}” from this computer and disconnects AI clients from it.`} confirmLabel="Delete connection" pending={deleteConnection.isPending} onConfirm={() => { if (deleteTarget) deleteConnection.mutate(deleteTarget); }} />
   </div>;
 }

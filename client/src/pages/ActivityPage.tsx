@@ -30,7 +30,6 @@ function rangeStart(range: TimeRange): string | undefined {
 }
 const SOURCE_OPTIONS = [
   { value: "mcp", label: "AI clients" },
-  { value: "agent", label: "Analyst" },
   { value: "app", label: "You" },
   { value: "all", label: "All" },
 ] as const;
@@ -111,7 +110,7 @@ export function ActivityPage() {
   const visibleItems = (activity.data?.items ?? []).filter((item) => !search.trim() || `${item.tool} ${item.databaseName ?? ""} ${item.status} ${item.source}`.toLowerCase().includes(search.trim().toLowerCase()));
 
   return <div className="mx-auto w-full max-w-6xl px-6 py-7">
-    <PageHeader title="Activity" description="Recent database activity from AI clients, Analyst and you." actions={<label className="flex items-center gap-2 text-ui-xs text-muted-foreground"><Switch checked={autoRefresh} onCheckedChange={setAutoRefresh} aria-label="Automatically refresh activity every 10 seconds" />Auto-refresh · 10s</label>} />
+    <PageHeader title="Activity" description="Recent database activity from AI clients and you." actions={<label className="flex items-center gap-2 text-ui-xs text-muted-foreground"><Switch checked={autoRefresh} onCheckedChange={setAutoRefresh} aria-label="Automatically refresh activity every 10 seconds" />Auto-refresh · 10s</label>} />
     <section aria-label={`${sourceLabel} usage statistics for the last 30 days`} className="mb-5 overflow-hidden rounded-lg border border-border bg-card">
       <div className="grid divide-y divide-border sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-5 lg:divide-x">
         {kpis.map((kpi) => {

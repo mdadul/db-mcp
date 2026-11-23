@@ -24,7 +24,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function SourceLabel({ source }: { source: string }) {
-  const labels: Record<string, string> = { mcp: "AI client", agent: "Analyst", app: "You" };
+  const labels: Record<string, string> = { mcp: "AI client", app: "You" };
   return <span className="text-ui-xs text-muted-foreground">{labels[source] ?? source}</span>;
 }
 

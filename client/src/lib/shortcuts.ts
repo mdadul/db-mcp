@@ -1,6 +1,6 @@
 export type ShortcutOs = "macos" | "other";
 
-export type ShortcutGroup = "General" | "Navigation" | "Workbench" | "Analyst";
+export type ShortcutGroup = "General" | "Navigation" | "Workbench";
 
 export type ShortcutId =
   | "commandPalette"
@@ -8,7 +8,6 @@ export type ShortcutId =
   | "settings"
   | "toggleNavigation"
   | "gotoConnections"
-  | "gotoAnalyst"
   | "gotoAiClients"
   | "gotoActivity"
   | "gotoSettings"
@@ -16,8 +15,7 @@ export type ShortcutId =
   | "newQuery"
   | "closeTab"
   | "findConnections"
-  | "runQuery"
-  | "newChat";
+  | "runQuery";
 
 export interface ShortcutDefinition {
   id: ShortcutId;
@@ -27,7 +25,7 @@ export interface ShortcutDefinition {
   context?: string;
 }
 
-export const SHORTCUT_GROUPS: readonly ShortcutGroup[] = ["General", "Navigation", "Workbench", "Analyst"];
+export const SHORTCUT_GROUPS: readonly ShortcutGroup[] = ["General", "Navigation", "Workbench"];
 
 export const shortcuts: readonly ShortcutDefinition[] = [
   { id: "commandPalette", keys: "Mod+K", label: "Command palette", group: "General" },
@@ -35,16 +33,14 @@ export const shortcuts: readonly ShortcutDefinition[] = [
   { id: "settings", keys: "Mod+,", label: "Open settings", group: "General" },
   { id: "toggleNavigation", keys: "Mod+\\", label: "Show or hide navigation labels", group: "Navigation" },
   { id: "gotoConnections", keys: "Mod+1", label: "Go to Connections", group: "Navigation" },
-  { id: "gotoAnalyst", keys: "Mod+2", label: "Go to Analyst", group: "Navigation" },
-  { id: "gotoAiClients", keys: "Mod+3", label: "Go to AI Clients", group: "Navigation" },
-  { id: "gotoActivity", keys: "Mod+4", label: "Go to Activity", group: "Navigation" },
-  { id: "gotoSettings", keys: "Mod+5", label: "Go to Settings", group: "Navigation" },
+  { id: "gotoAiClients", keys: "Mod+2", label: "Go to AI Clients", group: "Navigation" },
+  { id: "gotoActivity", keys: "Mod+3", label: "Go to Activity", group: "Navigation" },
+  { id: "gotoSettings", keys: "Mod+4", label: "Go to Settings", group: "Navigation" },
   { id: "newConnection", keys: "Mod+N", label: "New connection", group: "Workbench" },
   { id: "newQuery", keys: "Mod+T", label: "New query tab", group: "Workbench" },
   { id: "closeTab", keys: "Mod+W", label: "Close tab", group: "Workbench" },
   { id: "findConnections", keys: "Mod+F", label: "Find a connection", group: "Workbench" },
   { id: "runQuery", keys: "Mod+Enter", label: "Run query", group: "Workbench" },
-  { id: "newChat", keys: "Mod+N", label: "New chat", group: "Analyst", context: "On the Analyst page" },
 ];
 
 const MODIFIER_LABELS: Record<ShortcutOs, Record<string, string>> = {

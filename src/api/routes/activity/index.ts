@@ -59,7 +59,7 @@ function activityConditions(filters: ActivityFilters) {
     ...(databaseId ? [eq(toolCalls.databaseConnectionId, databaseId)] : []),
     ...(status === "success" || status === "error" ? [eq(toolCalls.status, status)] : status ? [sql`0 = 1`] : []),
     ...(tool ? [eq(toolCalls.tool, tool)] : []),
-    ...(source === "app" || source === "agent" ? [sql`0 = 1`] : []),
+    ...(source === "app" ? [sql`0 = 1`] : []),
     ...dateBounds(toolCalls.createdAt, filters),
   ];
   return { queryConditions, toolConditions };
