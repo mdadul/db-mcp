@@ -615,6 +615,8 @@ mod tests {
         let executable = Path::new("/Applications/DB MCP.app/Contents/MacOS/db-mcp-desktop");
         let definition = render_service(executable, Path::new("/Users/test/Library/Logs/DB MCP"))
             .expect("render service");
+        // systemd escapes spaces as `\s`, so the literal path only appears on macOS and Windows.
+        #[cfg(not(target_os = "linux"))]
         assert!(definition.contains("DB MCP.app"));
         #[cfg(target_os = "linux")]
         assert!(definition.contains(
