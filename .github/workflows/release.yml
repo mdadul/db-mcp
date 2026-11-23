@@ -21,9 +21,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: macos-14
+          - os: macos-15
             target: aarch64-apple-darwin
-          # macos-13 is retired; macos-15-intel is the Intel macOS runner.
+          # macos-13 and macos-14 are retired; macos-15-intel is the Intel macOS runner.
           - os: macos-15-intel
             target: x86_64-apple-darwin
           - os: windows-latest
