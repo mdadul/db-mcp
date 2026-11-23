@@ -47,7 +47,8 @@ await build({
   platform: "node",
   format: "esm",
   target: `node${NODE_MAJOR}`,
-  sourcemap: "linked",
+  // No source map: it is shipped inside the app (7 MB) and the unminified bundle is already readable.
+  sourcemap: false,
   external: optionalExternal,
   banner: {
     js: 'import { createRequire } from "node:module";\nconst require = createRequire(import.meta.url);',
@@ -55,6 +56,7 @@ await build({
 });
 
 await rm(join(serverDir, "migrations"), { recursive: true, force: true });
+await rm(join(serverDir, "index.mjs.map"), { force: true });
 await mkdir(join(serverDir, "migrations"), { recursive: true });
 await copyTree(join(root, "src", "db", "migrations"), join(serverDir, "migrations"));
 
@@ -80,6 +82,11 @@ await rm(join(serverDir, "node_modules"), { recursive: true, force: true });
 await rm(join(serverDir, "package-lock.json"), { force: true });
 const npmInvocation = await resolveNpmInvocation();
 run(npmInvocation.command, [...npmInvocation.argsPrefix, "install", "--omit=dev", "--no-audit", "--no-fund"], { cwd: serverDir, env: npmEnv });
+// better-sqlite3 ships its C sources (deps/, src/) for building from source. The runtime only
+// loads lib/ and build/Release/better_sqlite3.node, so drop the sources from the app bundle.
+for (const directory of ["deps", "src"]) {
+  await rm(join(serverDir, "node_modules", "better-sqlite3", directory), { recursive: true, force: true });
+}
 
 const nodeBinary = await fetchNodeBinary(target, release);
 const nodeStat = await stat(nodeBinary);
@@ -178,12 +185,17 @@ async function maybeStripNodeBinary(binaryPath, targetInfo, scratchDir) {
   const backupPath = join(scratchDir, "node-before-strip");
   await copyFile(binaryPath, backupPath);
   const result = spawnSync("strip", ["-x", binaryPath], { encoding: "utf8" });
-  const strippedSize = result.status === 0 ? (await stat(binaryPath)).size : originalSize;
-  const versionCheck = result.status === 0
+  // strip invalidates the code signature and macOS kills the unsigned arm64 binary, so re-sign ad hoc.
+  const resign = result.status === 0
+    ? spawnSync("codesign", ["--force", "--sign", "-", binaryPath], { encoding: "utf8" })
+    : null;
+  const stripped = result.status === 0 && resign?.status === 0;
+  const strippedSize = stripped ? (await stat(binaryPath)).size : originalSize;
+  const versionCheck = stripped
     ? spawnSync(binaryPath, ["--version"], { encoding: "utf8" })
     : null;
 
-  if (result.status === 0 && strippedSize < originalSize && versionCheck?.status === 0) {
+  if (stripped && strippedSize < originalSize && versionCheck?.status === 0) {
     console.log(`  Node strip:      ${formatBytes(originalSize)} -> ${formatBytes(strippedSize)}`);
     return;
   }
@@ -193,6 +205,8 @@ async function maybeStripNodeBinary(binaryPath, targetInfo, scratchDir) {
     console.log(`  Node strip:      skipped (${result.error.message})`);
   } else if (result.status !== 0) {
     console.log(`  Node strip:      skipped (strip exited with status ${result.status})`);
+  } else if (!stripped) {
+    console.log(`  Node strip:      skipped (ad-hoc re-sign failed: ${resign?.stderr?.trim()})`);
   } else if (strippedSize >= originalSize) {
     console.log(`  Node strip:      no size reduction (${formatBytes(originalSize)} -> ${formatBytes(strippedSize)})`);
   } else {

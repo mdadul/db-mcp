@@ -32,6 +32,12 @@ tauri-plugin-window-state = "2"
 tauri-plugin-updater = { version = "2", optional = true }
 tokio = { version = "1", features = ["io-util", "macros", "process", "signal", "sync", "time"] }
 
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true
+
 [features]
 default = []
 # Enable only in signing-enabled release builds; updater artifacts need TAURI_SIGNING_PRIVATE_KEY.
