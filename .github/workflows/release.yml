@@ -106,6 +106,9 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # No Apple Developer ID yet: ad-hoc sign ("-") so the macOS bundle is sealed.
+          # Notarization is skipped without APPLE_ID. A real identity from secrets takes over.
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY || '-' }}
         with:
           projectPath: desktop/src-tauri
           args: --target ${{ matrix.target }}
