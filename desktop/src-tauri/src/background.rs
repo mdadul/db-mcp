@@ -6,6 +6,7 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
+#[cfg(target_os = "macos")]
 const LABEL: &str = "dev.dbmcp.desktop.server";
 #[cfg(target_os = "windows")]
 const TASK_NAME: &str = "DB MCP server";
@@ -55,6 +56,7 @@ pub fn uses_permanent_location(path: &Path) -> bool {
     }
 }
 
+#[cfg(any(target_os = "macos", test))]
 pub fn is_translocated_path(path: &Path) -> bool {
     #[cfg(target_os = "macos")]
     {
@@ -151,11 +153,13 @@ pub fn render_service(executable: &Path, log_dir: &Path) -> Result<String, Strin
     }
     #[cfg(target_os = "linux")]
     {
+        let _ = log_dir;
         let exe = executable.to_string_lossy();
         Ok(format!("[Unit]\nDescription=DB MCP background server\n\n[Service]\nType=simple\nExecStart={} --server\nRestart=on-failure\nRestartSec=2\n\n[Install]\nWantedBy=default.target\n", systemd_quote(&exe)))
     }
     #[cfg(target_os = "windows")]
     {
+        let _ = log_dir;
         let exe = executable.to_string_lossy();
         Ok(format!(
             r#"<?xml version="1.0" encoding="UTF-8"?>
@@ -242,6 +246,7 @@ pub fn install(log_dir: &Path) -> Result<(), String> {
     Ok(())
 }
 
+#[cfg(target_os = "macos")]
 fn launch_macos_service(path: &Path, uid: &str) -> Result<(), String> {
     let domain = format!("gui/{uid}");
     let target = format!("{domain}/{LABEL}");
@@ -431,6 +436,7 @@ pub fn remove_service_file() -> Result<(), String> {
     }
 }
 
+#[cfg(target_os = "macos")]
 pub fn render_macos_plist(executable: &Path, log_dir: &Path) -> String {
     let exe = xml_escape(&executable.to_string_lossy());
     let logs = xml_escape(&log_dir.to_string_lossy());
@@ -566,7 +572,7 @@ fn run_command(program: &str, args: &[&str], message: &str) -> Result<(), String
     }
 }
 
-#[cfg(unix)]
+#[cfg(target_os = "macos")]
 fn current_uid() -> Result<String, String> {
     Command::new("id")
         .arg("-u")
@@ -576,11 +582,7 @@ fn current_uid() -> Result<String, String> {
         .map(|uid| uid.trim().to_owned())
 }
 
-#[cfg(not(unix))]
-fn current_uid() -> Result<String, String> {
-    Ok(String::new())
-}
-
+#[cfg(any(target_os = "macos", target_os = "windows", test))]
 fn xml_escape(value: &str) -> String {
     value
         .replace('&', "&amp;")

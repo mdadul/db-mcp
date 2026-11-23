@@ -1055,6 +1055,7 @@ fn is_running_from_bundle() -> bool {
     }
     #[cfg(not(target_os = "macos"))]
     {
+        let _ = executable;
         !tauri::is_dev()
     }
 }
