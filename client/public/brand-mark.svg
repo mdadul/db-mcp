@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="98 248 360 360" role="img" aria-label="DB MCP">
+  <defs>
+    <mask id="brand-mark-knockout" maskUnits="userSpaceOnUse" x="98" y="248" width="360" height="360">
+      <rect x="98" y="248" width="360" height="360" fill="#fff"/>
+      <path d="M310 420 H352" stroke="#000" stroke-width="28" stroke-linecap="round"/>
+    </mask>
+  </defs>
+  <g fill="currentColor" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M380 350 L384 330 L266 280 L136 333 V468 C136 516 196 548 266 575 C326 548 360 520 364 490" fill="none" stroke-width="28"/>
+    <g stroke="none" mask="url(#brand-mark-knockout)">
+      <path d="M188 366 A75 26 0 0 1 338 366 V384 A75 26 0 0 1 188 384 Z"/>
+      <path d="M188 402 A75 26 0 0 0 338 402 V420 A75 26 0 0 1 188 420 Z"/>
+      <path d="M188 438 A75 26 0 0 0 338 438 V456 A75 26 0 0 1 188 456 Z"/>
+    </g>
+    <g fill="none" stroke-width="14">
+      <path d="M314 420 H339 M370.8 411.6 L403.2 393.4 M368.6 431.4 L399.4 459.6"/>
+      <circle cx="356" cy="420" r="17"/>
+      <circle cx="418" cy="385" r="17"/>
+      <circle cx="412" cy="471" r="17"/>
+    </g>
+  </g>
+</svg>

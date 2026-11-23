@@ -7,6 +7,9 @@ export type {
   StructuredQueryResult,
   QueryLogItem,
   DbEngineType,
+  SchemaTree,
+  TableStructure,
+  BrowseRowsResult,
 } from "@server/api/routes/databases/types.ts";
 export { DB_ENGINE_TYPES } from "@server/api/routes/databases/types.ts";
 import type { DbEngineType } from "@server/api/routes/databases/types.ts";
@@ -113,4 +116,3 @@ export interface SchemaResponse {
   message?: string;
   error?: string;
 }
-

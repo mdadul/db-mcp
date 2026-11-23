@@ -1,7 +1,12 @@
 import type { DbEngineType } from "../api/routes/databases/types.ts";
 
+// INTO catches write-capable SELECTs: PostgreSQL/Redshift `SELECT ... INTO new_table`
+// and MySQL `SELECT ... INTO OUTFILE/DUMPFILE/@var`. Like the other keywords it is
+// matched anywhere, so a literal such as 'log into' is also rejected: the check
+// errs on the side of blocking. A read-only database user remains required,
+// because a pattern check cannot see side-effecting functions.
 const WRITE_PATTERN =
-  /\b(INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|TRUNCATE|REPLACE|MERGE|CALL|EXEC|GRANT|REVOKE|LOCK|UNLOCK|SET|LOAD)\b/i;
+  /\b(INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|TRUNCATE|REPLACE|MERGE|CALL|EXEC|GRANT|REVOKE|LOCK|UNLOCK|SET|LOAD|INTO|COPY|VACUUM|REINDEX)\b/i;
 
 const READ_PATTERN =
   /^\s*(SELECT|SHOW|DESCRIBE|DESC|EXPLAIN|WITH)\b/i;
@@ -89,6 +94,8 @@ export function injectLimit(query: string, limit: number = MAX_ROWS, dbType: DbT
 
   const trimmed = query.trimEnd().replace(/;$/, "");
   if (/\bLIMIT\b/i.test(trimmed)) return trimmed;
-  if (/^\s*SELECT/i.test(trimmed)) return `${trimmed} LIMIT ${limit}`;
+  // WITH ... SELECT is a row-returning query too; without a LIMIT a large CTE
+  // result is fetched in full before rows are capped.
+  if (/^\s*(SELECT|WITH)\b/i.test(trimmed)) return `${trimmed} LIMIT ${limit}`;
   return trimmed;
 }

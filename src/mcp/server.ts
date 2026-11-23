@@ -21,7 +21,7 @@ function registerTools(server: McpServer) {
       inputSchema: {},
     },
     async () => {
-      logToolCall("list_databases");
+      logToolCall("list_databases", "success", undefined, {});
       return { content: [{ type: "text", text: await listDatabases() }] };
     }
   );
@@ -37,7 +37,7 @@ function registerTools(server: McpServer) {
       },
     },
     async ({ database_id, filter }) => {
-      logToolCall("get_database_schema", "success", database_id);
+      logToolCall("get_database_schema", "success", database_id, { database_id, filter });
       return { content: [{ type: "text", text: await getDatabaseSchema(database_id, filter) }] };
     }
   );
@@ -52,7 +52,7 @@ function registerTools(server: McpServer) {
       },
     },
     async ({ database_id, table_name }) => {
-      logToolCall("get_table_schema", "success", database_id);
+      logToolCall("get_table_schema", "success", database_id, { database_id, table_name });
       return { content: [{ type: "text", text: await getTableSchema(database_id, table_name) }] };
     }
   );
@@ -72,10 +72,10 @@ function registerTools(server: McpServer) {
       try {
         const text = await executeReadQuery(database_id, query, limit);
         const isError = text.includes('"error"');
-        logToolCall("execute_read_query", isError ? "error" : "success", database_id);
+        logToolCall("execute_read_query", isError ? "error" : "success", database_id, { database_id, query, limit });
         return { content: [{ type: "text", text }] };
       } catch (err) {
-        logToolCall("execute_read_query", "error", database_id);
+        logToolCall("execute_read_query", "error", database_id, { database_id, query, limit });
         return {
           isError: true,
           content: [{ type: "text", text: err instanceof Error ? err.message : String(err) }],
@@ -100,4 +100,3 @@ export async function handleMcpRequest(req: Request): Promise<Response> {
   await server.connect(transport);
   return transport.handleRequest(req);
 }
-

@@ -1,10 +1,11 @@
 import { useState } from "react";
+import type { DbEngineType } from "../types";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Zap, ClipboardPaste, Check, Sparkles, AlertTriangle } from "@/components/ui/Icons";
 
 export interface ParsedConnectionFields {
-  type?: "postgresql" | "mysql";
+  type?: DbEngineType;
   host?: string;
   port?: number;
   databaseName?: string;
@@ -27,32 +28,24 @@ export function ConnectionStringParser({ onParse, className = "" }: ConnectionSt
     if (!rawUri.trim()) return null;
     try {
       let cleanUri = rawUri.trim();
-      let type: "postgresql" | "mysql" = "postgresql";
-
-      if (cleanUri.startsWith("postgres://")) {
-        cleanUri = "postgresql://" + cleanUri.slice(11);
-      } else if (cleanUri.startsWith("mysql://")) {
-        type = "mysql";
+      const protocol = cleanUri.slice(0, cleanUri.indexOf(":")).toLowerCase();
+      const type: DbEngineType = protocol === "mysql" ? "mysql" : protocol === "mongodb" || protocol === "mongodb+srv" ? "mongodb" : protocol === "redshift" ? "redshift" : protocol === "sqlite" ? "sqlite" : "postgresql";
+      if (type === "sqlite") {
+        const path = cleanUri.slice(cleanUri.indexOf(":") + 1).replace(/^\/\//, "");
+        return { type, databaseName: decodeURIComponent(path) };
       }
+      if (!["postgres", "postgresql", "mysql", "mongodb", "mongodb+srv", "redshift"].includes(protocol)) return null;
+      if (protocol === "postgres") cleanUri = `postgresql://${cleanUri.slice(cleanUri.indexOf(":") + 1).replace(/^\/\//, "")}`;
 
       const parsed = new URL(cleanUri);
-
-      if (
-        parsed.protocol !== "postgresql:" &&
-        parsed.protocol !== "postgres:" &&
-        parsed.protocol !== "mysql:"
-      ) {
-        return null;
-      }
-
+      const defaults: Record<DbEngineType, number> = { postgresql: 5432, mysql: 3306, sqlite: 0, redshift: 5439, mongodb: 27017 };
       const host = parsed.hostname || "localhost";
-      const defaultPort = type === "mysql" ? 3306 : 5432;
-      const port = parsed.port ? parseInt(parsed.port, 10) : defaultPort;
-      const databaseName = parsed.pathname ? parsed.pathname.replace(/^\//, "") : "";
+      const port = parsed.port ? parseInt(parsed.port, 10) : defaults[type];
+      const databaseName = parsed.pathname ? decodeURIComponent(parsed.pathname.replace(/^\//, "")) : "";
       const username = decodeURIComponent(parsed.username || "");
       const password = decodeURIComponent(parsed.password || "");
 
-      const sslParam = parsed.searchParams.get("ssl") || parsed.searchParams.get("sslmode");
+      const sslParam = parsed.searchParams.get("ssl") || parsed.searchParams.get("sslmode") || parsed.searchParams.get("tls");
       const ssl =
         sslParam === "require" ||
         sslParam === "verify-full" ||
@@ -84,12 +77,11 @@ export function ConnectionStringParser({ onParse, className = "" }: ConnectionSt
 
     const fields = parseUri(uri);
     if (!fields) {
-      setError("Invalid connection string format. Expected: postgresql://... or mysql://...");
+      setError("Use a PostgreSQL, MySQL, Redshift, MongoDB, or SQLite connection URL.");
       return;
     }
 
     onParse(fields);
-    setUri("");
     setCopiedSuccess(true);
     setTimeout(() => setCopiedSuccess(false), 2000);
   };
@@ -122,11 +114,11 @@ export function ConnectionStringParser({ onParse, className = "" }: ConnectionSt
             <Zap className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <h4 className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-1.5">
+            <h4 className="text-scale-xs font-bold uppercase tracking-wider text-primary flex items-center gap-1.5">
               <span>Quick URI Import</span>
               <Sparkles className="w-3.5 h-3.5 text-primary animate-pulse" />
             </h4>
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <p className="text-scale-xs text-muted-foreground mt-0.5">
               Paste a database URI string to auto-fill form fields
             </p>
           </div>
@@ -137,7 +129,7 @@ export function ConnectionStringParser({ onParse, className = "" }: ConnectionSt
           variant="outline"
           size="sm"
           onClick={handlePasteClipboard}
-          className="text-xs bg-background/80 hover:bg-background border-primary/30 text-primary self-start sm:self-auto gap-1.5 shadow-2xs"
+          className="text-scale-xs bg-background/80 hover:bg-background border-primary/30 text-primary self-start sm:self-auto gap-1.5 shadow-2xs"
         >
           <ClipboardPaste className="w-3.5 h-3.5" />
           <span>Paste from Clipboard</span>
@@ -149,16 +141,16 @@ export function ConnectionStringParser({ onParse, className = "" }: ConnectionSt
           <div className="relative flex-1">
             <input
               type="text"
-              placeholder="postgresql://user:pass@host:5432/db  or  mysql://root:pass@127.0.0.1:3306/db"
+              placeholder="postgresql://user:pass@host:5432/db or mongodb://user:pass@host:27017/db"
               value={uri}
               onChange={(e) => {
                 setUri(e.target.value);
                 if (error) setError(null);
               }}
-              className="w-full px-3.5 py-2 text-xs font-mono border border-primary/30 rounded-lg bg-background/90 focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all placeholder:text-muted-foreground/60"
+              className="w-full px-3.5 py-2 text-scale-xs font-mono border border-primary/30 rounded-lg bg-background/90 focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all placeholder:text-muted-foreground/60"
             />
             {copiedSuccess && (
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-emerald-500 font-medium flex items-center gap-1">
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-ui-sm text-success font-medium flex items-center gap-1">
                 <Check className="w-3.5 h-3.5" /> Parsed & Applied!
               </span>
             )}
@@ -170,7 +162,7 @@ export function ConnectionStringParser({ onParse, className = "" }: ConnectionSt
             size="sm"
             onClick={handleParse}
             disabled={!uri.trim()}
-            className="shrink-0 text-xs px-4"
+            className="shrink-0 text-scale-xs px-4"
           >
             Auto-Fill
           </Button>
@@ -179,32 +171,32 @@ export function ConnectionStringParser({ onParse, className = "" }: ConnectionSt
         {/* Live Detected Preview Chips */}
         {detectedFields && (
           <div className="flex flex-wrap items-center gap-1.5 pt-1 animate-in fade-in slide-in-from-top-1">
-            <span className="text-[11px] font-medium text-muted-foreground mr-1">Detected:</span>
-            <Badge variant="secondary" className="text-[10px] uppercase font-bold bg-primary/10 text-primary border-primary/20">
+            <span className="text-ui-xs font-medium text-muted-foreground mr-1">Detected:</span>
+            <Badge variant="secondary" className="text-ui-xs uppercase font-bold bg-primary/10 text-primary border-primary/20">
               {detectedFields.type}
             </Badge>
             {detectedFields.host && (
-              <Badge variant="outline" className="text-[10px] font-mono bg-background">
+              <Badge variant="outline" className="text-ui-xs font-mono bg-background">
                 host: {detectedFields.host}
               </Badge>
             )}
             {detectedFields.port && (
-              <Badge variant="outline" className="text-[10px] font-mono bg-background">
+              <Badge variant="outline" className="text-ui-xs font-mono bg-background">
                 port: {detectedFields.port}
               </Badge>
             )}
             {detectedFields.databaseName && (
-              <Badge variant="outline" className="text-[10px] font-mono bg-background">
+              <Badge variant="outline" className="text-ui-xs font-mono bg-background">
                 db: {detectedFields.databaseName}
               </Badge>
             )}
             {detectedFields.username && (
-              <Badge variant="outline" className="text-[10px] font-mono bg-background">
+              <Badge variant="outline" className="text-ui-xs font-mono bg-background">
                 user: {detectedFields.username}
               </Badge>
             )}
             {detectedFields.ssl && (
-              <Badge variant="outline" className="text-[10px] font-mono bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
+              <Badge variant="outline" className="text-ui-xs font-mono bg-success-subtle text-success border-success/30">
                 SSL Required
               </Badge>
             )}
@@ -212,7 +204,7 @@ export function ConnectionStringParser({ onParse, className = "" }: ConnectionSt
         )}
 
         {error && (
-          <div className="flex items-center gap-1.5 text-xs text-destructive font-medium pt-1">
+          <div className="flex items-center gap-1.5 text-scale-xs text-destructive font-medium pt-1">
             <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
             <span>{error}</span>
           </div>
@@ -221,4 +213,3 @@ export function ConnectionStringParser({ onParse, className = "" }: ConnectionSt
     </div>
   );
 }
-

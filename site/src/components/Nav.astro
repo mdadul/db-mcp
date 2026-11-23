@@ -1,0 +1,118 @@
+---
+import Icon from './Icon.astro';
+import { REPO, RELEASES } from '../data/site';
+
+const links = [
+  { href: '#compare', label: 'Why' },
+  { href: '#features', label: 'Features' },
+  { href: '#how', label: 'How it works' },
+  { href: '#setup', label: 'Setup' },
+  { href: '#security', label: 'Security' },
+  { href: '#faq', label: 'FAQ' },
+];
+---
+<header class="nav" data-nav>
+  <div class="container nav-inner">
+    <a class="brand" href="#top" aria-label="DB MCP home">
+      <img src="/logo-small.svg" alt="" width="28" height="28" />
+      <span>DB MCP</span>
+    </a>
+    <nav class="nav-links" aria-label="Primary">
+      {links.map((l) => <a href={l.href}>{l.label}</a>)}
+    </nav>
+    <div class="nav-actions">
+      <a class="gh" href={REPO} target="_blank" rel="noopener">
+        <Icon name="github" size={18} />
+        <span class="gh-label">Star</span>
+        <span class="gh-count" data-stars hidden></span>
+      </a>
+      <a class="btn btn-primary btn-sm" href={RELEASES}>
+        <Icon name="download" size={16} />
+        <span>Download</span>
+      </a>
+    </div>
+  </div>
+</header>
+
+<style>
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    border-bottom: 1px solid transparent;
+    transition: background 0.2s ease, border-color 0.2s ease;
+  }
+  .nav.scrolled {
+    background: rgba(7, 9, 15, 0.72);
+    backdrop-filter: saturate(160%) blur(14px);
+    -webkit-backdrop-filter: saturate(160%) blur(14px);
+    border-bottom-color: var(--line);
+  }
+  .nav-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    height: 68px;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .nav-links {
+    display: flex;
+    gap: 4px;
+  }
+  .nav-links a {
+    padding: 6px 12px;
+    border-radius: 8px;
+    color: var(--fg-2);
+    font-size: 14px;
+    transition: color 0.15s ease, background 0.15s ease;
+  }
+  .nav-links a:hover {
+    color: var(--fg);
+    background: rgba(255, 255, 255, 0.05);
+  }
+  .nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .gh {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 36px;
+    padding: 0 12px;
+    border-radius: 9px;
+    border: 1px solid var(--line-strong);
+    background: rgba(255, 255, 255, 0.03);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--fg-2);
+    transition: color 0.15s ease, background 0.15s ease;
+  }
+  .gh:hover {
+    color: var(--fg);
+    background: rgba(255, 255, 255, 0.07);
+  }
+  .gh-count {
+    padding-left: 8px;
+    border-left: 1px solid var(--line-strong);
+    font-variant-numeric: tabular-nums;
+  }
+  @media (max-width: 900px) {
+    .nav-links {
+      display: none;
+    }
+  }
+  @media (max-width: 420px) {
+    .gh-label {
+      display: none;
+    }
+  }
+</style>

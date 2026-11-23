@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16" shape-rendering="crispEdges" role="img" aria-label="DB MCP">
+  <!-- Pixel-hinted 16x16 rendition of the app icon. Use only at 16 px. -->
+  <rect width="16" height="16" rx="3.5" fill="#0B1220" shape-rendering="geometricPrecision"/>
+  <path fill="#2563EB" d="M6 1h2v1h-2zM4 2h2v1h-2zM8 2h2v1h-2zM2 3h2v1h-2zM10 3h2v1h-2zM1 4h1v1h-1zM1 5h1v1h-1zM1 6h1v1h-1zM1 7h1v1h-1zM1 8h1v1h-1zM1 9h1v1h-1zM1 10h1v1h-1zM2 11h1v1h-1zM11 11h1v1h-1zM3 12h1v1h-1zM10 12h1v1h-1zM4 13h2v1h-2zM8 13h2v1h-2zM6 14h2v1h-2z"/>
+  <path fill="#22D3EE" d="M13 4h2v1h-2zM3 5h8v1h-8zM13 5h2v1h-2zM12 6h1v1h-1zM3 7h10v1h-10zM3 8h10v1h-10zM12 9h1v1h-1zM3 10h8v1h-8zM13 10h2v1h-2zM4 11h6v1h-6zM13 11h2v1h-2z"/>
+  <path fill="#67E8F9" d="M4 4h6v1h-6z"/>
+</svg>

@@ -17,6 +17,13 @@ export async function getExecutor(
   return executor;
 }
 
+/** Gracefully end every cached pool. Called on server shutdown. */
+export async function closeAll(): Promise<void> {
+  const executors = [...pools.values()];
+  pools.clear();
+  await Promise.allSettled(executors.map((executor) => executor.close()));
+}
+
 /** Remove and gracefully end the cached pool for a database connection. */
 export function removeConnection(id: string): void {
   const executor = pools.get(id);

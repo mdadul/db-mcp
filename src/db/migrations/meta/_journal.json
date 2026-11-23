@@ -8,6 +8,48 @@
       "when": 1785591689871,
       "tag": "0000_good_patch",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1795261963132,
+      "tag": "0001_natural_captain_flint",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1795263278009,
+      "tag": "0002_round_madelyne_pryor",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1795266884542,
+      "tag": "0003_hot_norrin_radd",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1795268306517,
+      "tag": "0004_grey_ben_parker",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1795359715705,
+      "tag": "0005_slow_wallflower",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1795416484443,
+      "tag": "0006_drop_analyst_tables",
+      "breakpoints": true
     }
   ]
 }

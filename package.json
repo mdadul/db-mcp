@@ -1,12 +1,15 @@
 {
   "name": "db-mcp",
+  "version": "0.1.0",
   "module": "index.ts",
   "type": "module",
   "private": true,
   "devDependencies": {
+    "@tauri-apps/cli": "^2",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^26.1.1",
     "drizzle-kit": "^0.31.10",
+    "esbuild": "^0.28.2",
     "typescript": "^5"
   },
   "dependencies": {
@@ -22,19 +25,20 @@
     "zod": "^4.4.3"
   },
   "scripts": {
-    "setup": "sh scripts/setup.sh",
-    "start": "sh scripts/setup.sh && node --env-file=.env src/index.ts",
-    "dev": "sh scripts/setup.sh && node --env-file=.env --watch src/index.ts",
+    "dev": "bun run desktop:dev",
+    "desktop:sidecar": "node scripts/build-sidecar.mjs",
+    "desktop:dev": "cd desktop/src-tauri && tauri dev",
+    "desktop:build": "cd desktop/src-tauri && tauri build",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "type-check": "tsc --noEmit",
-    "test": "node --test src/**/*.test.ts",
+    "test": "node --test \"src/**/*.test.ts\"",
     "build:client": "cd client && bun install && bun run build",
-    "dev:client": "cd client && bun run dev"
+    "ui:preview": "node scripts/ui-preview.mjs"
   },
   "engines": {
-    "node": ">=24.0.0"
+    "node": ">=26.0.0"
   },
   "workspaces": [
     "client"

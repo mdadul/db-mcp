@@ -6,6 +6,11 @@ import {
   UpdateDatabaseSchema,
   SetStatusSchema,
   ExecuteQuerySchema,
+  SchemaQuerySchema,
+  TableSchemaQuerySchema,
+  BrowseRowsQuerySchema,
+  TestConnectionSchema,
+  DuplicateDatabaseSchema,
 } from "./types.ts";
 import * as service from "./service.ts";
 
@@ -40,8 +45,21 @@ export const databaseRoutes = new Hono()
   })
 
   // Test connection
+  .post("/test", zValidator("json", TestConnectionSchema), async (c) =>
+    c.json(await service.testConnectionInput(c.req.valid("json")))
+  )
+
+  // Test saved connection
   .post("/:id/test", async (c) =>
     c.json(await service.testConnection(c.req.param("id")))
+  )
+
+  // Duplicate and export a safe connection URL
+  .post("/:id/duplicate", zValidator("json", DuplicateDatabaseSchema), async (c) =>
+    c.json(await service.duplicateDatabase(c.req.param("id"), c.req.valid("json")), 201)
+  )
+  .get("/:id/connection-string", async (c) =>
+    c.json(await service.getConnectionString(c.req.param("id")))
   )
 
   // Enable / disable
@@ -55,18 +73,23 @@ export const databaseRoutes = new Hono()
   )
 
   // Get database schema (tables list)
-  .get("/:id/schema", async (c) =>
-    c.json(await service.getDatabaseSchemaApi(c.req.param("id")))
+  .get("/:id/schema", zValidator("query", SchemaQuerySchema), async (c) =>
+    c.json(await service.getDatabaseSchemaApi(c.req.param("id"), c.req.valid("query").filter))
   )
 
   // Get table schema (columns, indexes, foreign keys)
-  .get("/:id/tables/:tableName/schema", async (c) =>
+  .get("/:id/tables/:tableName/schema", zValidator("query", TableSchemaQuerySchema), async (c) =>
     c.json(
       await service.getTableSchemaApi(
         c.req.param("id"),
-        c.req.param("tableName")
+        c.req.param("tableName"),
+        c.req.valid("query").schema
       )
     )
+  )
+
+  .get("/:id/tables/:tableName/rows", zValidator("query", BrowseRowsQuerySchema), async (c) =>
+    c.json(await service.browseTableRows(c.req.param("id"), c.req.param("tableName"), c.req.valid("query")))
   )
 
   // Execute interactive read query (SQL Playground)
@@ -76,7 +99,7 @@ export const databaseRoutes = new Hono()
     async (c) => {
       const { query, limit } = c.req.valid("json");
       return c.json(
-        await service.executeQueryStructured(c.req.param("id"), query, limit)
+        await service.executeQueryStructured(c.req.param("id"), query, limit, "app")
       );
     }
   )
@@ -84,11 +107,9 @@ export const databaseRoutes = new Hono()
   // Get database query audit logs
   .get(
     "/:id/logs",
-    zValidator("query", z.object({ limit: z.string().optional() })),
+    zValidator("query", z.object({ limit: z.coerce.number().int().min(1).max(500).default(50) })),
     async (c) => {
-      const { limit: limitParam } = c.req.valid("query");
-      const limit = limitParam ? parseInt(limitParam, 10) : 50;
+      const { limit } = c.req.valid("query");
       return c.json(await service.getDatabaseLogs(c.req.param("id"), limit));
     }
   );
-

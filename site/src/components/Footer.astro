@@ -1,0 +1,187 @@
+---
+import Icon from './Icon.astro';
+import { REPO, ISSUES, RELEASES } from '../data/site';
+
+const cols = [
+  {
+    title: 'Product',
+    links: [
+      { href: '#features', label: 'Features' },
+      { href: '#how', label: 'How it works' },
+      { href: '#tools', label: 'MCP tools' },
+      { href: '#security', label: 'Security' },
+    ],
+  },
+  {
+    title: 'Get started',
+    links: [
+      { href: RELEASES, label: 'Download' },
+      { href: '#setup', label: 'Connect a client' },
+      { href: `${REPO}#readme`, label: 'Documentation' },
+      { href: '#faq', label: 'FAQ' },
+    ],
+  },
+  {
+    title: 'Community',
+    links: [
+      { href: REPO, label: 'GitHub' },
+      { href: ISSUES, label: 'Issues' },
+      { href: `${REPO}/pulls`, label: 'Pull requests' },
+    ],
+  },
+];
+---
+<section class="final">
+  <div class="container">
+    <h2 class="reveal">Let your agent understand your data <span class="grad-text">today</span>.</h2>
+    <p class="reveal">Free, open source and running on your machine in minutes.</p>
+    <div class="cta reveal">
+      <a class="btn btn-primary" href={RELEASES} data-download>
+        <Icon name="download" />
+        <span data-download-label>Download for free</span>
+      </a>
+      <a class="btn btn-ghost" href={REPO} target="_blank" rel="noopener">
+        <Icon name="github" />
+        <span>Star on GitHub</span>
+      </a>
+    </div>
+    <p class="platforms">macOS (Apple silicon &amp; Intel) · Windows · Linux (AppImage, deb, rpm)</p>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container grid">
+    <div class="about">
+      <a class="brand" href="#top">
+        <img src="/logo-small.svg" alt="" width="28" height="28" />
+        <span>DB MCP</span>
+      </a>
+      <p>Local, encrypted, read-only database access for AI coding agents.</p>
+    </div>
+    {
+      cols.map((c) => (
+        <nav aria-label={c.title}>
+          <h4>{c.title}</h4>
+          <ul>
+            {c.links.map((l) => (
+              <li>
+                <a href={l.href}>{l.label}</a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      ))
+    }
+  </div>
+  <div class="container bottom">
+    <span>© {new Date().getFullYear()} DB MCP contributors</span>
+    <a href={REPO} target="_blank" rel="noopener" aria-label="DB MCP on GitHub"><Icon name="github" size={18} /></a>
+  </div>
+</footer>
+
+<style>
+  .final {
+    position: relative;
+    padding: 120px 0 112px;
+    text-align: center;
+    overflow: hidden;
+  }
+  .final::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: -300px;
+    width: 1000px;
+    height: 600px;
+    transform: translateX(-50%);
+    background: radial-gradient(closest-side, rgba(34, 211, 238, 0.18), rgba(37, 99, 235, 0.08) 60%, transparent);
+    pointer-events: none;
+  }
+  .final .container {
+    position: relative;
+  }
+  .final h2 {
+    max-width: 760px;
+    margin: 0 auto 16px;
+    font-size: clamp(34px, 5vw, 56px);
+    line-height: 1.05;
+    letter-spacing: -0.04em;
+  }
+  .final > .container > p:not(.platforms) {
+    margin: 0 0 32px;
+    color: var(--fg-2);
+    font-size: 18px;
+  }
+  .cta {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .platforms {
+    margin: 24px 0 0;
+    color: var(--mut);
+    font-size: 13px;
+  }
+  .footer {
+    border-top: 1px solid var(--line);
+    padding: 56px 0 32px;
+    font-size: 14px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 32px;
+  }
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+  }
+  .about p {
+    max-width: 280px;
+    margin: 14px 0 0;
+    color: var(--mut);
+  }
+  h4 {
+    margin: 4px 0 14px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--fg);
+  }
+  ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 10px;
+  }
+  nav a {
+    color: var(--mut);
+    transition: color 0.15s ease;
+  }
+  nav a:hover {
+    color: var(--fg);
+  }
+  .bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 48px;
+    padding-top: 24px;
+    border-top: 1px solid var(--line);
+    color: var(--mut);
+  }
+  .bottom a:hover {
+    color: var(--fg);
+  }
+  @media (max-width: 760px) {
+    .grid {
+      grid-template-columns: 1fr 1fr;
+    }
+    .about {
+      grid-column: 1 / -1;
+    }
+  }
+</style>

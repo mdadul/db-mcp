@@ -1,5 +1,1 @@
-import { DatabaseList } from "@/features/databases/components/DatabaseList";
-
-export function DatabaseListPage() {
-  return <DatabaseList />;
-}
+export { ConnectionsWorkbench as DatabaseListPage } from "@/features/databases/components/ConnectionsWorkbench";

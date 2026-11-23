@@ -1,0 +1,456 @@
+---
+import Icon from './Icon.astro';
+import { REPO, RELEASES } from '../data/site';
+---
+<section class="hero" id="top">
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-glow" aria-hidden="true"></div>
+
+  <div class="container hero-inner">
+    <a class="pill" href={REPO} target="_blank" rel="noopener">
+      <span class="pill-tag">Open source</span>
+      <span>Free for macOS, Windows &amp; Linux</span>
+      <Icon name="arrow" size={14} />
+    </a>
+
+    <h1>
+      Give your AI agent<br />
+      <span class="grad-text">read-only</span> access to your databases
+    </h1>
+
+    <p class="lead">
+      DB MCP keeps your connections encrypted on your machine and serves them to Claude, Cursor, VS Code and any
+      MCP client over <span class="mono">localhost</span>. Your agent sees the schema and runs safe queries. It
+      can't write a thing.
+    </p>
+
+    <div class="cta">
+      <a class="btn btn-primary" href={RELEASES} data-download>
+        <Icon name="download" />
+        <span data-download-label>Download for free</span>
+      </a>
+      <a class="btn btn-ghost" href={REPO} target="_blank" rel="noopener">
+        <Icon name="github" />
+        <span>View on GitHub</span>
+      </a>
+    </div>
+    <p class="meta">
+      <span><Icon name="check" size={15} /> No account</span>
+      <span><Icon name="check" size={15} /> No cloud</span>
+      <span><Icon name="check" size={15} /> No telemetry</span>
+    </p>
+
+    <!-- Product mockup: an agent session using DB MCP tools -->
+    <div class="stage">
+      <div class="window" role="img" aria-label="An AI agent answering a question by calling DB MCP tools">
+        <div class="titlebar">
+          <span class="dots"><i></i><i></i><i></i></span>
+          <span class="wtitle">Claude Code — ~/acme-api</span>
+          <span class="status"><span class="live"></span>db-mcp connected</span>
+        </div>
+        <div class="session">
+          <p class="line l1 user"><span class="prompt">&gt;</span> Which customers churned last month, and what plan were they on?</p>
+
+          <div class="line l2 call">
+            <span class="dot ok"></span><b>db-mcp</b> · list_databases
+            <span class="res">2 databases: prod_replica, analytics</span>
+          </div>
+
+          <div class="line l3 call">
+            <span class="dot ok"></span><b>db-mcp</b> · get_database_schema
+            <span class="arg">filter: "customer"</span>
+            <span class="res">customers, customer_plans, customer_events</span>
+          </div>
+
+          <div class="line l4 call">
+            <span class="dot ok"></span><b>db-mcp</b> · execute_read_query
+            <pre class="sql"><span class="k">SELECT</span> c.name, p.plan, c.churned_at
+<span class="k">FROM</span> customers c <span class="k">JOIN</span> customer_plans p <span class="k">ON</span> p.customer_id = c.id
+<span class="k">WHERE</span> c.churned_at &gt;= <span class="s">'2026-10-01'</span> <span class="k">LIMIT</span> <span class="n">100</span></pre>
+            <span class="res ok-text">✓ 14 rows · 38 ms · read-only</span>
+          </div>
+
+          <p class="line l5 answer">
+            14 customers churned in October. 9 were on <b>Starter</b>, 4 on <b>Team</b>, 1 on <b>Business</b>. Most
+            left within 30 days of a price change…
+          </p>
+        </div>
+      </div>
+
+      <div class="float blocked" aria-hidden="true">
+        <span class="fi"><Icon name="ban" size={16} /></span>
+        <div>
+          <b>Write blocked</b>
+          <span class="mono">DELETE FROM users …</span>
+        </div>
+      </div>
+      <div class="float local" aria-hidden="true">
+        <span class="fi"><Icon name="lock" size={16} /></span>
+        <div>
+          <b>127.0.0.1:4080</b>
+          <span>Never leaves your machine</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .hero {
+    position: relative;
+    padding: 72px 0 96px;
+    overflow: hidden;
+    margin-top: -68px;
+    padding-top: 140px;
+  }
+  .bg-grid {
+    position: absolute;
+    inset: 0;
+    background-image: linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size: 56px 56px;
+    mask-image: radial-gradient(ellipse 70% 55% at 50% 20%, #000 30%, transparent 75%);
+    -webkit-mask-image: radial-gradient(ellipse 70% 55% at 50% 20%, #000 30%, transparent 75%);
+    opacity: 0.55;
+  }
+  .bg-glow {
+    position: absolute;
+    left: 50%;
+    top: -180px;
+    width: 1100px;
+    height: 700px;
+    transform: translateX(-50%);
+    background: radial-gradient(closest-side, rgba(34, 211, 238, 0.22), rgba(37, 99, 235, 0.12) 55%, transparent);
+    filter: blur(20px);
+    pointer-events: none;
+  }
+  .hero-inner {
+    position: relative;
+    text-align: center;
+  }
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 5px 12px 5px 5px;
+    border: 1px solid var(--line-strong);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.03);
+    font-size: 13px;
+    color: var(--fg-2);
+    transition: border-color 0.15s ease, color 0.15s ease;
+  }
+  .pill:hover {
+    border-color: rgba(34, 211, 238, 0.5);
+    color: var(--fg);
+  }
+  .pill-tag {
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: rgba(34, 211, 238, 0.12);
+    color: var(--cyan);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  h1 {
+    margin: 28px auto 22px;
+    max-width: 920px;
+    font-size: clamp(40px, 7vw, 76px);
+    line-height: 1.02;
+    letter-spacing: -0.045em;
+    font-weight: 750;
+  }
+  .lead {
+    max-width: 660px;
+    margin: 0 auto 36px;
+    font-size: clamp(17px, 2vw, 19px);
+    color: var(--fg-2);
+  }
+  .lead .mono {
+    font-size: 0.9em;
+    color: var(--fg);
+  }
+  .cta {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .meta {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin: 22px 0 0;
+    color: var(--mut);
+    font-size: 14px;
+  }
+  .meta span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .meta :global(svg) {
+    color: var(--green);
+  }
+
+  /* ---- Mockup ---- */
+  .stage {
+    position: relative;
+    max-width: 880px;
+    margin: 72px auto 0;
+  }
+  .stage::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: 17px;
+    padding: 1px;
+    background: linear-gradient(180deg, rgba(103, 232, 249, 0.5), rgba(37, 99, 235, 0.15) 40%, transparent 85%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    z-index: 2;
+  }
+  .window {
+    position: relative;
+    text-align: left;
+    border-radius: 16px;
+    background: linear-gradient(180deg, #0e1424, #0a0e19);
+    border: 1px solid var(--line);
+    box-shadow: 0 40px 120px -30px rgba(34, 211, 238, 0.25), 0 30px 60px -30px rgba(0, 0, 0, 0.8);
+    overflow: hidden;
+  }
+  .titlebar {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    height: 44px;
+    padding: 0 16px;
+    border-bottom: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.02);
+    font-size: 13px;
+    color: var(--mut);
+  }
+  .dots {
+    display: flex;
+    gap: 7px;
+  }
+  .dots i {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: #2a3146;
+  }
+  .dots i:nth-child(1) {
+    background: #ff5f57;
+  }
+  .dots i:nth-child(2) {
+    background: #febc2e;
+  }
+  .dots i:nth-child(3) {
+    background: #28c840;
+  }
+  .wtitle {
+    flex: 1;
+    text-align: center;
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+  .status {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--green);
+  }
+  .live {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.6);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    70% {
+      box-shadow: 0 0 0 8px rgba(52, 211, 153, 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(52, 211, 153, 0);
+    }
+  }
+  .session {
+    padding: 24px 26px 28px;
+    font: 13.5px/1.7 var(--mono);
+    color: var(--fg-2);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+  }
+  .line {
+    margin: 0;
+    opacity: 0;
+    transform: translateY(6px);
+    animation: appear 0.5s ease forwards;
+  }
+  .l1 { animation-delay: 0.3s; }
+  .l2 { animation-delay: 0.9s; }
+  .l3 { animation-delay: 1.5s; }
+  .l4 { animation-delay: 2.1s; }
+  .l5 { animation-delay: 2.9s; }
+  @keyframes appear {
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  .user {
+    color: var(--fg);
+    font-family: var(--sans);
+    font-size: 15px;
+  }
+  .prompt {
+    color: var(--cyan);
+    font-family: var(--mono);
+    margin-right: 6px;
+  }
+  .call b {
+    color: var(--fg);
+    font-weight: 600;
+  }
+  .dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 10px;
+    vertical-align: middle;
+  }
+  .dot.ok {
+    background: var(--green);
+  }
+  .arg {
+    margin-left: 8px;
+    color: var(--amber);
+  }
+  .res {
+    display: block;
+    padding-left: 18px;
+    color: var(--mut);
+  }
+  .res::before {
+    content: '└ ';
+    color: #3a4460;
+  }
+  .ok-text {
+    color: var(--green);
+  }
+  .sql {
+    margin: 8px 0 6px 18px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid var(--line);
+    color: #c8d3ea;
+    font: inherit;
+    font-size: 12.5px;
+    white-space: pre;
+    overflow-x: auto;
+  }
+  .sql .k { color: #7dd3fc; }
+  .sql .s { color: #fcd34d; }
+  .sql .n { color: #c4b5fd; }
+  .answer {
+    font-family: var(--sans);
+    font-size: 15px;
+    color: var(--fg);
+    padding-top: 4px;
+    border-top: 1px dashed var(--line);
+  }
+  .answer b {
+    color: var(--cyan);
+    font-weight: 600;
+  }
+
+  .float {
+    position: absolute;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px 12px 12px;
+    border-radius: 12px;
+    background: rgba(14, 19, 33, 0.85);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--line-strong);
+    box-shadow: 0 20px 50px -20px rgba(0, 0, 0, 0.9);
+    text-align: left;
+    font-size: 13px;
+    animation: bob 6s ease-in-out infinite;
+  }
+  .float b {
+    display: block;
+    color: var(--fg);
+  }
+  .float span:not(.fi) {
+    color: var(--mut);
+    font-size: 12px;
+  }
+  .fi {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+  }
+  .blocked {
+    right: -48px;
+    top: 120px;
+  }
+  .blocked .fi {
+    background: rgba(248, 113, 113, 0.14);
+    color: var(--red);
+  }
+  .local {
+    left: -56px;
+    bottom: -26px;
+    animation-delay: -3s;
+  }
+  .local .fi {
+    background: rgba(34, 211, 238, 0.14);
+    color: var(--cyan);
+  }
+  @keyframes bob {
+    50% {
+      transform: translateY(-8px);
+    }
+  }
+  @media (max-width: 1040px) {
+    .float {
+      display: none;
+    }
+  }
+  @media (max-width: 640px) {
+    .pill {
+      font-size: 12px;
+    }
+    .pill :global(svg) {
+      display: none;
+    }
+    .status {
+      display: none;
+    }
+    .session {
+      padding: 18px;
+      font-size: 12px;
+    }
+    .user,
+    .answer {
+      font-size: 14px;
+    }
+  }
+</style>

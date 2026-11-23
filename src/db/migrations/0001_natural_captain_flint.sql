@@ -1,0 +1,1 @@
+ALTER TABLE `query_logs` ADD `source` text DEFAULT 'mcp' NOT NULL;

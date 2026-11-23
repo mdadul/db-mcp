@@ -16,6 +16,8 @@ const baseDatabaseFormObject = z.object({
   ssl: z.boolean().default(false),
   serviceName: z.string().trim().optional(),
   environment: z.string().trim().optional(),
+  folder: z.string().trim().max(100, "Folder name is too long").optional(),
+  description: z.string().trim().max(500, "Description is too long").optional(),
 });
 
 // Exported for form field typing — the ZodObject without refinements

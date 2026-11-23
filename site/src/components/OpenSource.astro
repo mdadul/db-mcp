@@ -1,0 +1,98 @@
+---
+import Icon from './Icon.astro';
+import { REPO, ISSUES, RELEASES } from '../data/site';
+
+const stack = ['Tauri 2', 'Rust', 'TypeScript', 'Hono', 'MCP SDK', 'React', 'SQLite'];
+---
+<section class="section oss" id="open-source">
+  <div class="container">
+    <div class="panel reveal">
+      <div class="bg" aria-hidden="true"></div>
+      <div class="inner">
+        <span class="kicker">Open source</span>
+        <h2>Read every line that touches your data</h2>
+        <p>
+          A tool with database credentials should be auditable. DB MCP is developed in the open on GitHub. Inspect
+          the code, file issues, or send a pull request.
+        </p>
+        <ul class="stack" aria-label="Built with">
+          {stack.map((s) => <li class="mono">{s}</li>)}
+        </ul>
+        <div class="actions">
+          <a class="btn btn-primary" href={REPO} target="_blank" rel="noopener">
+            <Icon name="star" />
+            <span>Star on GitHub</span>
+          </a>
+          <a class="btn btn-ghost" href={ISSUES} target="_blank" rel="noopener">
+            <Icon name="bug" />
+            <span>Report an issue</span>
+          </a>
+          <a class="btn btn-ghost" href={RELEASES} target="_blank" rel="noopener">
+            <Icon name="code" />
+            <span>Release notes</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .panel {
+    position: relative;
+    border-radius: 24px;
+    border: 1px solid var(--line-strong);
+    overflow: hidden;
+    text-align: center;
+    background: #090d18;
+  }
+  .bg {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(600px 300px at 50% 0%, rgba(34, 211, 238, 0.18), transparent 70%),
+      linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size: auto, 40px 40px, 40px 40px;
+    mask-image: linear-gradient(180deg, #000, transparent 90%);
+    -webkit-mask-image: linear-gradient(180deg, #000, transparent 90%);
+  }
+  .inner {
+    position: relative;
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 72px 24px;
+  }
+  h2 {
+    font-size: clamp(30px, 4.2vw, 46px);
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    margin: 0 0 16px;
+  }
+  p {
+    margin: 0 auto 28px;
+    color: var(--fg-2);
+    font-size: 18px;
+  }
+  .stack {
+    list-style: none;
+    margin: 0 0 36px;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+  }
+  .stack li {
+    padding: 5px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--line-strong);
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--fg-2);
+    font-size: 12.5px;
+  }
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+  }
+</style>

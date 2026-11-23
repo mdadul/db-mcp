@@ -2,6 +2,7 @@ import { db } from "../../db/client.ts";
 import { databaseConnections } from "../../db/schema.ts";
 import { eq } from "drizzle-orm";
 import { getExecutor } from "../../services/connPool.ts";
+import { parseRedshiftDistKey, splitQualifiedTableName } from "./redshiftMeta.ts";
 
 export async function getTableSchema(
   databaseId: string,
@@ -13,7 +14,7 @@ export async function getTableSchema(
     .where(eq(databaseConnections.id, databaseId));
 
   if (!conn) return JSON.stringify({ error: `Database "${databaseId}" not found.`, hint: "Call list_databases to get valid database_id values." });
-  if (conn.status !== "enabled") return JSON.stringify({ error: `Database "${conn.name}" is disabled.`, hint: "Enable the database in the dashboard before querying." });
+  if (conn.status !== "enabled") return JSON.stringify({ error: `Database "${conn.name}" is disabled.`, hint: "Ask the user to enable the database in DB MCP (Connections) before querying." });
 
   const executor = await getExecutor(conn.id, conn as any);
 
@@ -72,19 +73,27 @@ export async function getTableSchema(
       }
       case "redshift": {
         // PG_TABLE_DEF's CASE WHEN on the notnull column errors on Redshift; use information_schema instead.
-        // Sort/dist keys still come from SVV_TABLE_INFO, which has no such issue.
+        // SVV_TABLE_INFO has no distkey column: the dist key is parsed from diststyle (e.g. KEY(col)).
+        // get_database_schema returns "schema.table", so accept that form and filter by schema.
+        const { schema: rsSchema, table: rsTable } = splitQualifiedTableName(tableName);
+        const schemaFilter = rsSchema ? " AND table_schema = $2" : "";
+        const metaSchemaFilter = rsSchema ? " AND schema = $2" : "";
+        const params = rsSchema ? [rsTable, rsSchema] : [rsTable];
         const [redshiftCols, redshiftMeta] = await Promise.all([
           executor.query<ColumnRow>(
             `SELECT column_name, data_type, is_nullable, column_default, character_maximum_length
              FROM information_schema.columns
-             WHERE table_name = $1
+             WHERE table_name = $1${schemaFilter}
              ORDER BY ordinal_position`,
-            [tableName]
+            params
           ),
-          executor.query<any>(
-            `SELECT sortkey1, sortkey1_enc, diststyle, distkey FROM SVV_TABLE_INFO WHERE "table" = $1`,
-            [tableName]
-          ),
+          // Sort/dist keys are extra detail; a failure here must not hide the columns.
+          executor
+            .query<{ sortkey1?: string | null; diststyle?: string | null }>(
+              `SELECT sortkey1, diststyle FROM SVV_TABLE_INFO WHERE "table" = $1${metaSchemaFilter}`,
+              params
+            )
+            .catch(() => []),
         ]);
         columns = redshiftCols;
         const meta = redshiftMeta[0] ?? {};
@@ -92,8 +101,9 @@ export async function getTableSchema(
         if (meta.sortkey1) {
           indexes.push({ index_name: `sort_key:${meta.sortkey1}`, column_name: meta.sortkey1, is_unique: false, is_primary: false });
         }
-        if (meta.distkey) {
-          indexes.push({ index_name: `dist_key:${meta.distkey}`, column_name: meta.distkey, is_unique: false, is_primary: false });
+        const distKey = parseRedshiftDistKey(meta.diststyle);
+        if (distKey) {
+          indexes.push({ index_name: `dist_key:${distKey}`, column_name: distKey, is_unique: false, is_primary: false });
         }
         break;
       }

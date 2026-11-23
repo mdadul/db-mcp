@@ -28,6 +28,11 @@ describe("assertReadOnly", () => {
     "CREATE TABLE foo (id INT)",
     "ALTER TABLE users ADD COLUMN x INT",
     "TRUNCATE users",
+    "SELECT * INTO new_table FROM users",
+    "select id into temp backup from orders",
+    "SELECT * FROM users INTO OUTFILE '/tmp/users.csv'",
+    "SELECT secret INTO @v FROM keys",
+    "WITH d AS (DELETE FROM users RETURNING *) SELECT * FROM d",
     // Write inside a CTE — must be blocked
     "WITH x AS (INSERT INTO t VALUES (1) RETURNING *) SELECT * FROM x",
     "WITH x AS (DELETE FROM t RETURNING *) SELECT * FROM x",
@@ -42,6 +47,11 @@ describe("assertReadOnly", () => {
 });
 
 describe("injectLimit", () => {
+  test("appends LIMIT to a WITH ... SELECT query", () => {
+    const result = injectLimit("WITH big AS (SELECT * FROM events) SELECT * FROM big", 50);
+    assert.equal(result, "WITH big AS (SELECT * FROM events) SELECT * FROM big LIMIT 50");
+  });
+
   test("appends default LIMIT to a plain SELECT", () => {
     const result = injectLimit("SELECT * FROM users");
     assert.equal(result, `SELECT * FROM users LIMIT ${MAX_ROWS}`);

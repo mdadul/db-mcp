@@ -23,6 +23,8 @@ export const CreateDatabaseSchema = z.discriminatedUnion("type", [
     ssl: z.boolean().default(false),
     serviceName: z.string().optional(),
     environment: z.string().optional(),
+    folder: z.string().trim().max(100).optional(),
+    description: z.string().max(500).optional(),
   }),
   z.object({
     name: z.string().min(1).max(255),
@@ -35,6 +37,8 @@ export const CreateDatabaseSchema = z.discriminatedUnion("type", [
     ssl: z.boolean().default(false),
     serviceName: z.string().optional(),
     environment: z.string().optional(),
+    folder: z.string().trim().max(100).optional(),
+    description: z.string().max(500).optional(),
   }),
   z.object({
     name: z.string().min(1).max(255),
@@ -47,6 +51,8 @@ export const CreateDatabaseSchema = z.discriminatedUnion("type", [
     ssl: z.boolean().default(false),
     serviceName: z.string().optional(),
     environment: z.string().optional(),
+    folder: z.string().trim().max(100).optional(),
+    description: z.string().max(500).optional(),
   }),
   z.object({
     name: z.string().min(1).max(255),
@@ -59,6 +65,8 @@ export const CreateDatabaseSchema = z.discriminatedUnion("type", [
     ssl: z.boolean().default(true), // always required for Redshift
     serviceName: z.string().optional(),
     environment: z.string().optional(),
+    folder: z.string().trim().max(100).optional(),
+    description: z.string().max(500).optional(),
   }),
   z.object({
     name: z.string().min(1).max(255),
@@ -71,6 +79,8 @@ export const CreateDatabaseSchema = z.discriminatedUnion("type", [
     ssl: z.boolean().default(false),
     serviceName: z.string().optional(),
     environment: z.string().optional(),
+    folder: z.string().trim().max(100).optional(),
+    description: z.string().max(500).optional(),
   }),
 ]);
 
@@ -86,6 +96,9 @@ export const UpdateDatabaseSchema = z.object({
   ssl: z.boolean().optional(),
   serviceName: z.string().optional(),
   environment: z.string().optional(),
+  folder: z.string().trim().max(100).optional(),
+  description: z.string().max(500).optional(),
+  favourite: z.boolean().optional(),
 });
 
 export const SetStatusSchema = z.object({
@@ -111,7 +124,17 @@ export interface DatabaseConnection {
   ssl: boolean;
   serviceName: string | null;
   environment: string | null;
+  folder: string | null;
+  description: string | null;
+  favourite: boolean;
   status: string;
+  lastTestedAt: string | null;
+  lastTestStatus: "reachable" | "unreachable" | null;
+  lastTestMessage: string | null;
+  lastTestLatencyMs: number | null;
+  serverVersion: string | null;
+  /** Latest query or tool call made by an AI client through MCP, or null. */
+  lastUsedByAiAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -121,6 +144,8 @@ export interface TestResult {
   message: string;
   hint?: string;
   latencyMs?: number;
+  code?: string;
+  serverVersion?: string;
 }
 
 export const ExecuteQuerySchema = z.object({
@@ -128,15 +153,63 @@ export const ExecuteQuerySchema = z.object({
   limit: z.number().int().min(1).max(1000).optional(),
 });
 
+const optionalSchema = z.string().min(1).max(255).optional();
+export const SchemaQuerySchema = z.object({ filter: z.string().max(255).optional() });
+export const TableSchemaQuerySchema = z.object({ schema: optionalSchema });
+export const BrowseRowsQuerySchema = z.object({
+  schema: optionalSchema,
+  limit: z.coerce.number().int().min(1).max(500).default(50),
+  offset: z.coerce.number().int().min(0).max(Number.MAX_SAFE_INTEGER).default(0),
+  orderBy: z.string().min(1).max(255).optional(),
+  direction: z.enum(["asc", "desc"]).default("asc"),
+});
+export const TestConnectionSchema = z.union(CreateDatabaseSchema.options.map((schema) => schema
+  .extend({ id: z.string().min(1).optional() })
+  .extend({ password: z.string().optional().default("") }))).superRefine((input, context) => {
+  if (input.type === "sqlite") return;
+  if (!input.host.trim()) context.addIssue({ code: "custom", path: ["host"], message: "Host is required for this database engine" });
+  if (!input.username.trim()) context.addIssue({ code: "custom", path: ["username"], message: "Username is required for this database engine" });
+  if (!input.id && !input.password) context.addIssue({ code: "custom", path: ["password"], message: "Password is required for a new connection test" });
+});
+export const DuplicateDatabaseSchema = z.object({ name: z.string().min(1).max(255).optional() });
+
 export type ExecuteQueryInput = z.infer<typeof ExecuteQuerySchema>;
+export type BrowseRowsInput = z.infer<typeof BrowseRowsQuerySchema>;
+export type TestConnectionInput = z.infer<typeof TestConnectionSchema>;
 
 export interface StructuredQueryResult {
   success: boolean;
   executionTimeMs: number;
   rowCount: number;
-  columns: string[];
+  columns: { name: string }[];
   rows: Record<string, unknown>[];
   error: string | null;
+  truncated: boolean;
+  hint: string | null;
+}
+
+export interface SchemaTree {
+  engine: DbEngineType;
+  schemas: { name: string; tables: { name: string; type: "table" | "view" | "collection"; rowEstimate: number | null }[] }[];
+}
+
+export interface TableStructure {
+  schema: string;
+  name: string;
+  type: "table" | "view" | "collection";
+  columns: { name: string; dataType: string; nullable: boolean; default: string | null; isPrimaryKey: boolean; comment: string | null }[];
+  indexes: { name: string; columns: string[]; unique: boolean; primary: boolean }[];
+  foreignKeys: { name: string; columns: string[]; refSchema: string | null; refTable: string; refColumns: string[] }[];
+  rowEstimate: number | null;
+}
+
+export interface BrowseRowsResult {
+  columns: { name: string; dataType: string }[];
+  rows: Record<string, unknown>[];
+  limit: number;
+  offset: number;
+  hasMore: boolean;
+  executionTimeMs: number;
 }
 
 export interface QueryLogItem {
@@ -147,6 +220,6 @@ export interface QueryLogItem {
   rowCount: number | null;
   status: string;
   error: string | null;
+  source: "mcp" | "app";
   createdAt: string;
 }
-
