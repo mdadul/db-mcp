@@ -72,6 +72,7 @@ pub fn run() {
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(log_plugin())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_process::init())
         .plugin(updater_plugin())
         .manage(Arc::new(Mutex::new(None::<supervisor::Supervisor>)))

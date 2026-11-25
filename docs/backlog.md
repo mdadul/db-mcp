@@ -172,8 +172,8 @@ Old installs keep connections in `./data/db-mcp.sqlite`, encrypted with
 
 ## P2 — Workbench follow-ups
 
-- **SQLite file picker**: Browse button does nothing. Add `@tauri-apps/plugin-dialog`
-  with `.sqlite`/`.db`/`.sqlite3` filters and a minimal capability.
+- **SQLite file picker**: Done in v0.1.3 with `.sqlite`/`.db`/`.sqlite3` filters and
+  the minimal `dialog:allow-open` capability.
 - **Persist connection test results**: store `lastTestedAt`, `lastTestStatus`,
   `lastTestError` (migration) and show them in the list.
 - **Query log statuses**: record `timeout` and `blocked` separately from `error` so

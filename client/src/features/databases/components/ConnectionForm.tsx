@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { open as openFileDialog } from "@tauri-apps/plugin-dialog";
 import { CheckCircle2, Copy, Database, FolderOpen, ShieldCheck, XCircle } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useBlocker, useNavigate, useParams, useSearchParams } from "react-router-dom";
@@ -392,6 +393,9 @@ export function ConnectionForm({ onSaved, stayOnSave = false }: ConnectionFormPr
               >
                 <Input
                   value={values.name}
+                  autoCapitalize="off"
+                  autoCorrect="off"
+                  spellCheck={false}
                   onChange={(event) => update("name", event.target.value)}
                   onBlur={() => validateField("name")}
                   autoFocus={searchParams.has("duplicate")}
@@ -413,6 +417,9 @@ export function ConnectionForm({ onSaved, stayOnSave = false }: ConnectionFormPr
                       value={values.host}
                       placeholder="db.example.com"
                       autoComplete="url"
+                      autoCapitalize="off"
+                      autoCorrect="off"
+                      spellCheck={false}
                       onChange={(event) => update("host", event.target.value)}
                       onBlur={() => validateField("host")}
                     />
@@ -444,6 +451,9 @@ export function ConnectionForm({ onSaved, stayOnSave = false }: ConnectionFormPr
                   >
                     <Input
                       value={values.databaseName}
+                      autoCapitalize="off"
+                      autoCorrect="off"
+                      spellCheck={false}
                       onChange={(event) => update("databaseName", event.target.value)}
                       onBlur={() => validateField("databaseName")}
                     />
@@ -461,6 +471,9 @@ export function ConnectionForm({ onSaved, stayOnSave = false }: ConnectionFormPr
                       value={values.databaseName}
                       placeholder="/path/to/database.sqlite"
                       className="font-mono"
+                      autoCapitalize="off"
+                      autoCorrect="off"
+                      spellCheck={false}
                       onChange={(event) => update("databaseName", event.target.value)}
                       onBlur={() => validateField("databaseName")}
                     />
@@ -469,7 +482,29 @@ export function ConnectionForm({ onSaved, stayOnSave = false }: ConnectionFormPr
                       variant="outline"
                       size="icon"
                       aria-label="Browse for SQLite file"
-                      title="Native file picker is not installed"
+                      title="Browse for SQLite file"
+                      onClick={() => {
+                        void (async () => {
+                          try {
+                            const path = await openFileDialog({
+                              title: "Select SQLite database",
+                              multiple: false,
+                              directory: false,
+                              filters: [
+                                {
+                                  name: "SQLite databases",
+                                  extensions: ["sqlite", "sqlite3", "db"],
+                                },
+                              ],
+                            });
+                            if (typeof path === "string") update("databaseName", path);
+                          } catch (error: unknown) {
+                            toast.error(
+                              error instanceof Error ? error.message : "Could not open file picker",
+                            );
+                          }
+                        })();
+                      }}
                     >
                       <FolderOpen />
                     </Button>
@@ -488,6 +523,9 @@ export function ConnectionForm({ onSaved, stayOnSave = false }: ConnectionFormPr
                 <Field label="Username" required error={errors.username}>
                   <Input
                     autoComplete="username"
+                    autoCapitalize="off"
+                    autoCorrect="off"
+                    spellCheck={false}
                     value={values.username}
                     onChange={(event) => update("username", event.target.value)}
                     onBlur={() => validateField("username")}
@@ -501,6 +539,9 @@ export function ConnectionForm({ onSaved, stayOnSave = false }: ConnectionFormPr
                 >
                   <PasswordInput
                     autoComplete={isEdit ? "new-password" : "current-password"}
+                    autoCapitalize="off"
+                    autoCorrect="off"
+                    spellCheck={false}
                     placeholder={
                       isEdit
                         ? "Unchanged — leave empty to keep the saved password"
@@ -585,6 +626,9 @@ export function ConnectionForm({ onSaved, stayOnSave = false }: ConnectionFormPr
                     <Input
                       value={values.environment}
                       placeholder="staging"
+                      autoCapitalize="off"
+                      autoCorrect="off"
+                      spellCheck={false}
                       onChange={(event) => update("environment", event.target.value)}
                     />
                   </Field>
@@ -596,6 +640,9 @@ export function ConnectionForm({ onSaved, stayOnSave = false }: ConnectionFormPr
                     <Input
                       value={values.serviceName}
                       placeholder="orders-api"
+                      autoCapitalize="off"
+                      autoCorrect="off"
+                      spellCheck={false}
                       onChange={(event) => update("serviceName", event.target.value)}
                     />
                   </Field>
@@ -603,6 +650,9 @@ export function ConnectionForm({ onSaved, stayOnSave = false }: ConnectionFormPr
                     <Input
                       value={values.folder}
                       placeholder="Analytics"
+                      autoCapitalize="off"
+                      autoCorrect="off"
+                      spellCheck={false}
                       onChange={(event) => update("folder", event.target.value)}
                     />
                   </Field>
@@ -614,6 +664,9 @@ export function ConnectionForm({ onSaved, stayOnSave = false }: ConnectionFormPr
                     <Input
                       value={values.description}
                       placeholder="Orders and payments, read replica"
+                      autoCapitalize="off"
+                      autoCorrect="off"
+                      spellCheck={false}
                       onChange={(event) => update("description", event.target.value)}
                     />
                   </Field>

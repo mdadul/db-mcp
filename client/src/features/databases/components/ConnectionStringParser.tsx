@@ -173,6 +173,9 @@ export function ConnectionStringParser({ onParse, className = "" }: ConnectionSt
               type="text"
               placeholder="postgresql://user:pass@host:5432/db or mongodb://user:pass@host:27017/db"
               value={uri}
+              autoCapitalize="off"
+              autoCorrect="off"
+              spellCheck={false}
               onChange={(e) => {
                 setUri(e.target.value);
                 if (error) setError(null);
