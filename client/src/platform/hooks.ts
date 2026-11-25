@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
+
 import { platform } from "./index";
 import type { AppSettings, ServerInfo } from "./types";
 

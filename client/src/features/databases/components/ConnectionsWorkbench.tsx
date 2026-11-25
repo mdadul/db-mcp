@@ -1,36 +1,31 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { MoreHorizontal, Pencil, Plug, Plus, RefreshCw, ShieldCheck } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { MoreHorizontal, Pencil, Plug, Plus, RefreshCw, ShieldCheck } from "lucide-react";
-import { ResizablePanels } from "@/components/ui/ResizablePanels";
-import { DocumentTabs, type DocumentTab } from "@/components/ui/DocumentTabs";
-import { EmptyState } from "@/components/ui/EmptyState";
+
+import { DbEngineIcon } from "@/components/brand/DbEngineIcon";
 import { Button } from "@/components/ui/Button";
-import { Skeleton } from "@/components/ui/Skeleton";
-import { StatusDot } from "@/components/ui/StatusDot";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { Tooltip } from "@/components/ui/Tooltip";
+import { DocumentTabs, type DocumentTab } from "@/components/ui/DocumentTabs";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { DbEngineIcon } from "@/components/brand/DbEngineIcon";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { ResizablePanels } from "@/components/ui/ResizablePanels";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { StatusDot } from "@/components/ui/StatusDot";
+import { Tooltip } from "@/components/ui/Tooltip";
 import { useServerInfo } from "@/platform/hooks";
+
 import { databaseApi } from "../api/databaseApi";
 import type { DatabaseConnection } from "../types";
-import { ConnectionsHome, type RecentQueryItem, type RecentTableItem } from "./ConnectionsHome";
-import { VirtualDataTable } from "./VirtualDataGrid";
-import { ConnectionContextMenu, ExplorerPane } from "../workbench/ExplorerPane";
 import { ConnectionTree } from "../workbench/ConnectionTree";
-import { QueryWorkspace } from "../workbench/QueryWorkspace";
-import { StructureView } from "../workbench/StructureView";
-import { useQueryEditor } from "../workbench/useQueryEditor";
-import { useSavedQueries } from "../workbench/useSavedQueries";
-import { useTableBrowser } from "../workbench/useTableBrowser";
-import { useWorkbenchTabs } from "../workbench/useWorkbenchTabs";
+import { EnvironmentTag } from "../workbench/EnvironmentTag";
+import { ConnectionContextMenu, ExplorerPane } from "../workbench/ExplorerPane";
 import {
   READ_ONLY_TOOLTIP,
   browseQuery,
@@ -48,8 +43,15 @@ import {
   type TableRef,
   type TestState,
 } from "../workbench/model";
-import { EnvironmentTag } from "../workbench/EnvironmentTag";
+import { QueryWorkspace } from "../workbench/QueryWorkspace";
+import { StructureView } from "../workbench/StructureView";
+import { useQueryEditor } from "../workbench/useQueryEditor";
+import { useSavedQueries } from "../workbench/useSavedQueries";
+import { useTableBrowser } from "../workbench/useTableBrowser";
+import { useWorkbenchTabs } from "../workbench/useWorkbenchTabs";
+import { ConnectionsHome, type RecentQueryItem, type RecentTableItem } from "./ConnectionsHome";
 import { downloadText } from "./gridData";
+import { VirtualDataTable } from "./VirtualDataGrid";
 
 /** Connections home and read-only schema/query workbench. Layout and orchestration only; state lives in ../workbench. */
 export function ConnectionsWorkbench() {

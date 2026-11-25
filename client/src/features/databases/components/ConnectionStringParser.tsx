@@ -1,8 +1,10 @@
 import { useState } from "react";
-import type { DbEngineType } from "../types";
-import { Button } from "@/components/ui/Button";
+
 import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 import { Zap, ClipboardPaste, Check, Sparkles, AlertTriangle } from "@/components/ui/Icons";
+
+import type { DbEngineType } from "../types";
 
 export interface ParsedConnectionFields {
   type?: DbEngineType;

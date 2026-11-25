@@ -1,3 +1,4 @@
+import { ChevronRight, LoaderCircle } from "lucide-react";
 import {
   useMemo,
   useRef,
@@ -6,7 +7,6 @@ import {
   type KeyboardEvent,
   type SVGProps,
 } from "react";
-import { ChevronRight, LoaderCircle } from "lucide-react";
 
 export interface TreeNode {
   id: string;

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+
 import { contrastRatio } from "./contrast.ts";
 import { builtInThemes } from "./themes.ts";
 

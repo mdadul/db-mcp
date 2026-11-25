@@ -4,5 +4,10 @@
   "semi": true,
   "singleQuote": false,
   "trailingComma": "all",
+  "arrowParens": "always",
+  "bracketSpacing": true,
+  "endOfLine": "lf",
+  "insertFinalNewline": true,
+  "sortImports": true,
   "ignorePatterns": ["dist", "node_modules"]
 }

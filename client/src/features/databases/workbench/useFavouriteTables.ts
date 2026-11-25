@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+
 import { readStoredFavourites, tableKey, writeStoredFavourites, type TableRef } from "./model";
 
 /** Favourite tables per connection, persisted to localStorage in the order they were added. */

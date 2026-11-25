@@ -1,7 +1,9 @@
 import type { UseQueryResult } from "@tanstack/react-query";
+
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
+
 import type { TableStructure } from "../types";
 
 export function ErrorPanel({ message, retry }: { message: string; retry: () => void }) {

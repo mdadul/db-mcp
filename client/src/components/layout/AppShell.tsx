@@ -1,7 +1,5 @@
-import { Fragment, useEffect, useState } from "react";
-import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { Command } from "cmdk";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Command } from "cmdk";
 import {
   Activity,
   Command as CommandIcon,
@@ -16,12 +14,11 @@ import {
   Settings,
   Users,
 } from "lucide-react";
+import { Fragment, useEffect, useState } from "react";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+
 import { Button } from "@/components/ui/Button";
-import { Kbd } from "@/components/ui/Kbd";
-import { ShortcutSheet } from "@/components/ui/ShortcutSheet";
-import { StatusDot } from "@/components/ui/StatusDot";
-import { Tooltip } from "@/components/ui/Tooltip";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,6 +28,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Kbd } from "@/components/ui/Kbd";
+import { ShortcutSheet } from "@/components/ui/ShortcutSheet";
+import { StatusDot } from "@/components/ui/StatusDot";
+import { Tooltip } from "@/components/ui/Tooltip";
 import { formatShortcut, getShortcut, shortcutOsForPlatform } from "@/lib/shortcuts";
 import { platform } from "@/platform";
 import { useRestartServer, useServerInfo, useSettings } from "@/platform/hooks";
