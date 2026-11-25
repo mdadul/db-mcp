@@ -1,46 +1,64 @@
 # DB MCP
 
-A desktop app that stores your database connections encrypted on your computer and exposes them, read-only, to AI coding tools over MCP. The MCP endpoint listens on `127.0.0.1` only, so nothing leaves your machine.
+**Local, read-only database access for AI clients over Model Context Protocol (MCP).**
 
-Supported platforms: macOS (Apple silicon and Intel), Windows, Linux.
+[![CI](https://github.com/mdadul/db-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/mdadul/db-mcp/actions/workflows/ci.yml) [![Latest release](https://img.shields.io/github/v/release/mdadul/db-mcp)](https://github.com/mdadul/db-mcp/releases/latest)
+
+DB MCP is a desktop application for macOS, Windows, and Linux. It stores connection details on your computer, runs the MCP server on loopback, and gives compatible AI clients a small set of schema and query tools.
+
+[Download the latest release](https://github.com/mdadul/db-mcp/releases/latest) · [Report a bug](https://github.com/mdadul/db-mcp/issues/new) · [Read the security notes](#security)
+
+## What it does
+
+- Connects to PostgreSQL, MySQL, SQLite, Amazon Redshift, and MongoDB.
+- Lets AI clients list enabled databases, inspect schemas, and run read-only queries.
+- Rejects write queries and adds a row limit when a query does not include one.
+- Encrypts saved database credentials with AES-256-GCM. The encryption key is stored in the OS keychain when available.
+- Runs on `127.0.0.1`; it does not expose a hosted service or require a DB MCP account.
+- Checks for signed app updates. Review release notes and install updates from **Settings → About**.
+
+DB MCP's query guard is an extra control. Use database accounts that have read-only permissions. The database enforces those permissions.
 
 ## Install
 
-Download the latest build from [GitHub Releases](../../releases):
+Download an installer from [GitHub Releases](https://github.com/mdadul/db-mcp/releases/latest).
 
-| Platform | File |
+| Platform | Downloads |
 |---|---|
-| macOS, Apple silicon | `.dmg` (aarch64) |
-| macOS, Intel | `.dmg` (x64) |
+| macOS, Apple silicon | `.dmg` for aarch64 |
+| macOS, Intel | `.dmg` for x64 |
 | Windows | `.msi` or `.exe` |
 | Linux | `.AppImage`, `.deb`, or `.rpm` |
 
-Builds are not code-signed yet, so the OS will warn on first launch.
+The current builds are not signed with a publisher identity or notarized. Your OS may show a first-launch warning.
 
-- **macOS:** Control-click the app and choose **Open**, then confirm. If macOS still refuses, remove the quarantine flag:
+- **macOS:** If Gatekeeper blocks the app, open **System Settings → Privacy & Security** and choose **Open Anyway**. You can also remove the quarantine flag from an app you trust:
   ```bash
   xattr -dr com.apple.quarantine "/Applications/DB MCP.app"
   ```
-- **Windows:** SmartScreen shows "Windows protected your PC". Click **More info**, then **Run anyway**.
+- **Windows:** If SmartScreen warns, select **More info → Run anyway**.
+- **Linux:** For an AppImage, mark the downloaded file executable before opening it.
 
-## Quick start
+## Get started
 
-1. Open DB MCP and add a database (**Connections → New connection**). Engines: PostgreSQL, MySQL, SQLite, Amazon Redshift, MongoDB.
-2. Click **Test Connection** to check the connection.
-3. Use a database user that has only read permissions. DB MCP blocks write statements, but a read-only user is the real safeguard.
-4. Open **AI Clients** and connect the tool you use (see below).
+1. Open DB MCP and choose **Connections → New connection**.
+2. Enter the database details, then select **Test Connection**.
+3. Use a database account with read-only grants.
+4. Open **AI Clients** to install a supported client configuration or copy its MCP snippet.
 
-## Connect an AI client
+The MCP endpoint defaults to `http://127.0.0.1:4080/mcp`. You can change the port in **Settings**.
 
-On the **AI Clients** page, DB MCP can write the config entry for Claude Desktop, Cursor, VS Code, Windsurf, and LM Studio. For other clients, copy the snippet shown on that page.
+## Connect an MCP client
 
-**Claude Code:**
+DB MCP can write configuration for Claude Desktop, Cursor, VS Code, Windsurf, and LM Studio. The **AI Clients** page shows the configuration format for each client and provides snippets for other MCP clients.
+
+### Claude Code
 
 ```bash
 claude mcp add --transport http db-mcp http://127.0.0.1:4080/mcp
 ```
 
-**Generic JSON config:**
+### Generic HTTP configuration
 
 ```json
 {
@@ -52,87 +70,96 @@ claude mcp add --transport http db-mcp http://127.0.0.1:4080/mcp
 }
 ```
 
-Claude Desktop does not connect to a URL directly in all versions. Its snippet on the AI Clients page uses `npx -y mcp-remote http://127.0.0.1:4080/mcp`, which needs Node.js on your PATH.
+Some Claude Desktop versions need the `mcp-remote` bridge instead of a direct HTTP URL. Use the snippet shown in DB MCP for that client. Restart the AI client after changing its configuration.
 
-Restart the AI client after changing its config. The port is `4080` by default and can be changed in **Settings**.
+## Database support
 
-## Supported databases
-
-| Engine | Notes |
+| Database | Notes |
 |---|---|
-| PostgreSQL | Supabase, Neon, AWS RDS, CockroachDB, and other PostgreSQL-compatible hosts |
-| MySQL | MySQL and MariaDB, including PlanetScale and AWS RDS |
-| SQLite | Local file |
+| PostgreSQL | PostgreSQL-compatible services, including Supabase, Neon, RDS, and CockroachDB |
+| MySQL | MySQL and MariaDB, including PlanetScale and RDS |
+| SQLite | Local database files; use the file picker or enter a path |
 | Amazon Redshift | SSL is required |
-| MongoDB | MongoDB Atlas, self-hosted, and DocumentDB |
+| MongoDB | Atlas, self-hosted MongoDB, and DocumentDB |
 
 ## MCP tools
 
-| Tool | Description |
+| Tool | Purpose |
 |---|---|
-| `list_databases` | List enabled databases and their `database_id` values |
-| `get_database_schema` | List tables, with an optional name filter |
-| `get_table_schema` | Columns, indexes, and foreign keys for one table |
-| `execute_read_query` | Run a read-only query (`SELECT`, `EXPLAIN`, `DESCRIBE`, `SHOW`); returns up to 100 rows by default, 1000 at most |
+| `list_databases` | Lists enabled connections and their `database_id` values |
+| `get_database_schema` | Lists tables in a database, with an optional name filter |
+| `get_table_schema` | Returns columns, indexes, and foreign keys for a table |
+| `execute_read_query` | Runs a read-only query and returns up to 100 rows by default, with a maximum of 1,000 |
 
-## Security model
+The query tool accepts SQL `SELECT`, `EXPLAIN`, `DESCRIBE`, and `SHOW` statements. It adds `LIMIT 100` when a SQL query has no limit. MongoDB queries use DB MCP's JSON query format rather than shell or JavaScript syntax.
 
-- Database credentials are encrypted with AES-256-GCM. The encryption key is stored in the OS keychain. If the keychain is unavailable, it falls back to a `0600` file in the app data directory.
-- The server binds to `127.0.0.1` and checks the `Host` header, which blocks DNS rebinding.
-- Requests to `/mcp` that carry a browser `Origin` header are rejected. MCP clients do not send one.
-- The internal `/api` used by the app requires a per-launch session token.
-- Write statements are rejected before they reach the database. Use a read-only database user as well.
-- Any program running as your OS user can call the MCP endpoint. DB MCP does not add authentication to `/mcp`, so treat your user account as the trust boundary.
+## Security
 
-## Running in the background
+- **Local-only listener:** the MCP server binds to `127.0.0.1`. Host checks reject unexpected hosts, and browser-origin requests to `/mcp` are rejected.
+- **Credential storage:** saved credentials are encrypted with AES-256-GCM. The encryption key is kept in the OS keychain when available. If the keychain is unavailable, DB MCP stores a local key file with mode `0600` on Unix systems.
+- **Read-only guard:** write operations are rejected before reaching the database. A read-only database account remains the primary database-side control.
+- **Local API session:** the app's internal API uses a per-launch session token.
+- **User-account boundary:** other processes running as your OS user can connect to the loopback MCP endpoint. DB MCP does not add authentication to that endpoint.
 
-Closing the window hides DB MCP to the system tray. Use the tray menu to open the window, restart the server, open logs, or quit. Quitting stops the server. You can start DB MCP at login from **Settings**.
+For vulnerability reports, use [GitHub's private vulnerability reporting](https://github.com/mdadul/db-mcp/security/advisories/new) when available, or contact the maintainers through the repository.
 
-## Data locations
+## Background operation and updates
 
-Paths below are typical. The exact location depends on the OS and the app identifier `dev.dbmcp.desktop`.
+Closing the window hides DB MCP in the menu bar or system tray. Use the tray menu to reopen the app, restart the server, view logs, or quit. Settings can start DB MCP when you sign in, or keep only its MCP server running in the background.
 
-| OS | App data (database, fallback key) | Logs |
+DB MCP checks for signed app updates on launch. To review notes or install an available update, open **Settings → About** and select **Download and restart**. The first update from v0.1.1 requires a manual installation of v0.1.2 because v0.1.1 did not include the updater.
+
+## Local data
+
+Application files are stored under the OS application-support directories for `dev.dbmcp.desktop`.
+
+| OS | Data | Logs |
 |---|---|---|
 | macOS | `~/Library/Application Support/dev.dbmcp.desktop/` | `~/Library/Logs/dev.dbmcp.desktop/` |
 | Windows | `%APPDATA%\dev.dbmcp.desktop\` | `%LOCALAPPDATA%\dev.dbmcp.desktop\logs\` |
 | Linux | `~/.local/share/dev.dbmcp.desktop/` | `~/.local/share/dev.dbmcp.desktop/logs/` |
 
-Files:
-
-- `db-mcp.sqlite`: connection metadata and query logs (credentials are encrypted)
-- `encryption.key`: only if the OS keychain is unavailable (`0600` permissions)
-- `settings.json`: app settings. On macOS and Windows it is in the app data directory. On Linux it is in `~/.config/dev.dbmcp.desktop/`.
-- `server.log`: sidecar log, rotated at 5 MB, keeping 3 files
-
-To delete all saved connections and the encryption key, use **Settings → Reset data**. Type `reset` to confirm.
+The app data directory contains the internal SQLite database. Settings are stored in the OS application config directory. On Linux, settings live at `~/.config/dev.dbmcp.desktop/settings.json`. If OS keychain storage is unavailable, the data directory may also contain `encryption.key`, created with mode `0600` on Unix systems. Logs are rotated. Use **Settings → Reset data** to remove saved connections, credentials, and local history.
 
 ## Development
 
-Prerequisites:
+### Requirements
 
 - Node.js 26 (see `.nvmrc`)
 - [Bun](https://bun.sh)
-- Rust (stable)
-- Tauri system dependencies for your OS: https://v2.tauri.app/start/prerequisites/
+- Stable Rust
+- [Tauri system dependencies](https://v2.tauri.app/start/prerequisites/) for your OS
+
+### Build and test
 
 ```bash
 bun install
-bun run dev                  # build the sidecar, then run the app with hot reload
-bun run test                 # unit tests
+bun run dev
 bun run type-check
+bun run test
+bun run format:check
 cd desktop/src-tauri && cargo test
-bun run desktop:build        # production bundle
+bun run desktop:build
 ```
 
-Project layout:
+`bun run dev` starts the Tauri desktop app with the backend sidecar. Do not start `src/index.ts` directly; the supported launcher supplies the session token and secrets.
 
-```
-desktop/src-tauri/   Tauri 2 shell (Rust): sidecar supervisor, keychain, tray, IPC, AI client config
-src/                 Backend (Hono + MCP), runs only as the Tauri sidecar
-client/              React UI, bundled into the app
-scripts/             build-sidecar.mjs bundles src/ and a Node 26 binary for the target
-docs/desktop-plan.md Architecture and contracts
+### Project layout
+
+```text
+desktop/src-tauri/   Tauri shell, updater, sidecar supervisor, keychain, tray, IPC
+src/                 Local backend and MCP server
+client/              React desktop interface
+scripts/             Sidecar bundling and Node runtime setup
+docs/                Architecture, release notes, and project plans
 ```
 
-Database schema changes: edit `src/db/schema.ts`, run `bun run db:generate`, and commit the generated migration. Migrations run on server start.
+For database schema changes, edit `src/db/schema.ts`, run `bun run db:generate`, and commit the generated migration. Migrations run when the app starts.
+
+## Contributing
+
+Bug reports and focused pull requests are welcome. For changes that affect database access, credential handling, or updater behavior, include the user problem and how you tested the change. Run the relevant checks above before opening a PR.
+
+## License
+
+This repository does not currently include a license file. Until one is added, the source is not licensed for reuse, modification, or redistribution.
