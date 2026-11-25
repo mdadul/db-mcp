@@ -1,5 +1,15 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { FolderOpen, PanelTop, Power, RotateCw, Server, ShieldAlert } from "lucide-react";
+import {
+  CheckCircle2,
+  Download,
+  FolderOpen,
+  LoaderCircle,
+  PanelTop,
+  Power,
+  RotateCw,
+  Server,
+  ShieldAlert,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -29,6 +39,32 @@ export function SettingsPage() {
   const updateSettings = useUpdateSettings();
   const restartServer = useRestartServer();
   const appInfo = useQuery({ queryKey: ["platform", "app-info"], queryFn: platform.getAppInfo });
+  const cachedUpdate = useQuery({
+    queryKey: ["platform", "app-update"],
+    queryFn: platform.checkForAppUpdate,
+    enabled: false,
+  });
+  const [updateState, setUpdateState] = useState<
+    | { kind: "idle" }
+    | { kind: "checking" }
+    | {
+        kind: "available";
+        version: string;
+        date: string | null;
+        notes: string | null;
+        downloadedBytes: number;
+        totalBytes: number | null;
+      }
+    | { kind: "current" }
+    | { kind: "downloading"; downloadedBytes: number; totalBytes: number | null }
+    | { kind: "installing" }
+  >(() => {
+    const announcedUpdate = cachedUpdate.data;
+    return announcedUpdate
+      ? { kind: "available", ...announcedUpdate, downloadedBytes: 0, totalBytes: null }
+      : { kind: "idle" };
+  });
+  const [updateError, setUpdateError] = useState<string | null>(null);
   const [portValue, setPortValue] = useState<string | null>(null);
   const [portError, setPortError] = useState("");
   const [resetOpen, setResetOpen] = useState(false);
@@ -91,6 +127,51 @@ export function SettingsPage() {
       toast.error(error instanceof Error ? error.message : "Could not reset local data");
     } finally {
       setResetting(false);
+    }
+  };
+
+  const checkForUpdates = async () => {
+    setUpdateError(null);
+    setUpdateState({ kind: "checking" });
+    try {
+      const availableUpdate = await platform.checkForAppUpdate();
+      setUpdateState(
+        availableUpdate
+          ? { kind: "available", ...availableUpdate, downloadedBytes: 0, totalBytes: null }
+          : { kind: "current" },
+      );
+    } catch (error: unknown) {
+      setUpdateState({ kind: "idle" });
+      setUpdateError(error instanceof Error ? error.message : "Could not check for updates");
+    }
+  };
+
+  const downloadUpdate = async () => {
+    setUpdateError(null);
+    if (updateState.kind !== "available") return;
+    const availableUpdate = updateState;
+    setUpdateState({ kind: "downloading", downloadedBytes: 0, totalBytes: null });
+    try {
+      await platform.installAppUpdate((progress) => {
+        if (progress.kind === "started") {
+          setUpdateState((current) =>
+            current.kind === "downloading"
+              ? { ...current, totalBytes: progress.contentLength }
+              : current,
+          );
+        } else if (progress.kind === "progress") {
+          setUpdateState((current) =>
+            current.kind === "downloading"
+              ? { ...current, downloadedBytes: current.downloadedBytes + progress.chunkLength }
+              : current,
+          );
+        } else {
+          setUpdateState({ kind: "installing" });
+        }
+      });
+    } catch (error: unknown) {
+      setUpdateError(error instanceof Error ? error.message : "Could not install update");
+      setUpdateState(availableUpdate);
     }
   };
 
@@ -283,7 +364,10 @@ export function SettingsPage() {
           </SettingsGroup>
         </Section>
 
-        <Section title="About" description="Version and runtime information for this installation.">
+        <Section
+          title="About"
+          description="Version, updates, and runtime information for this installation."
+        >
           <SettingsGroup>
             {about.map(([label, value]) => (
               <SettingRow
@@ -299,6 +383,82 @@ export function SettingsPage() {
                 }
               />
             ))}
+            <div className="border-t border-border p-3.5">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-ui font-medium">App updates</p>
+                  <p className="mt-0.5 text-ui-sm text-muted-foreground">
+                    Check for a release, review its notes, then download and restart DB MCP.
+                  </p>
+                </div>
+                {updateState.kind === "available" ? (
+                  <Button onClick={() => void downloadUpdate()}>
+                    <Download data-icon="inline-start" />
+                    Download and restart
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    onClick={() => void checkForUpdates()}
+                    disabled={
+                      updateState.kind === "checking" ||
+                      updateState.kind === "downloading" ||
+                      updateState.kind === "installing"
+                    }
+                  >
+                    {updateState.kind === "checking" ||
+                    updateState.kind === "downloading" ||
+                    updateState.kind === "installing" ? (
+                      <LoaderCircle className="animate-spin" data-icon="inline-start" />
+                    ) : (
+                      <RotateCw data-icon="inline-start" />
+                    )}
+                    {updateState.kind === "checking"
+                      ? "Checking…"
+                      : updateState.kind === "downloading"
+                        ? "Downloading…"
+                        : updateState.kind === "installing"
+                          ? "Installing and restarting…"
+                          : "Check for updates"}
+                  </Button>
+                )}
+              </div>
+              {updateState.kind === "available" && (
+                <div className="mt-3 rounded-md border border-border bg-background p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-ui-sm font-semibold">Version {updateState.version}</p>
+                    {updateState.date && (
+                      <time className="text-ui-xs text-muted-foreground">
+                        {new Date(updateState.date).toLocaleDateString()}
+                      </time>
+                    )}
+                  </div>
+                  <div className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap text-ui-sm text-muted-foreground">
+                    {updateState.notes || "No release notes were provided."}
+                  </div>
+                </div>
+              )}
+              {updateState.kind === "current" && (
+                <p className="mt-2 flex items-center gap-1.5 text-ui-sm text-success">
+                  <CheckCircle2 className="size-3.5" />
+                  You’re using the latest version.
+                </p>
+              )}
+              {updateState.kind === "downloading" && (
+                <p role="status" className="mt-2 text-ui-sm text-muted-foreground">
+                  Downloaded {formatBytes(updateState.downloadedBytes)}
+                  {updateState.totalBytes === null
+                    ? ""
+                    : ` of ${formatBytes(updateState.totalBytes)}`}
+                  .
+                </p>
+              )}
+              {updateError && (
+                <p role="alert" className="mt-2 text-ui-sm text-danger">
+                  {updateError}
+                </p>
+              )}
+            </div>
           </SettingsGroup>
         </Section>
       </div>
@@ -335,6 +495,18 @@ export function SettingsPage() {
       />
     </div>
   );
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  const units = ["KB", "MB", "GB"];
+  let value = bytes / 1024;
+  let unitIndex = 0;
+  while (value >= 1024 && unitIndex < units.length - 1) {
+    value /= 1024;
+    unitIndex += 1;
+  }
+  return `${value.toFixed(1)} ${units[unitIndex]}`;
 }
 
 function CloseBehaviorSetting() {

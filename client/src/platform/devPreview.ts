@@ -153,6 +153,12 @@ export const devPreviewPlatform: Platform = {
   async getAppInfo() {
     return { version: "0.1.0", platform: "macos" } satisfies AppInfo;
   },
+  async checkForAppUpdate() {
+    return null;
+  },
+  async installAppUpdate() {
+    throw new Error("App updates are available in the installed desktop app.");
+  },
   async listAiClients() {
     return sampleClients;
   },

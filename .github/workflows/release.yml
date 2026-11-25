@@ -71,8 +71,8 @@ jobs:
       - name: Install JavaScript dependencies
         run: bun install --frozen-lockfile
 
-      # Signing secrets are optional. Only non-empty values are exported, so
-      # unsigned builds still work when the secrets are not configured.
+      # Tauri updater releases require the private signing key. Apple signing
+      # secrets remain optional so unsigned macOS bundles can still be built.
       - name: Export optional signing secrets
         shell: bash
         env:
@@ -85,6 +85,10 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
+          if [ -z "$TAURI_SIGNING_PRIVATE_KEY" ]; then
+            echo "TAURI_SIGNING_PRIVATE_KEY is required to build updater artifacts" >&2
+            exit 1
+          fi
           for name in \
             APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY \
             APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID \
@@ -114,5 +118,6 @@ jobs:
           args: --target ${{ matrix.target }}
           tagName: ${{ github.ref_type == 'tag' && github.ref_name || 'v__VERSION__' }}
           releaseName: "DB MCP v__VERSION__"
+          generateReleaseNotes: true
           releaseDraft: true
           prerelease: false

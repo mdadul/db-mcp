@@ -87,6 +87,28 @@ export function AppShell() {
     void platform.getAppInfo().then((info) => setPlatformName(info.platform));
   }, []);
   useEffect(() => {
+    let active = true;
+    void platform
+      .checkForAppUpdate()
+      .then((update) => {
+        if (!active || !update) return undefined;
+        queryClient.setQueryData(["platform", "app-update"], update);
+        toast.info(`DB MCP ${update.version} is available`, {
+          description: "Release notes and download are in Settings → About.",
+          action: {
+            label: "View update",
+            onClick: () => navigate("/settings"),
+          },
+          duration: 10000,
+        });
+        return undefined;
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [navigate, queryClient]);
+  useEffect(() => {
     localStorage.setItem(RAIL_EXPANDED_KEY, String(railExpanded));
   }, [railExpanded]);
 

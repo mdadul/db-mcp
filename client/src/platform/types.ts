@@ -101,6 +101,18 @@ export interface AppInfo {
   platform: "macos" | "windows" | "linux";
 }
 
+export type UpdateProgress =
+  | { kind: "started"; contentLength: number | null }
+  | { kind: "progress"; chunkLength: number }
+  | { kind: "finished" };
+
+export interface AppUpdate {
+  version: string;
+  currentVersion: string;
+  date: string | null;
+  notes: string | null;
+}
+
 export interface Platform {
   getServerInfo(): Promise<ServerInfo>;
   restartServer(): Promise<ServerInfo>;
@@ -112,6 +124,8 @@ export interface Platform {
   installCustomTheme(json: string): Promise<string>;
   deleteCustomTheme(id: string): Promise<void>;
   getAppInfo(): Promise<AppInfo>;
+  checkForAppUpdate(): Promise<AppUpdate | null>;
+  installAppUpdate(onProgress: (progress: UpdateProgress) => void): Promise<void>;
   listAiClients(): Promise<AiClient[]>;
   revealAiClientConfig(id: AiClientId): Promise<void>;
   previewAiClientInstall(id: AiClientId): Promise<InstallPreview>;
