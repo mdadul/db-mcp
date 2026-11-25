@@ -1,5 +1,5 @@
-import { DB_ENGINES, type DatabaseConnection } from "../types";
 import type { RecentQueryItem, RecentTableItem } from "../components/ConnectionsHome";
+import { DB_ENGINES, type DatabaseConnection } from "../types";
 
 export type TabKind = "data" | "structure" | "query";
 export interface WorkbenchTab {

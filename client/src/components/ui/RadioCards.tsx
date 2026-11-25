@@ -1,5 +1,5 @@
-import type { ComponentType, SVGProps } from "react";
 import { Check } from "lucide-react";
+import type { ComponentType, SVGProps } from "react";
 
 type CardOption<T extends string> = {
   value: T;

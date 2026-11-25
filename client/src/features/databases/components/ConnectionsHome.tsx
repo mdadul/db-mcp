@@ -1,9 +1,11 @@
 import { ArrowUpRight, Cable, Code2, Plus, Table2 } from "lucide-react";
+
+import { DbEngineIcon } from "@/components/brand/DbEngineIcon";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { CopyButton } from "@/components/ui/CopyButton";
 import { StatusDot } from "@/components/ui/StatusDot";
-import { DbEngineIcon } from "@/components/brand/DbEngineIcon";
+
 import type { DatabaseConnection } from "../types";
 
 export interface RecentTableItem {

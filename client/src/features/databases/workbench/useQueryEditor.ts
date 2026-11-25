@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from "react";
 import type { EditorView } from "@codemirror/view";
+import { useCallback, useEffect, useRef, useState } from "react";
+
 import { databaseApi } from "../api/databaseApi";
 import type { DatabaseConnection } from "../types";
 import {

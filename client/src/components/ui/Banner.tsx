@@ -1,5 +1,6 @@
-import { useState, type ReactNode } from "react";
 import { AlertCircle, AlertTriangle, Info, X } from "lucide-react";
+import { useState, type ReactNode } from "react";
+
 import { Button } from "@/components/ui/Button";
 
 /** Inline alert banner for app-wide status and recoverable warnings. */

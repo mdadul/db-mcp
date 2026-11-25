@@ -1,10 +1,12 @@
-import { useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { X } from "lucide-react";
+import { useRef, useState } from "react";
+import type { ReactNode } from "react";
+
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { X } from "lucide-react";
+
 import type { ActivityItem } from "../api/activityApi";
-import type { ReactNode } from "react";
 
 const ROW_HEIGHT = 36;
 

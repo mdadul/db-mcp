@@ -1,5 +1,6 @@
-import { useEffect, useState, type ReactNode } from "react";
 import { Bot, Database, Folder, ShieldCheck, Table2, Trash2 } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
+
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/Alert";
 import { Badge } from "@/components/ui/Badge";
 import { Banner } from "@/components/ui/Banner";
@@ -40,9 +41,9 @@ import {
   TableRow,
 } from "@/components/ui/Table";
 import { Textarea } from "@/components/ui/Textarea";
-import { EnvironmentTag } from "@/features/databases/workbench/EnvironmentTag";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { TreeView, type TreeNode } from "@/components/ui/TreeView";
+import { EnvironmentTag } from "@/features/databases/workbench/EnvironmentTag";
 import { useSettings } from "@/platform/hooks";
 import { applyTheme } from "@/theme/runtime";
 import { builtInThemes } from "@/theme/themes";

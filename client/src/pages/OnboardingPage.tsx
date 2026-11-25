@@ -1,5 +1,3 @@
-import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Check,
   CheckCircle2,
@@ -9,7 +7,10 @@ import {
   LockKeyhole,
   Sparkles,
 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
+
 import { Button } from "@/components/ui/Button";
 import {
   Dialog,
@@ -19,11 +20,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/Dialog";
-import { ConnectionForm } from "@/features/databases/components/ConnectionForm";
 import { AiClientList } from "@/features/ai-clients/components/AiClientList";
-import { useServerInfo, useUpdateSettings } from "@/platform/hooks";
-import type { DatabaseConnection } from "@/features/databases/types";
 import { databaseApi } from "@/features/databases/api/databaseApi";
+import { ConnectionForm } from "@/features/databases/components/ConnectionForm";
+import type { DatabaseConnection } from "@/features/databases/types";
+import { useServerInfo, useUpdateSettings } from "@/platform/hooks";
 
 const STEPS = ["Welcome", "Add a database", "Connect an AI client"] as const;
 const PROGRESS_KEY = "dbmcp.onboardingProgress.v1";

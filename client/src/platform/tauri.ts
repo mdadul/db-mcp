@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+
 import type { AiClientId, Platform, ServerInfo } from "./types";
 
 export const tauriPlatform: Platform = {

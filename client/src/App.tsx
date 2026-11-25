@@ -1,3 +1,5 @@
+import { useQuery } from "@tanstack/react-query";
+import { AlertTriangle, FolderOpen, RotateCw, Server } from "lucide-react";
 import { lazy, Suspense, useEffect, useState } from "react";
 import {
   createBrowserRouter,
@@ -9,15 +11,14 @@ import {
   useLocation,
   useNavigate,
 } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, FolderOpen, RotateCw, Server } from "lucide-react";
-import { Button } from "@/components/ui/Button";
+
 import { AppShell } from "@/components/layout/AppShell";
+import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { databaseApi } from "@/features/databases/api/databaseApi";
 import { platform } from "@/platform";
 import { useRestartServer, useServerInfo, useSettings } from "@/platform/hooks";
 import { useUpdateSettings } from "@/platform/hooks";
-import { databaseApi } from "@/features/databases/api/databaseApi";
 import type { ServerState } from "@/platform/types";
 
 const DatabaseListPage = lazy(() =>

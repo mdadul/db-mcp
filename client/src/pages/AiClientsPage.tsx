@@ -1,10 +1,11 @@
-import { Copy, RotateCw, ShieldCheck } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { Copy, RotateCw, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
-import { AiClientList } from "@/features/ai-clients/components/AiClientList";
+
 import { Button } from "@/components/ui/Button";
-import { PageHeader } from "@/components/ui/PageHeader";
 import { InlineHelp } from "@/components/ui/InlineHelp";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { AiClientList } from "@/features/ai-clients/components/AiClientList";
 import { useServerInfo } from "@/platform/hooks";
 
 export function AiClientsPage() {

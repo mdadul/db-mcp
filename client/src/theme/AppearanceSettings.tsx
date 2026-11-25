@@ -1,7 +1,8 @@
-import { useMemo, useState, type CSSProperties } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Check, Clipboard, Download, Trash2 } from "lucide-react";
+import { useMemo, useState, type CSSProperties } from "react";
 import { toast } from "sonner";
+
 import { Button } from "@/components/ui/Button";
 import {
   Dialog,
@@ -11,11 +12,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/Dialog";
-import { SettingRow } from "@/components/ui/SettingRow";
-import { SegmentedControl } from "@/components/ui/SegmentedControl";
-import { SettingsGroup } from "@/components/ui/SettingsGroup";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/input";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import {
   Select,
   SelectContent,
@@ -23,15 +22,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/Select";
+import { SettingRow } from "@/components/ui/SettingRow";
+import { SettingsGroup } from "@/components/ui/SettingsGroup";
 import { Switch } from "@/components/ui/Switch";
 import { platform } from "@/platform";
 import { useSettings, useUpdateSettings } from "@/platform/hooks";
 import type { AppSettings } from "@/platform/types";
 import { CODE_FONT_SIZES, INTERFACE_FONT_SIZES } from "@/platform/types";
+
 import { checkThemeContrast, invalidCssColors } from "./contrast";
+import { preloadFontPickerPreviews } from "./runtime";
 import { themeSchema, type ThemeDefinition, type ThemeVariant } from "./schema";
 import { builtInThemes } from "./themes";
-import { preloadFontPickerPreviews } from "./runtime";
 
 const UI_FONTS: {
   value: AppSettings["uiFont"];

@@ -1,10 +1,14 @@
-import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Download } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { PageHeader } from "@/components/ui/PageHeader";
-import { Skeleton } from "@/components/ui/Skeleton";
+import { toast } from "sonner";
+
+import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Input } from "@/components/ui/input";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import {
   Select,
   SelectContent,
@@ -13,10 +17,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/Select";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { Switch } from "@/components/ui/Switch";
-import { Button } from "@/components/ui/Button";
-import { SegmentedControl } from "@/components/ui/SegmentedControl";
-import { databaseApi } from "@/features/databases/api/databaseApi";
 import {
   exportActivity,
   getActivity,
@@ -24,9 +26,8 @@ import {
   type ActivitySource,
   type ActivityStatus,
 } from "@/features/activity/api/activityApi";
-import { Download } from "lucide-react";
-import { toast } from "sonner";
 import { ActivityTable } from "@/features/activity/components/ActivityTable";
+import { databaseApi } from "@/features/databases/api/databaseApi";
 
 const PAGE_SIZE = 200;
 type TimeRange = "all" | "24h" | "7d" | "30d";

@@ -1,25 +1,27 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { CheckCircle2, Copy, Database, FolderOpen, ShieldCheck, XCircle } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useBlocker, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
-import { CheckCircle2, Copy, Database, FolderOpen, ShieldCheck, XCircle } from "lucide-react";
+
+import { DbEngineIcon } from "@/components/brand/DbEngineIcon";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/input";
-import { Field } from "@/components/ui/Field";
-import { FormSection } from "@/components/ui/FormSection";
-import { FormFooter } from "@/components/ui/FormFooter";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { RadioCards } from "@/components/ui/RadioCards";
+import { Field } from "@/components/ui/Field";
+import { FormFooter } from "@/components/ui/FormFooter";
+import { FormSection } from "@/components/ui/FormSection";
+import { InlineHelp } from "@/components/ui/InlineHelp";
+import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/NumberInput";
 import { PasswordInput } from "@/components/ui/PasswordInput";
+import { RadioCards } from "@/components/ui/RadioCards";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
-import { InlineHelp } from "@/components/ui/InlineHelp";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { DB_ENGINES, type DatabaseConnection, type DbEngineType, type TestResult } from "../types";
-import { createDatabaseFormSchema, updateDatabaseFormSchema } from "../schemas/databaseSchemas";
+
 import { databaseApi } from "../api/databaseApi";
+import { createDatabaseFormSchema, updateDatabaseFormSchema } from "../schemas/databaseSchemas";
+import { DB_ENGINES, type DatabaseConnection, type DbEngineType, type TestResult } from "../types";
 import { ConnectionStringParser, type ParsedConnectionFields } from "./ConnectionStringParser";
-import { DbEngineIcon } from "@/components/brand/DbEngineIcon";
 
 type FormValues = {
   name: string;

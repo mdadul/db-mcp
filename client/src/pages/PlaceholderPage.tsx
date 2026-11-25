@@ -1,5 +1,5 @@
-import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 export function PlaceholderPage({ title, description }: { title: string; description: string }) {
   return (

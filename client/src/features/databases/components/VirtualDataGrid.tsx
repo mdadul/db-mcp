@@ -1,4 +1,3 @@
-import { memo, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   ArrowLeft,
@@ -11,8 +10,9 @@ import {
   PinOff,
   X,
 } from "lucide-react";
+import { memo, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,6 +20,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+
 import {
   cellKind,
   downloadText,
