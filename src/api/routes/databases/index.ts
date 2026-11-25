@@ -13,6 +13,7 @@ import {
   DuplicateDatabaseSchema,
 } from "./types.ts";
 import * as service from "./service.ts";
+import { validationHook } from "../../validation.ts";
 
 export const databaseRoutes = new Hono()
   // List all databases
@@ -21,7 +22,7 @@ export const databaseRoutes = new Hono()
   // Create a database
   .post(
     "/",
-    zValidator("json", CreateDatabaseSchema),
+    zValidator("json", CreateDatabaseSchema, validationHook),
     async (c) => c.json(await service.createDatabase(c.req.valid("json")), 201)
   )
 
@@ -31,7 +32,7 @@ export const databaseRoutes = new Hono()
   // Update a database
   .patch(
     "/:id",
-    zValidator("json", UpdateDatabaseSchema),
+    zValidator("json", UpdateDatabaseSchema, validationHook),
     async (c) =>
       c.json(
         await service.updateDatabase(c.req.param("id"), c.req.valid("json"))
@@ -45,7 +46,7 @@ export const databaseRoutes = new Hono()
   })
 
   // Test connection
-  .post("/test", zValidator("json", TestConnectionSchema), async (c) =>
+  .post("/test", zValidator("json", TestConnectionSchema, validationHook), async (c) =>
     c.json(await service.testConnectionInput(c.req.valid("json")))
   )
 
@@ -55,7 +56,7 @@ export const databaseRoutes = new Hono()
   )
 
   // Duplicate and export a safe connection URL
-  .post("/:id/duplicate", zValidator("json", DuplicateDatabaseSchema), async (c) =>
+  .post("/:id/duplicate", zValidator("json", DuplicateDatabaseSchema, validationHook), async (c) =>
     c.json(await service.duplicateDatabase(c.req.param("id"), c.req.valid("json")), 201)
   )
   .get("/:id/connection-string", async (c) =>
@@ -65,7 +66,7 @@ export const databaseRoutes = new Hono()
   // Enable / disable
   .patch(
     "/:id/status",
-    zValidator("json", SetStatusSchema),
+    zValidator("json", SetStatusSchema, validationHook),
     async (c) =>
       c.json(
         await service.setStatus(c.req.param("id"), c.req.valid("json").status)
@@ -73,12 +74,12 @@ export const databaseRoutes = new Hono()
   )
 
   // Get database schema (tables list)
-  .get("/:id/schema", zValidator("query", SchemaQuerySchema), async (c) =>
+  .get("/:id/schema", zValidator("query", SchemaQuerySchema, validationHook), async (c) =>
     c.json(await service.getDatabaseSchemaApi(c.req.param("id"), c.req.valid("query").filter))
   )
 
   // Get table schema (columns, indexes, foreign keys)
-  .get("/:id/tables/:tableName/schema", zValidator("query", TableSchemaQuerySchema), async (c) =>
+  .get("/:id/tables/:tableName/schema", zValidator("query", TableSchemaQuerySchema, validationHook), async (c) =>
     c.json(
       await service.getTableSchemaApi(
         c.req.param("id"),
@@ -88,14 +89,14 @@ export const databaseRoutes = new Hono()
     )
   )
 
-  .get("/:id/tables/:tableName/rows", zValidator("query", BrowseRowsQuerySchema), async (c) =>
+  .get("/:id/tables/:tableName/rows", zValidator("query", BrowseRowsQuerySchema, validationHook), async (c) =>
     c.json(await service.browseTableRows(c.req.param("id"), c.req.param("tableName"), c.req.valid("query")))
   )
 
   // Execute interactive read query (SQL Playground)
   .post(
     "/:id/query",
-    zValidator("json", ExecuteQuerySchema),
+    zValidator("json", ExecuteQuerySchema, validationHook),
     async (c) => {
       const { query, limit } = c.req.valid("json");
       return c.json(
@@ -107,7 +108,7 @@ export const databaseRoutes = new Hono()
   // Get database query audit logs
   .get(
     "/:id/logs",
-    zValidator("query", z.object({ limit: z.coerce.number().int().min(1).max(500).default(50) })),
+    zValidator("query", z.object({ limit: z.coerce.number().int().min(1).max(500).default(50) }), validationHook),
     async (c) => {
       const { limit } = c.req.valid("query");
       return c.json(await service.getDatabaseLogs(c.req.param("id"), limit));

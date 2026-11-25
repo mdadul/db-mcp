@@ -134,6 +134,19 @@ test("SQLite workbench endpoints inspect, page, sort, reject unknown columns, an
   assert.equal(invalidOrder.status, 400);
   assert.match((await invalidOrder.json() as { hint: string }).hint, /orderBy/);
 
+  const invalidPort = await app.request(`/api/databases/${connection.id}`, {
+    method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ port: 70000 }),
+  });
+  assert.equal(invalidPort.status, 400);
+  assert.match((await invalidPort.json() as { error: string }).error, /^Invalid request: port: /);
+
+  // Save a copied connection the way the edit form does: no password, empty optional strings.
+  const copySave = await app.request(`/api/databases/${duplicateConnection.id}`, {
+    method: "PATCH", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ name: "SQLite sample (copy)", type: "sqlite", host: "", port: 0, databaseName: externalPath, username: "", ssl: false, serviceName: "", environment: "" }),
+  });
+  assert.equal(copySave.status, 200);
+
   const query = await app.request(`/api/databases/${connection.id}/query`, {
     method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ query: "SELECT id, name FROM people ORDER BY id", limit: 2 }),
   });
