@@ -19,6 +19,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
+      # All targets upload to the same draft release and latest.json asset.
+      # Serialize uploads so matrix jobs cannot race on shared release assets.
+      max-parallel: 1
       matrix:
         include:
           - os: macos-15
