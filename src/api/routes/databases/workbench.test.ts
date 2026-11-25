@@ -54,7 +54,8 @@ test("SQLite workbench endpoints inspect, page, sort, reject unknown columns, an
   const { app } = await import("../../../app.ts");
   const { closeAll } = await import("../../../services/connPool.ts");
   const { closeDb, db } = await import("../../../db/client.ts");
-  const { queryLogs } = await import("../../../db/schema.ts");
+  const { databaseConnections, queryLogs } = await import("../../../db/schema.ts");
+  const { eq } = await import("drizzle-orm");
   t.after(async () => {
     await closeAll();
     closeDb();
@@ -146,6 +147,15 @@ test("SQLite workbench endpoints inspect, page, sort, reject unknown columns, an
     body: JSON.stringify({ name: "SQLite sample (copy)", type: "sqlite", host: "", port: 0, databaseName: externalPath, username: "", ssl: false, serviceName: "", environment: "" }),
   });
   assert.equal(copySave.status, 200);
+
+  // The edit form sends an empty password to mean "keep the saved one": the save must succeed and keep the credentials.
+  const [beforeEmptyPassword] = await db.select().from(databaseConnections).where(eq(databaseConnections.id, duplicateConnection.id));
+  const keepPassword = await app.request(`/api/databases/${duplicateConnection.id}`, {
+    method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ password: "" }),
+  });
+  assert.equal(keepPassword.status, 200);
+  const [afterEmptyPassword] = await db.select().from(databaseConnections).where(eq(databaseConnections.id, duplicateConnection.id));
+  assert.equal(afterEmptyPassword!.encryptedCredentials, beforeEmptyPassword!.encryptedCredentials);
 
   const query = await app.request(`/api/databases/${connection.id}/query`, {
     method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ query: "SELECT id, name FROM people ORDER BY id", limit: 2 }),

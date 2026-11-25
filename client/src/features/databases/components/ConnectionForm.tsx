@@ -77,7 +77,7 @@ export function ConnectionForm({ onSaved, stayOnSave = false }: ConnectionFormPr
         throw new FormValidationError();
       }
       const input = { ...result.data, port: Number(result.data.port), serviceName: result.data.serviceName || undefined, environment: result.data.environment || undefined, folder: result.data.folder ?? "", description: result.data.description ?? "" };
-      if (id) return databaseApi.update(id, input);
+      if (id) return databaseApi.update(id, { ...input, password: input.password || undefined });
       return databaseApi.create({ ...input, password: values.password });
     },
     onSuccess: async (connection) => {

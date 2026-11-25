@@ -92,7 +92,8 @@ export const UpdateDatabaseSchema = z.object({
   port: z.number().int().min(0).max(65535).optional(),
   databaseName: z.string().min(1).optional(),
   username: z.string().optional(),
-  password: z.string().min(1).optional(),
+  // An empty string means "keep the saved password" (the edit form's "leave empty" field).
+  password: z.string().optional(),
   ssl: z.boolean().optional(),
   serviceName: z.string().optional(),
   environment: z.string().optional(),

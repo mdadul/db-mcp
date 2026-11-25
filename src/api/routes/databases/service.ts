@@ -200,7 +200,7 @@ export async function updateDatabase(
   if (input.folder !== undefined) updates.folder = input.folder || null;
   if (input.description !== undefined) updates.description = input.description || null;
   if (input.favourite !== undefined) updates.favourite = input.favourite;
-  if (input.password !== undefined) {
+  if (input.password) {
     updates.encryptedCredentials = JSON.stringify(
       await encrypt(input.password)
     );
@@ -213,7 +213,7 @@ export async function updateDatabase(
     input.databaseName !== undefined ||
     input.username !== undefined ||
     input.ssl !== undefined ||
-    input.password !== undefined;
+    Boolean(input.password);
   if (connectionFieldChanged) {
     removeConnection(id);
   }
