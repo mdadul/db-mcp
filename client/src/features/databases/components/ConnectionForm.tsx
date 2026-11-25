@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { open as openFileDialog } from "@tauri-apps/plugin-dialog";
 import { CheckCircle2, Copy, Database, FolderOpen, ShieldCheck, XCircle } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useBlocker, useNavigate, useParams, useSearchParams } from "react-router-dom";
@@ -469,7 +470,29 @@ export function ConnectionForm({ onSaved, stayOnSave = false }: ConnectionFormPr
                       variant="outline"
                       size="icon"
                       aria-label="Browse for SQLite file"
-                      title="Native file picker is not installed"
+                      title="Browse for SQLite file"
+                      onClick={() => {
+                        void (async () => {
+                          try {
+                            const path = await openFileDialog({
+                              title: "Select SQLite database",
+                              multiple: false,
+                              directory: false,
+                              filters: [
+                                {
+                                  name: "SQLite databases",
+                                  extensions: ["sqlite", "sqlite3", "db"],
+                                },
+                              ],
+                            });
+                            if (typeof path === "string") update("databaseName", path);
+                          } catch (error: unknown) {
+                            toast.error(
+                              error instanceof Error ? error.message : "Could not open file picker",
+                            );
+                          }
+                        })();
+                      }}
                     >
                       <FolderOpen />
                     </Button>

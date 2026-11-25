@@ -151,7 +151,7 @@ export const devPreviewPlatform: Platform = {
     );
   },
   async getAppInfo() {
-    return { version: "0.1.0", platform: "macos" } satisfies AppInfo;
+    return { version: "0.1.3", platform: "macos" } satisfies AppInfo;
   },
   async checkForAppUpdate() {
     return null;
