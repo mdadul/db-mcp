@@ -3,9 +3,10 @@ import type { Platform } from "./types";
 
 export type * from "./types";
 
-const previewPlatform = import.meta.env.DEV && !("__TAURI_INTERNALS__" in window)
-  ? import("./devPreview").then(({ devPreviewPlatform }) => devPreviewPlatform)
-  : Promise.resolve(tauriPlatform);
+const previewPlatform =
+  import.meta.env.DEV && !("__TAURI_INTERNALS__" in window)
+    ? import("./devPreview").then(({ devPreviewPlatform }) => devPreviewPlatform)
+    : Promise.resolve(tauriPlatform);
 
 /** Platform facade that resolves the dev-only browser preview lazily. */
 export const platform: Platform = {

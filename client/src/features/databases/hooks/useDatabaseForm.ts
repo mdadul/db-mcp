@@ -27,7 +27,9 @@ const INITIAL_FORM: DatabaseFormState = {
   environment: "",
 };
 
-export function useDatabaseForm(options: { onCreated?: (connection: DatabaseConnection) => void } = {}) {
+export function useDatabaseForm(
+  options: { onCreated?: (connection: DatabaseConnection) => void } = {},
+) {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const isEdit = Boolean(id);
@@ -41,7 +43,13 @@ export function useDatabaseForm(options: { onCreated?: (connection: DatabaseConn
     enabled: Boolean(id),
   });
   const saveMutation = useMutation({
-    mutationFn: async ({ input, connectionId }: { input: BaseDatabaseFormData & { password?: string }; connectionId?: string }) => {
+    mutationFn: async ({
+      input,
+      connectionId,
+    }: {
+      input: BaseDatabaseFormData & { password?: string };
+      connectionId?: string;
+    }) => {
       if (connectionId) {
         const update: UpdateDatabaseInput = {
           name: input.name,
@@ -72,7 +80,9 @@ export function useDatabaseForm(options: { onCreated?: (connection: DatabaseConn
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["databases"] }),
   });
-  const testMutation = useMutation({ mutationFn: (connectionId: string) => databaseApi.testConnection(connectionId) });
+  const testMutation = useMutation({
+    mutationFn: (connectionId: string) => databaseApi.testConnection(connectionId),
+  });
   const loading = isEdit && editQuery.isLoading;
   const saving = saveMutation.isPending;
   const [showPassword, setShowPassword] = useState(false);
@@ -84,20 +94,24 @@ export function useDatabaseForm(options: { onCreated?: (connection: DatabaseConn
   useEffect(() => {
     const db = editQuery.data;
     if (db) {
-        setForm({
-          name: db.name,
-          type: db.type as DbEngineType,
-          host: db.host,
-          port: db.port,
-          databaseName: db.databaseName,
-          username: db.username,
-          password: "",
-          ssl: db.ssl,
-          serviceName: db.serviceName ?? "",
-          environment: db.environment ?? "",
-        });
+      setForm({
+        name: db.name,
+        type: db.type as DbEngineType,
+        host: db.host,
+        port: db.port,
+        databaseName: db.databaseName,
+        username: db.username,
+        password: "",
+        ssl: db.ssl,
+        serviceName: db.serviceName ?? "",
+        environment: db.environment ?? "",
+      });
     } else if (editQuery.error) {
-      setError(editQuery.error instanceof Error ? editQuery.error.message : "Failed to load database connection");
+      setError(
+        editQuery.error instanceof Error
+          ? editQuery.error.message
+          : "Failed to load database connection",
+      );
     }
   }, [editQuery.data, editQuery.error]);
 
@@ -118,12 +132,12 @@ export function useDatabaseForm(options: { onCreated?: (connection: DatabaseConn
     setForm((prev) => ({
       ...prev,
       type: newType,
-      host: engine.requiresNetwork ? (prev.host || "localhost") : "",
-      port: knownPorts.includes(Number(prev.port) ?? 0) ? engine.defaultPort : prev.port,
+      host: engine.requiresNetwork ? prev.host || "localhost" : "",
+      port: knownPorts.includes(Number(prev.port)) ? engine.defaultPort : prev.port,
       username: engine.requiresNetwork ? prev.username : "",
       password: engine.requiresNetwork ? prev.password : "",
       // sslRequired engines always get ssl:true regardless of previous toggle value
-      ssl: engine.sslRequired ? true : (engine.requiresNetwork ? prev.ssl : false),
+      ssl: engine.sslRequired ? true : engine.requiresNetwork ? prev.ssl : false,
     }));
   }
 
@@ -195,7 +209,8 @@ export function useDatabaseForm(options: { onCreated?: (connection: DatabaseConn
   }
 
   // Derived: connection URI preview (password masked)
-  const protocol = form.type === "mysql" ? "mysql" : form.type === "mongodb" ? "mongodb" : "postgresql";
+  const protocol =
+    form.type === "mysql" ? "mysql" : form.type === "mongodb" ? "mongodb" : "postgresql";
   const userPart = form.username ? `${form.username}${form.password ? ":••••••" : ""}@` : "";
   const defaultPort = form.type === "mysql" ? 3306 : form.type === "mongodb" ? 27017 : 5432;
   const hostPort = `${form.host || "localhost"}:${form.port || defaultPort}`;

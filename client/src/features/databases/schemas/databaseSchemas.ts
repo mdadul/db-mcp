@@ -24,7 +24,8 @@ const baseDatabaseFormObject = z.object({
 export const baseDatabaseFormSchema = baseDatabaseFormObject.superRefine((data, ctx) => {
   if (data.type !== "sqlite") {
     if (!data.host) ctx.addIssue({ code: "custom", path: ["host"], message: "Host is required" });
-    if (!data.username) ctx.addIssue({ code: "custom", path: ["username"], message: "Username is required" });
+    if (!data.username)
+      ctx.addIssue({ code: "custom", path: ["username"], message: "Username is required" });
   }
 });
 
@@ -33,8 +34,10 @@ export const createDatabaseFormSchema = baseDatabaseFormObject
   .superRefine((data, ctx) => {
     if (data.type !== "sqlite") {
       if (!data.host) ctx.addIssue({ code: "custom", path: ["host"], message: "Host is required" });
-      if (!data.username) ctx.addIssue({ code: "custom", path: ["username"], message: "Username is required" });
-      if (!data.password) ctx.addIssue({ code: "custom", path: ["password"], message: "Password is required" });
+      if (!data.username)
+        ctx.addIssue({ code: "custom", path: ["username"], message: "Username is required" });
+      if (!data.password)
+        ctx.addIssue({ code: "custom", path: ["password"], message: "Password is required" });
     }
   });
 
@@ -43,7 +46,8 @@ export const updateDatabaseFormSchema = baseDatabaseFormObject
   .superRefine((data, ctx) => {
     if (data.type !== "sqlite") {
       if (!data.host) ctx.addIssue({ code: "custom", path: ["host"], message: "Host is required" });
-      if (!data.username) ctx.addIssue({ code: "custom", path: ["username"], message: "Username is required" });
+      if (!data.username)
+        ctx.addIssue({ code: "custom", path: ["username"], message: "Username is required" });
     }
   });
 

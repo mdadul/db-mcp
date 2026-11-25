@@ -45,9 +45,21 @@ export interface AppSettings {
   accent: "blue" | "violet" | "green" | "orange" | "pink" | "graphite";
   density: "compact" | "default" | "comfortable";
   fontSize: InterfaceFontSize;
-  uiFont: "system" | "inter" | "ibm-plex-sans" | "source-sans-3" | "atkinson-hyperlegible" | "custom";
+  uiFont:
+    | "system"
+    | "inter"
+    | "ibm-plex-sans"
+    | "source-sans-3"
+    | "atkinson-hyperlegible"
+    | "custom";
   uiFontCustom: string;
-  codeFont: "system-mono" | "jetbrains-mono" | "fira-code" | "ibm-plex-mono" | "source-code-pro" | "custom";
+  codeFont:
+    | "system-mono"
+    | "jetbrains-mono"
+    | "fira-code"
+    | "ibm-plex-mono"
+    | "source-code-pro"
+    | "custom";
   codeFontCustom: string;
   codeFontSize: CodeFontSize;
   codeLigatures: boolean;

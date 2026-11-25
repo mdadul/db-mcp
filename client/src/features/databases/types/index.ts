@@ -21,11 +21,11 @@ import type { DbEngineType } from "@server/api/routes/databases/types.ts";
 export interface DbEngineConfig {
   type: DbEngineType;
   label: string;
-  badge: string;       // shown in the picker card (port or "File")
-  hint: string;        // examples shown below the label
+  badge: string; // shown in the picker card (port or "File")
+  hint: string; // examples shown below the label
   defaultPort: number; // 0 = file-based, no port
   requiresNetwork: boolean; // false = SQLite-style file path only
-  sslRequired: boolean;    // true = SSL forced regardless of toggle
+  sslRequired: boolean; // true = SSL forced regardless of toggle
 }
 
 export const DB_ENGINES: DbEngineConfig[] = [
@@ -112,7 +112,10 @@ export interface TableSchema {
 }
 
 export interface SchemaResponse {
-  tables: (string | { table_name?: string; TABLE_NAME?: string; table_type?: string; TABLE_TYPE?: string })[];
+  tables: (
+    | string
+    | { table_name?: string; TABLE_NAME?: string; table_type?: string; TABLE_TYPE?: string }
+  )[];
   message?: string;
   error?: string;
 }

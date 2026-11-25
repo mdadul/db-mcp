@@ -1,4 +1,11 @@
-import { useMemo, useRef, useState, type ComponentType, type KeyboardEvent, type SVGProps } from "react";
+import {
+  useMemo,
+  useRef,
+  useState,
+  type ComponentType,
+  type KeyboardEvent,
+  type SVGProps,
+} from "react";
 import { ChevronRight, LoaderCircle } from "lucide-react";
 
 export interface TreeNode {
@@ -10,12 +17,31 @@ export interface TreeNode {
   selectable?: boolean;
 }
 
-interface VisibleTreeNode { node: TreeNode; depth: number; parentId: string | null; hasChildren: boolean; }
+interface VisibleTreeNode {
+  node: TreeNode;
+  depth: number;
+  parentId: string | null;
+  hasChildren: boolean;
+}
 
 /** Accessible, keyboard-navigable tree for a database schema and object hierarchy. */
-export function TreeView({ nodes, selectedId, onSelect, ariaLabel = "Tree", className = "" }: { nodes: readonly TreeNode[]; selectedId?: string; onSelect?: (node: TreeNode) => void; ariaLabel?: string; className?: string }) {
+export function TreeView({
+  nodes,
+  selectedId,
+  onSelect,
+  ariaLabel = "Tree",
+  className = "",
+}: {
+  nodes: readonly TreeNode[];
+  selectedId?: string;
+  onSelect?: (node: TreeNode) => void;
+  ariaLabel?: string;
+  className?: string;
+}) {
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
-  const [loadedChildren, setLoadedChildren] = useState<Map<string, readonly TreeNode[]>>(() => new Map());
+  const [loadedChildren, setLoadedChildren] = useState<Map<string, readonly TreeNode[]>>(
+    () => new Map(),
+  );
   const [loading, setLoading] = useState<Set<string>>(() => new Set());
   const [activeId, setActiveId] = useState<string | undefined>(selectedId ?? nodes[0]?.id);
   const [query, setQuery] = useState("");
@@ -57,13 +83,26 @@ export function TreeView({ nodes, selectedId, onSelect, ariaLabel = "Tree", clas
     document.getElementById(`tree-${id}`)?.focus();
   };
 
-  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>, item: VisibleTreeNode, index: number) => {
+  const onKeyDown = (
+    event: KeyboardEvent<HTMLDivElement>,
+    item: VisibleTreeNode,
+    index: number,
+  ) => {
     const children = loadedChildren.get(item.node.id) ?? item.node.children ?? [];
-    if (event.key === "ArrowDown") { event.preventDefault(); focusItem(visible[Math.min(index + 1, visible.length - 1)].node.id); }
-    else if (event.key === "ArrowUp") { event.preventDefault(); focusItem(visible[Math.max(index - 1, 0)].node.id); }
-    else if (event.key === "Home") { event.preventDefault(); if (visible[0]) focusItem(visible[0].node.id); }
-    else if (event.key === "End") { event.preventDefault(); const last = visible[visible.length - 1]; if (last) focusItem(last.node.id); }
-    else if (event.key === "ArrowRight") {
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      focusItem(visible[Math.min(index + 1, visible.length - 1)].node.id);
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      focusItem(visible[Math.max(index - 1, 0)].node.id);
+    } else if (event.key === "Home") {
+      event.preventDefault();
+      if (visible[0]) focusItem(visible[0].node.id);
+    } else if (event.key === "End") {
+      event.preventDefault();
+      const last = visible[visible.length - 1];
+      if (last) focusItem(last.node.id);
+    } else if (event.key === "ArrowRight") {
       event.preventDefault();
       if (item.hasChildren && !expanded.has(item.node.id)) void toggle(item);
       else if (children[0]) focusItem(children[0].id);
@@ -87,13 +126,57 @@ export function TreeView({ nodes, selectedId, onSelect, ariaLabel = "Tree", clas
     }
   };
 
-  return <div role="tree" aria-label={ariaLabel} className={`min-h-0 overflow-auto outline-none ${className}`}>{visible.map((item, index) => {
-    const Icon = item.node.icon;
-    const isExpanded = expanded.has(item.node.id);
-    const isSelected = selectedId === item.node.id;
-    return <div key={item.node.id} id={`tree-${item.node.id}`} role="treeitem" aria-level={item.depth} aria-expanded={item.hasChildren ? isExpanded : undefined} aria-selected={isSelected} tabIndex={activeId === item.node.id ? 0 : -1} className={`flex h-7 min-w-0 items-center gap-1 rounded px-1 text-ui-sm outline-none focus-visible:bg-accent-subtle ${isSelected ? "bg-accent-subtle text-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`} style={{ paddingInlineStart: `${8 + (item.depth - 1) * 14}px` }} onFocus={() => setActiveId(item.node.id)} onClick={() => item.node.selectable !== false && onSelect?.(item.node)} onKeyDown={(event) => onKeyDown(event, item, index)}>
-      <button type="button" tabIndex={-1} aria-label={`${isExpanded ? "Collapse" : "Expand"} ${item.node.label}`} disabled={!item.hasChildren} onClick={(event) => { event.stopPropagation(); void toggle(item); }} className="flex size-4 shrink-0 items-center justify-center rounded text-text-subtle disabled:opacity-0">{loading.has(item.node.id) ? <LoaderCircle className="size-3 animate-spin" /> : <ChevronRight className={`size-3 transition-transform ${isExpanded ? "rotate-90" : ""}`} />}</button>
-      {Icon && <Icon aria-hidden="true" className="size-3.5 shrink-0" />}<span className="min-w-0 flex-1 truncate" title={item.node.label}>{item.node.label}</span>
-    </div>;
-  })}</div>;
+  return (
+    <div
+      role="tree"
+      aria-label={ariaLabel}
+      className={`min-h-0 overflow-auto outline-none ${className}`}
+    >
+      {visible.map((item, index) => {
+        const Icon = item.node.icon;
+        const isExpanded = expanded.has(item.node.id);
+        const isSelected = selectedId === item.node.id;
+        return (
+          <div
+            key={item.node.id}
+            id={`tree-${item.node.id}`}
+            role="treeitem"
+            aria-level={item.depth}
+            aria-expanded={item.hasChildren ? isExpanded : undefined}
+            aria-selected={isSelected}
+            tabIndex={activeId === item.node.id ? 0 : -1}
+            className={`flex h-7 min-w-0 items-center gap-1 rounded px-1 text-ui-sm outline-none focus-visible:bg-accent-subtle ${isSelected ? "bg-accent-subtle text-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
+            style={{ paddingInlineStart: `${8 + (item.depth - 1) * 14}px` }}
+            onFocus={() => setActiveId(item.node.id)}
+            onClick={() => item.node.selectable !== false && onSelect?.(item.node)}
+            onKeyDown={(event) => onKeyDown(event, item, index)}
+          >
+            <button
+              type="button"
+              tabIndex={-1}
+              aria-label={`${isExpanded ? "Collapse" : "Expand"} ${item.node.label}`}
+              disabled={!item.hasChildren}
+              onClick={(event) => {
+                event.stopPropagation();
+                void toggle(item);
+              }}
+              className="flex size-4 shrink-0 items-center justify-center rounded text-text-subtle disabled:opacity-0"
+            >
+              {loading.has(item.node.id) ? (
+                <LoaderCircle className="size-3 animate-spin" />
+              ) : (
+                <ChevronRight
+                  className={`size-3 transition-transform ${isExpanded ? "rotate-90" : ""}`}
+                />
+              )}
+            </button>
+            {Icon && <Icon aria-hidden="true" className="size-3.5 shrink-0" />}
+            <span className="min-w-0 flex-1 truncate" title={item.node.label}>
+              {item.node.label}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
 }

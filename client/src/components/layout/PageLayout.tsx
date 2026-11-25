@@ -6,11 +6,7 @@ export interface PageLayoutProps {
   className?: string;
 }
 
-export function PageLayout({
-  children,
-  maxWidth = "4xl",
-  className = "",
-}: PageLayoutProps) {
+export function PageLayout({ children, maxWidth = "4xl", className = "" }: PageLayoutProps) {
   const widthStyles = {
     md: "max-w-md",
     "2xl": "max-w-2xl",
@@ -20,5 +16,9 @@ export function PageLayout({
   };
 
   const padding = maxWidth === "full" ? "" : "px-4 py-4";
-  return <div className={`mx-auto w-full ${widthStyles[maxWidth]} ${padding} ${className}`}>{children}</div>;
+  return (
+    <div className={`mx-auto w-full ${widthStyles[maxWidth]} ${padding} ${className}`}>
+      {children}
+    </div>
+  );
 }

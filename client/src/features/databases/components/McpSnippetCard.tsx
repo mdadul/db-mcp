@@ -5,7 +5,11 @@ import { useServerInfo } from "@/platform/hooks";
 export function McpSnippetCard() {
   const [copied, setCopied] = useState(false);
   const { data: serverInfo } = useServerInfo();
-  const mcpSnippet = JSON.stringify({ mcpServers: { "db-mcp": { url: serverInfo?.mcpUrl ?? "" } } }, null, 2);
+  const mcpSnippet = JSON.stringify(
+    { mcpServers: { "db-mcp": { url: serverInfo?.mcpUrl ?? "" } } },
+    null,
+    2,
+  );
 
   const handleCopy = async () => {
     try {
