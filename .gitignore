@@ -24,6 +24,8 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 # local internal SQLite storage
 data/
+# the marketing site's content module lives in site/src/data (not local storage)
+!site/src/data/
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal
