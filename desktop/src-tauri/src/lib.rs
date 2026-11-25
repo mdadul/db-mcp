@@ -72,6 +72,7 @@ pub fn run() {
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(log_plugin())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_process::init())
         .plugin(updater_plugin())
         .manage(Arc::new(Mutex::new(None::<supervisor::Supervisor>)))
         .manage(Arc::clone(&shutdown_requested))
@@ -96,6 +97,8 @@ pub fn run() {
             commands::set_background_server,
             commands::restart_background_server,
             commands::stop_background_server,
+            commands::prepare_app_update,
+            commands::resume_app_after_update,
         ])
         .setup(move |app| {
             let settings_path = app.path().app_config_dir()?.join("settings.json");
@@ -357,8 +360,7 @@ fn start_embedded(
     });
 }
 
-#[cfg(feature = "updater")]
-fn updater_plugin() -> tauri::plugin::TauriPlugin<tauri::Wry> {
+fn updater_plugin() -> tauri::plugin::TauriPlugin<tauri::Wry, tauri_plugin_updater::Config> {
     tauri_plugin_updater::Builder::new().build()
 }
 
@@ -372,11 +374,6 @@ fn log_plugin() -> tauri::plugin::TauriPlugin<tauri::Wry> {
     #[cfg(debug_assertions)]
     let builder = builder.level_for("db_mcp_desktop_lib", log::LevelFilter::Debug);
     builder.build()
-}
-
-#[cfg(not(feature = "updater"))]
-fn updater_plugin() -> tauri::plugin::TauriPlugin<tauri::Wry> {
-    tauri::plugin::Builder::new("updater-placeholder").build()
 }
 
 async fn stop_supervisor(app: &tauri::AppHandle) {

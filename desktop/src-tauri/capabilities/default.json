@@ -6,6 +6,8 @@
   "permissions": [
     "core:default",
     "core:event:default",
+    "process:allow-restart",
+    "updater:default",
     "core:window:allow-start-dragging"
   ]
 }

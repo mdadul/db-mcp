@@ -130,16 +130,15 @@ The release workflow (`.github/workflows/release.yml`) has never run.
    healthy and an AI client can call `/mcp`.
 4. Tag `v0.1.0` as an unsigned pre-release with the README install notes.
 
-## P2 — Enable auto-updates
+## P2 — Auto-updates
 
-The updater plugin is behind the `updater` Cargo feature and `pubkey` is empty.
-Enable before the first public release.
-- `bunx tauri signer generate -w ~/.tauri/db-mcp.key` (private key never in the repo).
-- Public key in `tauri.conf.json` → `plugins.updater.pubkey`; private key and password
-  as repo secrets (the workflow already exports them).
-- Enable the feature and `bundle.createUpdaterArtifacts`; publish `latest.json`.
-- Update UI on launch and in Settings → About; stop the sidecar and background
-  server before installing.
+The signed Tauri updater is configured. The signing private key is stored locally
+at `~/.tauri/db-mcp.key` and as the `TAURI_SIGNING_PRIVATE_KEY` GitHub Actions
+secret. Keep a secure backup of that key; every future updater release must use it.
+The release workflow publishes `latest.json` and signed updater artifacts. Settings
+→ About checks for releases, shows release notes, and downloads and installs the
+update after stopping the local and background servers. The app relaunches after
+installation.
 
 ## P2 — Code signing and notarization
 

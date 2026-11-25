@@ -429,6 +429,54 @@ pub async fn stop_background_server(
     get_background_server(app, settings, state).await
 }
 
+#[tauri::command]
+pub async fn prepare_app_update(
+    settings: State<'_, SettingsStore>,
+    state: State<'_, SupervisorState>,
+) -> Result<(), String> {
+    if settings.get().background_server {
+        background::stop()?;
+        if let Err(error) = wait_for_background_stop(settings.get().port).await {
+            let _ = background::start();
+            return Err(error);
+        }
+    }
+    let mut supervisor = state.lock().await;
+    let supervisor = supervisor
+        .as_mut()
+        .ok_or_else(|| "Backend supervisor is not initialized".to_owned())?;
+    supervisor.stop_for_exit().await?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn resume_app_after_update(
+    app: AppHandle,
+    settings: State<'_, SettingsStore>,
+    state: State<'_, SupervisorState>,
+) -> Result<(), String> {
+    let port = settings.get().port;
+    if settings.get().background_server {
+        background::start()?;
+        if let Err(error) = wait_and_attach(&app, &state, port).await {
+            let _ = background::unregister();
+            let mut supervisor = state.lock().await;
+            if let Some(supervisor) = supervisor.as_mut() {
+                let _ = supervisor.start(port).await;
+            }
+            return Err(error);
+        }
+    } else {
+        let mut supervisor = state.lock().await;
+        supervisor
+            .as_mut()
+            .ok_or_else(|| "Backend supervisor is not initialized".to_owned())?
+            .start(port)
+            .await?;
+    }
+    Ok(())
+}
+
 async fn wait_and_attach(
     app: &AppHandle,
     state: &SupervisorState,
