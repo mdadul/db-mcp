@@ -1,16 +1,17 @@
 ---
-import Icon from './Icon.astro';
-import { REPO, RELEASES } from '../data/site';
+import Icon from "./Icon.astro";
+import { REPO, RELEASES } from "../data/site";
 
 const links = [
-  { href: '#compare', label: 'Why' },
-  { href: '#features', label: 'Features' },
-  { href: '#how', label: 'How it works' },
-  { href: '#setup', label: 'Setup' },
-  { href: '#security', label: 'Security' },
-  { href: '#faq', label: 'FAQ' },
+  { href: "#compare", label: "Why" },
+  { href: "#features", label: "Features" },
+  { href: "#how", label: "How it works" },
+  { href: "#setup", label: "Setup" },
+  { href: "#security", label: "Security" },
+  { href: "#faq", label: "FAQ" },
 ];
 ---
+
 <header class="nav" data-nav>
   <div class="container nav-inner">
     <a class="brand" href="#top" aria-label="DB MCP home">
@@ -18,7 +19,9 @@ const links = [
       <span>DB MCP</span>
     </a>
     <nav class="nav-links" aria-label="Primary">
-      {links.map((l) => <a href={l.href}>{l.label}</a>)}
+      {links.map((l) => (
+        <a href={l.href}>{l.label}</a>
+      ))}
     </nav>
     <div class="nav-actions">
       <a class="gh" href={REPO} target="_blank" rel="noopener">
@@ -40,7 +43,9 @@ const links = [
     top: 0;
     z-index: 50;
     border-bottom: 1px solid transparent;
-    transition: background 0.2s ease, border-color 0.2s ease;
+    transition:
+      background 0.2s ease,
+      border-color 0.2s ease;
   }
   .nav.scrolled {
     background: rgba(7, 9, 15, 0.72);
@@ -71,7 +76,9 @@ const links = [
     border-radius: 8px;
     color: var(--fg-2);
     font-size: 14px;
-    transition: color 0.15s ease, background 0.15s ease;
+    transition:
+      color 0.15s ease,
+      background 0.15s ease;
   }
   .nav-links a:hover {
     color: var(--fg);
@@ -94,7 +101,9 @@ const links = [
     font-size: 14px;
     font-weight: 500;
     color: var(--fg-2);
-    transition: color 0.15s ease, background 0.15s ease;
+    transition:
+      color 0.15s ease,
+      background 0.15s ease;
   }
   .gh:hover {
     color: var(--fg);

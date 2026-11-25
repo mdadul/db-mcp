@@ -1,13 +1,15 @@
+import type { Server as HttpServer } from "node:http";
+
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
-import type { Server as HttpServer } from "node:http";
-import { app, handleAppError } from "./app.ts";
+
 import {
   apiGuard,
   hostGuard,
   mcpOriginGuard,
   parseAllowedOrigins,
 } from "./api/middleware/localGuard.ts";
+import { app, handleAppError } from "./app.ts";
 import { closeDb } from "./db/client.ts";
 import { runMigrations } from "./db/runMigrations.ts";
 import { handleMcpRequest } from "./mcp/server.ts";
@@ -20,7 +22,7 @@ const SHUTDOWN_TIMEOUT_MS = 5000;
 const sessionToken = process.env.APP_SESSION_TOKEN?.trim();
 if (!sessionToken) {
   console.error(
-    "APP_SESSION_TOKEN is required. The server is started by the DB MCP desktop app; run `bun run desktop:dev` instead of starting it directly."
+    "APP_SESSION_TOKEN is required. The server is started by the DB MCP desktop app; run `bun run desktop:dev` instead of starting it directly.",
   );
   process.exit(1);
 }
@@ -41,19 +43,16 @@ root.use(
   apiGuard({
     sessionToken,
     allowedOrigins: parseAllowedOrigins(process.env.ALLOWED_ORIGINS),
-  })
+  }),
 );
 root.all("/mcp", mcpOriginGuard, (c) => handleMcpRequest(c.req.raw));
 root.route("/", app);
 // Route errors from /mcp through the same JSON error handler as /api.
 root.onError(handleAppError);
 
-const server = serve(
-  { fetch: root.fetch, port, hostname },
-  (info) => {
-    console.error(`db-mcp gateway running on http://${hostname}:${info.port}`);
-  }
-) as HttpServer;
+const server = serve({ fetch: root.fetch, port, hostname }, (info) => {
+  console.error(`db-mcp gateway running on http://${hostname}:${info.port}`);
+}) as HttpServer;
 
 let shutdownStarted = false;
 

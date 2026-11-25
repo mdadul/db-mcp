@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+
 import { csvCell, toCsv } from "./csv.ts";
 import { activityExportSchema, activityFilterSchema, activityQuerySchema } from "./schema.ts";
 
@@ -14,7 +15,7 @@ test("csv cells quote commas, quotes and newlines", () => {
 });
 
 test("csv cells starting with formula characters are neutralised", () => {
-  assert.equal(csvCell("=HYPERLINK(\"x\")"), "\"'=HYPERLINK(\"\"x\"\")\"");
+  assert.equal(csvCell('=HYPERLINK("x")'), '"\'=HYPERLINK(""x"")"');
   assert.equal(csvCell("+1"), "'+1");
   assert.equal(csvCell("-2"), "'-2");
   assert.equal(csvCell("@sum"), "'@sum");
@@ -22,18 +23,26 @@ test("csv cells starting with formula characters are neutralised", () => {
 });
 
 test("toCsv writes the header and only the requested columns in order", () => {
-  const csv = toCsv([{ tool: "list_databases", secret: "x", status: "success" }], ["status", "tool"]);
+  const csv = toCsv(
+    [{ tool: "list_databases", secret: "x", status: "success" }],
+    ["status", "tool"],
+  );
   assert.equal(csv, "status,tool\r\nsuccess,list_databases\r\n");
 });
 
 test("activity filters accept ISO dates and reject invalid ones", () => {
-  assert.deepEqual(activityFilterSchema.parse({ from: "2026-01-01T00:00:00.000Z" }), { from: "2026-01-01T00:00:00.000Z" });
+  assert.deepEqual(activityFilterSchema.parse({ from: "2026-01-01T00:00:00.000Z" }), {
+    from: "2026-01-01T00:00:00.000Z",
+  });
   assert.equal(activityFilterSchema.safeParse({ from: "not a date" }).success, false);
   assert.equal(activityQuerySchema.safeParse({ to: "yesterday" }).success, false);
 });
 
 test("export defaults to csv and shares the list filters", () => {
   assert.deepEqual(activityExportSchema.parse({}), { format: "csv" });
-  assert.deepEqual(activityExportSchema.parse({ format: "json", source: "mcp" }), { format: "json", source: "mcp" });
+  assert.deepEqual(activityExportSchema.parse({ format: "json", source: "mcp" }), {
+    format: "json",
+    source: "mcp",
+  });
   assert.equal(activityExportSchema.safeParse({ format: "xlsx" }).success, false);
 });

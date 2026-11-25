@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
 import { posix, win32 } from "node:path";
+import { test } from "node:test";
+
 import { resolveNpmInvocation } from "./npm-cli.mjs";
 
 test("uses npm_execpath when it points to npm-cli.js", async () => {
@@ -25,7 +26,15 @@ test("resolves npm installed beside Node for nvm, fnm, Volta, and official insta
 
   for (const [name, executable] of installations) {
     await t.test(name, async () => {
-      const npmCli = posix.resolve(posix.dirname(executable), "..", "lib", "node_modules", "npm", "bin", "npm-cli.js");
+      const npmCli = posix.resolve(
+        posix.dirname(executable),
+        "..",
+        "lib",
+        "node_modules",
+        "npm",
+        "bin",
+        "npm-cli.js",
+      );
       const result = await resolveNpmInvocation({
         env: {},
         execPath: executable,

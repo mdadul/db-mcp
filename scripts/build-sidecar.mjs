@@ -1,9 +1,11 @@
-import { build } from "esbuild";
+import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { chmod, copyFile, mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { spawnSync } from "node:child_process";
+
+import { build } from "esbuild";
+
 import { resolveNpmInvocation } from "./npm-cli.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -14,11 +16,41 @@ const cacheDir = join(root, "desktop", ".cache");
 const manifest = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
 const NODE_MAJOR = 26;
 const targets = {
-  "aarch64-apple-darwin": { distName: "darwin-arm64", archiveExt: "tar.xz", executableExt: "", npmPlatform: "darwin", npmArch: "arm64" },
-  "x86_64-apple-darwin": { distName: "darwin-x64", archiveExt: "tar.xz", executableExt: "", npmPlatform: "darwin", npmArch: "x64" },
-  "x86_64-pc-windows-msvc": { distName: "win-x64", archiveExt: "zip", executableExt: ".exe", npmPlatform: "win32", npmArch: "x64" },
-  "x86_64-unknown-linux-gnu": { distName: "linux-x64", archiveExt: "tar.xz", executableExt: "", npmPlatform: "linux", npmArch: "x64" },
-  "aarch64-unknown-linux-gnu": { distName: "linux-arm64", archiveExt: "tar.xz", executableExt: "", npmPlatform: "linux", npmArch: "arm64" },
+  "aarch64-apple-darwin": {
+    distName: "darwin-arm64",
+    archiveExt: "tar.xz",
+    executableExt: "",
+    npmPlatform: "darwin",
+    npmArch: "arm64",
+  },
+  "x86_64-apple-darwin": {
+    distName: "darwin-x64",
+    archiveExt: "tar.xz",
+    executableExt: "",
+    npmPlatform: "darwin",
+    npmArch: "x64",
+  },
+  "x86_64-pc-windows-msvc": {
+    distName: "win-x64",
+    archiveExt: "zip",
+    executableExt: ".exe",
+    npmPlatform: "win32",
+    npmArch: "x64",
+  },
+  "x86_64-unknown-linux-gnu": {
+    distName: "linux-x64",
+    archiveExt: "tar.xz",
+    executableExt: "",
+    npmPlatform: "linux",
+    npmArch: "x64",
+  },
+  "aarch64-unknown-linux-gnu": {
+    distName: "linux-arm64",
+    archiveExt: "tar.xz",
+    executableExt: "",
+    npmPlatform: "linux",
+    npmArch: "arm64",
+  },
 };
 
 await mkdir(serverDir, { recursive: true });
@@ -81,24 +113,36 @@ npmEnv.NPM_CONFIG_TARGET = release.slice(1);
 await rm(join(serverDir, "node_modules"), { recursive: true, force: true });
 await rm(join(serverDir, "package-lock.json"), { force: true });
 const npmInvocation = await resolveNpmInvocation();
-run(npmInvocation.command, [...npmInvocation.argsPrefix, "install", "--omit=dev", "--no-audit", "--no-fund"], { cwd: serverDir, env: npmEnv });
+run(
+  npmInvocation.command,
+  [...npmInvocation.argsPrefix, "install", "--omit=dev", "--no-audit", "--no-fund"],
+  { cwd: serverDir, env: npmEnv },
+);
 // better-sqlite3 ships its C sources (deps/, src/) for building from source. The runtime only
 // loads lib/ and build/Release/better_sqlite3.node, so drop the sources from the app bundle.
 for (const directory of ["deps", "src"]) {
-  await rm(join(serverDir, "node_modules", "better-sqlite3", directory), { recursive: true, force: true });
+  await rm(join(serverDir, "node_modules", "better-sqlite3", directory), {
+    recursive: true,
+    force: true,
+  });
 }
 
 const nodeBinary = await fetchNodeBinary(target, release);
 const nodeStat = await stat(nodeBinary);
 const bundleStat = await stat(join(serverDir, "index.mjs"));
-const nativeAddon = await findFile(join(serverDir, "node_modules", "better-sqlite3"), "better_sqlite3.node");
+const nativeAddon = await findFile(
+  join(serverDir, "node_modules", "better-sqlite3"),
+  "better_sqlite3.node",
+);
 if (!nativeAddon) throw new Error("better-sqlite3 native addon was not installed");
 const nativeSize = (await stat(nativeAddon)).size;
 await verifyNativeAddonArchitecture(nativeAddon, targetInfo);
 console.log(`Sidecar build complete for ${target}`);
 console.log(`  Node ${NODE_MAJOR} binary: ${nodeBinary} (${formatBytes(nodeStat.size)})`);
 console.log(`  Server bundle:   ${join(serverDir, "index.mjs")} (${formatBytes(bundleStat.size)})`);
-console.log(`  SQLite addon:    ${nativeAddon ?? "not found"}${nativeAddon ? ` (${formatBytes(nativeSize)})` : ""}`);
+console.log(
+  `  SQLite addon:    ${nativeAddon ?? "not found"}${nativeAddon ? ` (${formatBytes(nativeSize)})` : ""}`,
+);
 console.log(`  Migrations:      ${join(serverDir, "migrations")}`);
 
 async function copyTree(source, destination) {
@@ -128,7 +172,8 @@ function rustHostTriple() {
 
 async function latestNodeRelease() {
   const indexResponse = await fetch("https://nodejs.org/dist/index.json");
-  if (!indexResponse.ok) throw new Error(`Could not fetch official Node release index: ${indexResponse.status}`);
+  if (!indexResponse.ok)
+    throw new Error(`Could not fetch official Node release index: ${indexResponse.status}`);
   const versions = await indexResponse.json();
   const latest = versions.find((entry) => entry.version.startsWith(`v${NODE_MAJOR}.`));
   if (!latest) throw new Error(`No Node ${NODE_MAJOR} release found in the official release index`);
@@ -147,9 +192,14 @@ async function fetchNodeBinary(triple, release) {
   await download(`https://nodejs.org/dist/${release}/SHASUMS256.txt`, sumsPath);
 
   const sums = await readFile(sumsPath, "utf8");
-  const expected = sums.split("\n").find((line) => line.trim().endsWith(` ${archiveName}`))?.split(/\s+/)[0];
+  const expected = sums
+    .split("\n")
+    .find((line) => line.trim().endsWith(` ${archiveName}`))
+    ?.split(/\s+/)[0];
   if (!expected) throw new Error(`Official SHA256 not found for ${archiveName}`);
-  const actual = createHash("sha256").update(await readFile(archivePath)).digest("hex");
+  const actual = createHash("sha256")
+    .update(await readFile(archivePath))
+    .digest("hex");
   if (actual !== expected) throw new Error(`SHA256 verification failed for ${archiveName}`);
 
   const outputName = `node-${triple}${targetInfo.executableExt}`;
@@ -186,14 +236,13 @@ async function maybeStripNodeBinary(binaryPath, targetInfo, scratchDir) {
   await copyFile(binaryPath, backupPath);
   const result = spawnSync("strip", ["-x", binaryPath], { encoding: "utf8" });
   // strip invalidates the code signature and macOS kills the unsigned arm64 binary, so re-sign ad hoc.
-  const resign = result.status === 0
-    ? spawnSync("codesign", ["--force", "--sign", "-", binaryPath], { encoding: "utf8" })
-    : null;
+  const resign =
+    result.status === 0
+      ? spawnSync("codesign", ["--force", "--sign", "-", binaryPath], { encoding: "utf8" })
+      : null;
   const stripped = result.status === 0 && resign?.status === 0;
   const strippedSize = stripped ? (await stat(binaryPath)).size : originalSize;
-  const versionCheck = stripped
-    ? spawnSync(binaryPath, ["--version"], { encoding: "utf8" })
-    : null;
+  const versionCheck = stripped ? spawnSync(binaryPath, ["--version"], { encoding: "utf8" }) : null;
 
   if (stripped && strippedSize < originalSize && versionCheck?.status === 0) {
     console.log(`  Node strip:      ${formatBytes(originalSize)} -> ${formatBytes(strippedSize)}`);
@@ -208,24 +257,33 @@ async function maybeStripNodeBinary(binaryPath, targetInfo, scratchDir) {
   } else if (!stripped) {
     console.log(`  Node strip:      skipped (ad-hoc re-sign failed: ${resign?.stderr?.trim()})`);
   } else if (strippedSize >= originalSize) {
-    console.log(`  Node strip:      no size reduction (${formatBytes(originalSize)} -> ${formatBytes(strippedSize)})`);
+    console.log(
+      `  Node strip:      no size reduction (${formatBytes(originalSize)} -> ${formatBytes(strippedSize)})`,
+    );
   } else {
-    console.log(`  Node strip:      reverted; --version failed (${formatBytes(originalSize)} -> ${formatBytes(strippedSize)})`);
+    console.log(
+      `  Node strip:      reverted; --version failed (${formatBytes(originalSize)} -> ${formatBytes(strippedSize)})`,
+    );
   }
 }
 
 async function verifyNativeAddonArchitecture(addonPath, targetInfo) {
   if (process.platform === "win32") return;
   const result = spawnSync("file", ["-b", addonPath], { encoding: "utf8" });
-  if (result.error) throw new Error(`Could not inspect better-sqlite3 architecture: ${result.error.message}`);
-  if (result.status !== 0) throw new Error(`Could not inspect better-sqlite3 architecture: ${result.stderr}`);
+  if (result.error)
+    throw new Error(`Could not inspect better-sqlite3 architecture: ${result.error.message}`);
+  if (result.status !== 0)
+    throw new Error(`Could not inspect better-sqlite3 architecture: ${result.stderr}`);
 
   const architecture = result.stdout.trim();
-  const isExpected = targetInfo.npmArch === "x64"
-    ? /\b(x86_64|x86-64|x64)\b/i.test(architecture)
-    : /\b(arm64|aarch64)\b/i.test(architecture);
+  const isExpected =
+    targetInfo.npmArch === "x64"
+      ? /\b(x86_64|x86-64|x64)\b/i.test(architecture)
+      : /\b(arm64|aarch64)\b/i.test(architecture);
   if (!isExpected) {
-    throw new Error(`better-sqlite3 architecture mismatch for ${targetInfo.npmPlatform}-${targetInfo.npmArch}: ${architecture}`);
+    throw new Error(
+      `better-sqlite3 architecture mismatch for ${targetInfo.npmPlatform}-${targetInfo.npmArch}: ${architecture}`,
+    );
   }
   console.log(`  SQLite arch:     ${architecture}`);
 }
@@ -244,7 +302,8 @@ async function download(url, destination) {
 function run(command, args, options = {}) {
   const result = spawnSync(command, args, { stdio: "inherit", ...options });
   if (result.error) throw result.error;
-  if (result.status !== 0) throw new Error(`${command} ${args.join(" ")} exited with status ${result.status}`);
+  if (result.status !== 0)
+    throw new Error(`${command} ${args.join(" ")} exited with status ${result.status}`);
 }
 
 async function findFile(directory, basename) {

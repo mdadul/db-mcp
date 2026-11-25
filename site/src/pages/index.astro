@@ -1,18 +1,19 @@
 ---
-import Base from '../layouts/Base.astro';
-import Nav from '../components/Nav.astro';
-import Hero from '../components/Hero.astro';
-import Logos from '../components/Logos.astro';
-import Compare from '../components/Compare.astro';
-import Features from '../components/Features.astro';
-import HowItWorks from '../components/HowItWorks.astro';
-import Setup from '../components/Setup.astro';
-import Tools from '../components/Tools.astro';
-import Security from '../components/Security.astro';
-import OpenSource from '../components/OpenSource.astro';
-import Faq from '../components/Faq.astro';
-import Footer from '../components/Footer.astro';
+import Base from "../layouts/Base.astro";
+import Nav from "../components/Nav.astro";
+import Hero from "../components/Hero.astro";
+import Logos from "../components/Logos.astro";
+import Compare from "../components/Compare.astro";
+import Features from "../components/Features.astro";
+import HowItWorks from "../components/HowItWorks.astro";
+import Setup from "../components/Setup.astro";
+import Tools from "../components/Tools.astro";
+import Security from "../components/Security.astro";
+import OpenSource from "../components/OpenSource.astro";
+import Faq from "../components/Faq.astro";
+import Footer from "../components/Footer.astro";
 ---
+
 <Base
   title="DB MCP · Read-only database access for AI coding agents"
   description="Free, open-source desktop app that gives Claude, Cursor, VS Code and any MCP client safe, read-only access to PostgreSQL, MySQL, SQLite, Redshift and MongoDB. Local and encrypted."
@@ -34,68 +35,69 @@ import Footer from '../components/Footer.astro';
 </Base>
 
 <script>
-  import { REPO } from '../data/site';
+  import { REPO } from "../data/site";
 
   // Sticky nav background once the page scrolls.
-  const nav = document.querySelector<HTMLElement>('[data-nav]');
-  const onScroll = () => nav?.classList.toggle('scrolled', window.scrollY > 8);
+  const nav = document.querySelector<HTMLElement>("[data-nav]");
+  const onScroll = () => nav?.classList.toggle("scrolled", window.scrollY > 8);
   onScroll();
-  window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener("scroll", onScroll, { passive: true });
 
   // Fade sections in as they enter the viewport.
   const io = new IntersectionObserver(
     (entries) => {
       for (const e of entries) {
         if (e.isIntersecting) {
-          e.target.classList.add('in');
+          e.target.classList.add("in");
           io.unobserve(e.target);
         }
       }
     },
-    { rootMargin: '0px 0px -8% 0px' },
+    { rootMargin: "0px 0px -8% 0px" },
   );
-  document.querySelectorAll('.reveal').forEach((el) => io.observe(el));
+  document.querySelectorAll(".reveal").forEach((el) => io.observe(el));
 
   // Spotlight that follows the pointer on feature cards.
-  document.querySelectorAll<HTMLElement>('.bento > .card').forEach((card) => {
-    card.addEventListener('pointermove', (e) => {
+  document.querySelectorAll<HTMLElement>(".bento > .card").forEach((card) => {
+    card.addEventListener("pointermove", (e) => {
       const r = card.getBoundingClientRect();
-      card.style.setProperty('--mx', `${e.clientX - r.left}px`);
-      card.style.setProperty('--my', `${e.clientY - r.top}px`);
+      card.style.setProperty("--mx", `${e.clientX - r.left}px`);
+      card.style.setProperty("--my", `${e.clientY - r.top}px`);
     });
   });
 
   // Name the visitor's OS on the download buttons.
   const ua = navigator.userAgent;
-  const os = /Mac/i.test(ua) && !/iPhone|iPad/i.test(ua)
-    ? 'macOS'
-    : /Windows/i.test(ua)
-      ? 'Windows'
-      : /Linux/i.test(ua) && !/Android/i.test(ua)
-        ? 'Linux'
-        : null;
+  const os =
+    /Mac/i.test(ua) && !/iPhone|iPad/i.test(ua)
+      ? "macOS"
+      : /Windows/i.test(ua)
+        ? "Windows"
+        : /Linux/i.test(ua) && !/Android/i.test(ua)
+          ? "Linux"
+          : null;
   if (os) {
-    document.querySelectorAll('[data-download-label]').forEach((el) => {
+    document.querySelectorAll("[data-download-label]").forEach((el) => {
       el.textContent = `Download for ${os}`;
     });
   }
 
   // Tabs with arrow-key navigation.
-  document.querySelectorAll<HTMLElement>('[data-tabs]').forEach((root) => {
+  document.querySelectorAll<HTMLElement>("[data-tabs]").forEach((root) => {
     const tabs = [...root.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
     const select = (tab: HTMLButtonElement) => {
       for (const t of tabs) {
         const on = t === tab;
-        t.setAttribute('aria-selected', String(on));
+        t.setAttribute("aria-selected", String(on));
         t.tabIndex = on ? 0 : -1;
-        const panel = document.getElementById(t.getAttribute('aria-controls') ?? '');
+        const panel = document.getElementById(t.getAttribute("aria-controls") ?? "");
         if (panel) panel.hidden = !on;
       }
     };
     tabs.forEach((tab, i) => {
-      tab.addEventListener('click', () => select(tab));
-      tab.addEventListener('keydown', (e) => {
-        const step = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+      tab.addEventListener("click", () => select(tab));
+      tab.addEventListener("keydown", (e) => {
+        const step = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
         if (!step) return;
         const next = tabs[(i + step + tabs.length) % tabs.length];
         select(next);
@@ -105,19 +107,19 @@ import Footer from '../components/Footer.astro';
   });
 
   // Copy buttons.
-  document.querySelectorAll<HTMLButtonElement>('[data-copy]').forEach((btn) => {
-    btn.addEventListener('click', async () => {
+  document.querySelectorAll<HTMLButtonElement>("[data-copy]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
       try {
-        await navigator.clipboard.writeText(btn.dataset.copy ?? '');
+        await navigator.clipboard.writeText(btn.dataset.copy ?? "");
       } catch {
         return;
       }
-      const label = btn.querySelector('span');
-      btn.classList.add('copied');
-      if (label) label.textContent = 'Copied';
+      const label = btn.querySelector("span");
+      btn.classList.add("copied");
+      if (label) label.textContent = "Copied";
       setTimeout(() => {
-        btn.classList.remove('copied');
-        if (label) label.textContent = 'Copy';
+        btn.classList.remove("copied");
+        if (label) label.textContent = "Copy";
       }, 1600);
     });
   });
@@ -128,9 +130,9 @@ import Footer from '../components/Footer.astro';
     .then((r) => (r.ok ? r.json() : null))
     .then((data: { stargazers_count?: number } | null) => {
       const n = data?.stargazers_count;
-      if (typeof n !== 'number') return;
-      const text = n >= 1000 ? `${(n / 1000).toFixed(1).replace(/\.0$/, '')}k` : String(n);
-      document.querySelectorAll<HTMLElement>('[data-stars]').forEach((el) => {
+      if (typeof n !== "number") return;
+      const text = n >= 1000 ? `${(n / 1000).toFixed(1).replace(/\.0$/, "")}k` : String(n);
+      document.querySelectorAll<HTMLElement>("[data-stars]").forEach((el) => {
         el.textContent = text;
         el.hidden = false;
       });

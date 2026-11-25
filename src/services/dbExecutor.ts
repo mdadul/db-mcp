@@ -1,10 +1,21 @@
-import postgres from "postgres";
-import mysql from "mysql2/promise";
 import BetterSqlite3 from "better-sqlite3";
 import { MongoClient } from "mongodb";
+import mysql from "mysql2/promise";
+import postgres from "postgres";
+
+import type { DbEngineType } from "../api/routes/databases/types.ts";
 import { decrypt } from "./credentials.ts";
 import type { EncryptedPayload } from "./credentials.ts";
-import type { DbEngineType } from "../api/routes/databases/types.ts";
+
+/** Reads a driver error's code and message without assuming its shape. */
+function describeDriverError(err: unknown): { code: string; message: string } {
+  const fields =
+    typeof err === "object" && err !== null ? (err as { code?: unknown; message?: unknown }) : {};
+  return {
+    code: fields.code != null ? String(fields.code) : "UNKNOWN",
+    message: fields.message != null ? String(fields.message) : String(err),
+  };
+}
 
 export interface DbConfig {
   type: DbEngineType;
@@ -28,16 +39,18 @@ export async function createExecutor(config: DbConfig): Promise<DbExecutor> {
       const sqliteDb = new BetterSqlite3(config.databaseName);
       return {
         type: "sqlite",
-        async query<T = Record<string, unknown>>(sqlString: string, params?: unknown[]): Promise<T[]> {
+        async query<T = Record<string, unknown>>(
+          sqlString: string,
+          params?: unknown[],
+        ): Promise<T[]> {
           try {
             const stmt = sqliteDb.prepare(sqlString);
             const rows = params?.length ? stmt.all(...params) : stmt.all();
             return rows as T[];
-          } catch (err: any) {
-            const code = err?.code ?? "UNKNOWN";
-            const msg = err?.message ?? String(err);
+          } catch (err) {
+            const { code, message } = describeDriverError(err);
             console.error(`[DB] SQLite error [${code}]`);
-            throw new Error(`[${code}] ${msg}`);
+            throw new Error(`[${code}] ${message}`, { cause: err });
           }
         },
         async close(): Promise<void> {
@@ -64,15 +77,17 @@ export async function createExecutor(config: DbConfig): Promise<DbExecutor> {
       });
       return {
         type: "mysql",
-        async query<T = Record<string, unknown>>(sqlString: string, params?: unknown[]): Promise<T[]> {
+        async query<T = Record<string, unknown>>(
+          sqlString: string,
+          params?: unknown[],
+        ): Promise<T[]> {
           try {
             const [rows] = await pool.query(sqlString, params);
             return Array.isArray(rows) ? (rows as T[]) : ([rows] as unknown as T[]);
-          } catch (err: any) {
-            const code = err?.code ?? "UNKNOWN";
-            const msg = err?.message ?? String(err);
+          } catch (err) {
+            const { code, message } = describeDriverError(err);
             console.error(`[DB] MySQL error [${code}]`);
-            throw new Error(`[${code}] ${msg}`);
+            throw new Error(`[${code}] ${message}`, { cause: err });
           }
         },
         async close(): Promise<void> {
@@ -84,9 +99,14 @@ export async function createExecutor(config: DbConfig): Promise<DbExecutor> {
     case "mongodb": {
       const payload: EncryptedPayload = JSON.parse(config.encryptedCredentials);
       const password = await decrypt(payload);
-      const auth = config.username ? `${encodeURIComponent(config.username)}:${encodeURIComponent(password)}@` : "";
+      const auth = config.username
+        ? `${encodeURIComponent(config.username)}:${encodeURIComponent(password)}@`
+        : "";
       const uri = `mongodb://${auth}${config.host}:${config.port}/${config.databaseName}${config.ssl ? "?tls=true" : ""}`;
-      const client = new MongoClient(uri, { connectTimeoutMS: 10000, serverSelectionTimeoutMS: 10000 });
+      const client = new MongoClient(uri, {
+        connectTimeoutMS: 10000,
+        serverSelectionTimeoutMS: 10000,
+      });
       await client.connect();
       const mongoDb = client.db(config.databaseName);
 
@@ -105,7 +125,14 @@ export async function createExecutor(config: DbConfig): Promise<DbExecutor> {
             }
 
             const dsl = JSON.parse(sqlString) as {
-              op?: "listCollections" | "listIndexes" | "sample" | "sampleWorkbench" | "browse" | "buildInfo" | "ping";
+              op?:
+                | "listCollections"
+                | "listIndexes"
+                | "sample"
+                | "sampleWorkbench"
+                | "browse"
+                | "buildInfo"
+                | "ping";
               collection?: string;
               filter?: Record<string, unknown>;
               projection?: Record<string, unknown>;
@@ -115,7 +142,13 @@ export async function createExecutor(config: DbConfig): Promise<DbExecutor> {
 
             if (dsl.op === "listCollections") {
               const collections = await mongoDb.listCollections({}, { nameOnly: true }).toArray();
-              return Promise.all(collections.map(async (c) => ({ table_name: c.name, table_type: "collection", row_estimate: await mongoDb.collection(c.name).estimatedDocumentCount() }))) as unknown as T[];
+              return Promise.all(
+                collections.map(async (c) => ({
+                  table_name: c.name,
+                  table_type: "collection",
+                  row_estimate: await mongoDb.collection(c.name).estimatedDocumentCount(),
+                })),
+              ) as unknown as T[];
             }
 
             if (dsl.op === "buildInfo") {
@@ -149,22 +182,27 @@ export async function createExecutor(config: DbConfig): Promise<DbExecutor> {
             }
 
             if (dsl.op === "sampleWorkbench") {
-              return await mongoDb
+              return (await mongoDb
                 .collection(dsl.collection!)
                 .find({})
                 .sort({ _id: -1 })
                 .limit(Math.min(dsl.limit ?? 50, 50))
-                .toArray() as unknown as T[];
+                .toArray()) as unknown as T[];
             }
 
             if (dsl.op === "browse") {
-              const cursor = mongoDb.collection(dsl.collection!).find({})
+              const cursor = mongoDb
+                .collection(dsl.collection!)
+                .find({})
                 .skip(Number((dsl as { offset?: number }).offset ?? 0))
                 .limit(Math.min(Number(dsl.limit ?? 51), 501));
               if ((dsl as { orderBy?: string }).orderBy) {
-                cursor.sort({ [(dsl as { orderBy: string }).orderBy]: (dsl as { direction?: string }).direction === "desc" ? -1 : 1 });
+                cursor.sort({
+                  [(dsl as { orderBy: string }).orderBy]:
+                    (dsl as { direction?: string }).direction === "desc" ? -1 : 1,
+                });
               }
-              return await cursor.toArray() as unknown as T[];
+              return (await cursor.toArray()) as unknown as T[];
             }
 
             const cursor = mongoDb
@@ -176,10 +214,10 @@ export async function createExecutor(config: DbConfig): Promise<DbExecutor> {
             const docs = await cursor.toArray();
             // Stringify ObjectId/Date so results serialise safely as JSON
             return docs.map((doc) => JSON.parse(JSON.stringify(doc))) as T[];
-          } catch (err: any) {
-            const msg = err?.message ?? String(err);
+          } catch (err) {
+            const { message } = describeDriverError(err);
             console.error(`[DB] MongoDB error`);
-            throw new Error(msg);
+            throw new Error(message, { cause: err });
           }
         },
         async close(): Promise<void> {
@@ -200,7 +238,7 @@ export async function createExecutor(config: DbConfig): Promise<DbExecutor> {
         username: config.username,
         password,
         // Redshift always requires SSL; PostgreSQL respects the user toggle
-        ssl: config.type === "redshift" ? "require" : (config.ssl ? "require" : false),
+        ssl: config.type === "redshift" ? "require" : config.ssl ? "require" : false,
         // Redshift lacks pg_type.typarray — skip the driver's type introspection query
         fetch_types: config.type !== "redshift",
         max: 3,
@@ -209,19 +247,24 @@ export async function createExecutor(config: DbConfig): Promise<DbExecutor> {
       });
       return {
         type: config.type as "postgresql" | "redshift",
-        async query<T = Record<string, unknown>>(sqlString: string, params?: unknown[]): Promise<T[]> {
+        async query<T = Record<string, unknown>>(
+          sqlString: string,
+          params?: unknown[],
+        ): Promise<T[]> {
           try {
             if (params && params.length > 0) {
-              const result = await sql.unsafe<T[]>(sqlString, params as any[]);
+              const result = await sql.unsafe<T[]>(
+                sqlString,
+                params as NonNullable<Parameters<typeof sql.unsafe>[1]>,
+              );
               return Array.from(result);
             }
             const result = await sql.unsafe<T[]>(sqlString);
             return Array.from(result);
-          } catch (err: any) {
-            const code = err?.code ?? "UNKNOWN";
-            const msg = err?.message ?? String(err);
+          } catch (err) {
+            const { code, message } = describeDriverError(err);
             console.error(`[DB] PostgreSQL error [${code}]`);
-            throw new Error(`[${code}] ${msg}`);
+            throw new Error(`[${code}] ${message}`, { cause: err });
           }
         },
         async close(): Promise<void> {

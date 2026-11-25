@@ -2,8 +2,10 @@ import { db } from "./client.ts";
 import { toolCalls } from "./schema.ts";
 
 const MAX_TOOL_ARGS_BYTES = 2 * 1024;
-const SENSITIVE_ARGUMENT_KEY = /password|passwd|secret|token|api[_-]?key|authorization|credential|connectionstring|dsn/i;
-const SENSITIVE_ASSIGNMENT = /(password|passwd|secret|token|api[_-]?key|authorization|credential)(\s*[=:]\s*)(?:'[^']*'|"[^"]*"|[^\s,;&)]+)/gi;
+const SENSITIVE_ARGUMENT_KEY =
+  /password|passwd|secret|token|api[_-]?key|authorization|credential|connectionstring|dsn/i;
+const SENSITIVE_ASSIGNMENT =
+  /(password|passwd|secret|token|api[_-]?key|authorization|credential)(\s*[=:]\s*)(?:'[^']*'|"[^"]*"|[^\s,;&)]+)/gi;
 
 function sanitizeText(value: string): string {
   return value
@@ -21,11 +23,14 @@ function redactArguments(value: unknown): unknown {
   if (typeof value === "string") return sanitizeText(value);
   if (typeof value !== "object" || value === null) return value;
 
-  return Object.fromEntries(Object.entries(value).map(([key, item]) => {
-    if (SENSITIVE_ARGUMENT_KEY.test(key)) return [key, "[REDACTED]"];
-    if (key.toLowerCase() === "query" && typeof item === "string") return [key, sanitizeQuery(item)];
-    return [key, redactArguments(item)];
-  }));
+  return Object.fromEntries(
+    Object.entries(value).map(([key, item]) => {
+      if (SENSITIVE_ARGUMENT_KEY.test(key)) return [key, "[REDACTED]"];
+      if (key.toLowerCase() === "query" && typeof item === "string")
+        return [key, sanitizeQuery(item)];
+      return [key, redactArguments(item)];
+    }),
+  );
 }
 
 /** Serialises tool arguments for activity details without exposing credentials. */
@@ -34,8 +39,11 @@ export function sanitizeToolArgs(value: unknown): string | null {
 
   let parsed: unknown = value;
   if (typeof value === "string") {
-    try { parsed = JSON.parse(value) as unknown; }
-    catch { /* Preserve non-JSON values after applying string redaction. */ }
+    try {
+      parsed = JSON.parse(value) as unknown;
+    } catch {
+      /* Preserve non-JSON values after applying string redaction. */
+    }
   }
 
   const serialized = JSON.stringify(redactArguments(parsed));
@@ -48,7 +56,9 @@ export function sanitizeToolArgs(value: unknown): string | null {
   for (let end = MAX_TOOL_ARGS_BYTES - suffix.byteLength; end >= 0; end -= 1) {
     try {
       return `${decoder.decode(encoded.slice(0, end))}…`;
-    } catch { /* Trim any partial multibyte character before appending the marker. */ }
+    } catch {
+      /* Trim any partial multibyte character before appending the marker. */
+    }
   }
   return "…";
 }
@@ -60,6 +70,11 @@ export function logToolCall(
   args?: unknown,
 ): void {
   db.insert(toolCalls)
-    .values({ tool, status, databaseConnectionId: databaseConnectionId ?? null, args: sanitizeToolArgs(args) })
+    .values({
+      tool,
+      status,
+      databaseConnectionId: databaseConnectionId ?? null,
+      args: sanitizeToolArgs(args),
+    })
     .catch(() => {});
 }

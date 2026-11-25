@@ -1,5 +1,6 @@
-import { test, describe } from "node:test";
 import assert from "node:assert/strict";
+import { test, describe } from "node:test";
+
 import { CreateDatabaseSchema } from "../api/routes/databases/types.ts";
 import { assertReadOnly, injectLimit } from "../query/safety.ts";
 
@@ -22,7 +23,10 @@ describe("MongoDB Support", () => {
 
   test("assertReadOnly permits a well-formed find DSL", () => {
     assert.doesNotThrow(() =>
-      assertReadOnly(JSON.stringify({ collection: "orders", filter: { status: "paid" } }), "mongodb")
+      assertReadOnly(
+        JSON.stringify({ collection: "orders", filter: { status: "paid" } }),
+        "mongodb",
+      ),
     );
     assert.doesNotThrow(() => assertReadOnly(JSON.stringify({ collection: "orders" }), "mongodb"));
   });
@@ -36,15 +40,23 @@ describe("MongoDB Support", () => {
   });
 
   test("assertReadOnly rejects unsupported top-level fields", () => {
-    assert.throws(() => assertReadOnly(JSON.stringify({ collection: "orders", op: "listCollections" }), "mongodb"));
+    assert.throws(() =>
+      assertReadOnly(JSON.stringify({ collection: "orders", op: "listCollections" }), "mongodb"),
+    );
   });
 
   test("assertReadOnly blocks code-executing / write operators", () => {
     assert.throws(() =>
-      assertReadOnly(JSON.stringify({ collection: "orders", filter: { $where: "this.a == this.b" } }), "mongodb")
+      assertReadOnly(
+        JSON.stringify({ collection: "orders", filter: { $where: "this.a == this.b" } }),
+        "mongodb",
+      ),
     );
     assert.throws(() =>
-      assertReadOnly(JSON.stringify({ collection: "orders", filter: {}, projection: { $out: "copy" } }), "mongodb")
+      assertReadOnly(
+        JSON.stringify({ collection: "orders", filter: {}, projection: { $out: "copy" } }),
+        "mongodb",
+      ),
     );
   });
 
@@ -54,7 +66,9 @@ describe("MongoDB Support", () => {
   });
 
   test("injectLimit preserves an explicit limit already set by the caller", () => {
-    const result = JSON.parse(injectLimit(JSON.stringify({ collection: "orders", limit: 5 }), 50, "mongodb"));
+    const result = JSON.parse(
+      injectLimit(JSON.stringify({ collection: "orders", limit: 5 }), 50, "mongodb"),
+    );
     assert.equal(result.limit, 5);
   });
 });

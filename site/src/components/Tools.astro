@@ -1,24 +1,26 @@
 ---
-import { tools } from '../data/site';
+import { tools } from "../data/site";
 ---
+
 <section class="section" id="tools">
   <div class="container">
     <div class="section-head reveal">
       <span class="kicker">MCP tools</span>
       <h2>Four tools. Zero guesswork.</h2>
-      <p>A small, focused surface the agent learns instantly, with field names that match their parameters.</p>
+      <p>
+        A small, focused surface the agent learns instantly, with field names that match their
+        parameters.
+      </p>
     </div>
 
     <ol class="tools">
-      {
-        tools.map((t, i) => (
-          <li class="reveal">
-            <span class="idx mono">{String(i + 1).padStart(2, '0')}</span>
-            <code>{t.name}</code>
-            <p>{t.desc}</p>
-          </li>
-        ))
-      }
+      {tools.map((t, i) => (
+        <li class="reveal">
+          <span class="idx mono">{String(i + 1).padStart(2, "0")}</span>
+          <code>{t.name}</code>
+          <p>{t.desc}</p>
+        </li>
+      ))}
     </ol>
   </div>
 </section>
@@ -46,7 +48,7 @@ import { tools } from '../data/site';
     background: var(--bg-2);
   }
   .tools li::before {
-    content: '';
+    content: "";
     position: absolute;
     top: 0;
     left: 0;

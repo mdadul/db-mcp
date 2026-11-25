@@ -1,54 +1,69 @@
 ---
-import Icon from './Icon.astro';
-import { setupTabs } from '../data/site';
+import Icon from "./Icon.astro";
+import { setupTabs } from "../data/site";
 ---
+
 <section class="section setup" id="setup">
   <div class="container split">
     <div class="copy reveal">
       <span class="kicker">Setup</span>
       <h2>Connected in under a minute</h2>
       <p>
-        The <b>AI Clients</b> page in DB MCP writes these entries for you. Prefer to do it by hand? Copy the snippet
-        for your tool and restart it.
+        The <b>AI Clients</b> page in DB MCP writes these entries for you. Prefer to do it by hand?
+        Copy the snippet for your tool and restart it.
       </p>
       <ul class="notes">
-        <li><Icon name="check" size={16} /> Default port <span class="mono">4080</span>, changeable in Settings</li>
-        <li><Icon name="check" size={16} /> No token to paste, nothing to expose publicly</li>
-        <li><Icon name="check" size={16} /> Works with any client that speaks MCP over HTTP</li>
+        <li>
+          <Icon name="check" size={16} /> Default port <span class="mono">4080</span>, changeable in
+          Settings
+        </li>
+        <li>
+          <Icon name="check" size={16} /> No token to paste, nothing to expose publicly
+        </li>
+        <li>
+          <Icon name="check" size={16} /> Works with any client that speaks MCP over HTTP
+        </li>
       </ul>
     </div>
 
     <div class="tabs reveal" data-tabs>
       <div class="tablist" role="tablist" aria-label="AI client">
-        {
-          setupTabs.map((t, i) => (
-            <button
-              role="tab"
-              id={`tab-${t.id}`}
-              aria-controls={`panel-${t.id}`}
-              aria-selected={i === 0 ? 'true' : 'false'}
-              tabindex={i === 0 ? 0 : -1}
-            >
-              {t.label}
-            </button>
-          ))
-        }
+        {setupTabs.map((t, i) => (
+          <button
+            role="tab"
+            id={`tab-${t.id}`}
+            aria-controls={`panel-${t.id}`}
+            aria-selected={i === 0 ? "true" : "false"}
+            tabindex={i === 0 ? 0 : -1}
+          >
+            {t.label}
+          </button>
+        ))}
       </div>
-      {
-        setupTabs.map((t, i) => (
-          <div class="panel" role="tabpanel" id={`panel-${t.id}`} aria-labelledby={`tab-${t.id}`} hidden={i !== 0}>
-            <div class="panel-bar">
-              <span class="mono">{t.file}</span>
-              <button class="copy-btn" type="button" data-copy={t.code} aria-label={`Copy ${t.label} config`}>
-                <Icon name="copy" size={15} class="i-copy" />
-                <Icon name="check" size={15} class="i-check" />
-                <span>Copy</span>
-              </button>
-            </div>
-            <pre><code>{t.code}</code></pre>
+      {setupTabs.map((t, i) => (
+        <div
+          class="panel"
+          role="tabpanel"
+          id={`panel-${t.id}`}
+          aria-labelledby={`tab-${t.id}`}
+          hidden={i !== 0}
+        >
+          <div class="panel-bar">
+            <span class="mono">{t.file}</span>
+            <button
+              class="copy-btn"
+              type="button"
+              data-copy={t.code}
+              aria-label={`Copy ${t.label} config`}
+            >
+              <Icon name="copy" size={15} class="i-copy" />
+              <Icon name="check" size={15} class="i-check" />
+              <span>Copy</span>
+            </button>
           </div>
-        ))
-      }
+          <pre><code>{t.code}</code></pre>
+        </div>
+      ))}
     </div>
   </div>
 </section>
@@ -121,12 +136,14 @@ import { setupTabs } from '../data/site';
     color: var(--mut);
     font: 500 14px var(--sans);
     cursor: pointer;
-    transition: color 0.15s ease, background 0.15s ease;
+    transition:
+      color 0.15s ease,
+      background 0.15s ease;
   }
   .tablist button:hover {
     color: var(--fg);
   }
-  .tablist button[aria-selected='true'] {
+  .tablist button[aria-selected="true"] {
     background: rgba(255, 255, 255, 0.07);
     color: var(--fg);
   }
@@ -149,7 +166,9 @@ import { setupTabs } from '../data/site';
     color: var(--fg-2);
     font: 500 12px var(--sans);
     cursor: pointer;
-    transition: color 0.15s ease, background 0.15s ease;
+    transition:
+      color 0.15s ease,
+      background 0.15s ease;
   }
   .copy-btn:hover {
     color: var(--fg);

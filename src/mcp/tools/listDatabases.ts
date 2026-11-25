@@ -1,6 +1,7 @@
+import { eq } from "drizzle-orm";
+
 import { db } from "../../db/client.ts";
 import { databaseConnections } from "../../db/schema.ts";
-import { eq } from "drizzle-orm";
 
 export async function listDatabases(): Promise<string> {
   const rows = await db

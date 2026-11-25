@@ -1,4 +1,5 @@
 import { timingSafeEqual } from "node:crypto";
+
 import type { Context, MiddlewareHandler, Next } from "hono";
 
 /** Origins the Tauri desktop shell serves the bundled UI from. */
@@ -26,11 +27,7 @@ export function parseAllowedOrigins(raw: string | undefined): string[] {
  * this server's port are served.
  */
 export function hostGuard(port: number): MiddlewareHandler {
-  const allowedHosts = new Set([
-    `127.0.0.1:${port}`,
-    `localhost:${port}`,
-    `[::1]:${port}`,
-  ]);
+  const allowedHosts = new Set([`127.0.0.1:${port}`, `localhost:${port}`, `[::1]:${port}`]);
 
   return async (c: Context, next: Next) => {
     const host = c.req.header("host") ?? "";
@@ -40,7 +37,7 @@ export function hostGuard(port: number): MiddlewareHandler {
           error: "Host header is not allowed",
           hint: `Connect to http://127.0.0.1:${port} (or localhost:${port}). Requests addressed to other hostnames are rejected to prevent DNS rebinding.`,
         },
-        403
+        403,
       );
     }
     await next();
@@ -58,7 +55,7 @@ export const mcpOriginGuard: MiddlewareHandler = async (c, next) => {
         error: "Browser-origin requests to /mcp are not allowed",
         hint: "MCP clients do not send an Origin header. Call /mcp from an MCP client (e.g. Claude Code, Cursor) instead of from a web page.",
       },
-      403
+      403,
     );
   }
   await next();
@@ -81,10 +78,7 @@ export interface ApiGuardOptions {
  * Mount with `root.use("/api/*", apiGuard(...))` before the routes it protects.
  */
 export function apiGuard(options: ApiGuardOptions = {}): MiddlewareHandler {
-  const allowedOrigins = new Set([
-    ...BUILTIN_ALLOWED_ORIGINS,
-    ...(options.allowedOrigins ?? []),
-  ]);
+  const allowedOrigins = new Set([...BUILTIN_ALLOWED_ORIGINS, ...(options.allowedOrigins ?? [])]);
   const sessionToken = options.sessionToken || undefined;
 
   return async (c: Context, next: Next) => {
@@ -97,7 +91,7 @@ export function apiGuard(options: ApiGuardOptions = {}): MiddlewareHandler {
             error: "Origin is not allowed",
             hint: "If this is a trusted dev UI, add its origin to ALLOWED_ORIGINS (comma-separated), e.g. http://localhost:5173.",
           },
-          403
+          403,
         );
       }
       c.header("Access-Control-Allow-Origin", origin);
@@ -119,7 +113,7 @@ export function apiGuard(options: ApiGuardOptions = {}): MiddlewareHandler {
             error: "Missing or invalid X-App-Session header",
             hint: "Send the session token from the desktop app in the X-App-Session header.",
           },
-          401
+          401,
         );
       }
     }

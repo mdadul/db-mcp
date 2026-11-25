@@ -5,10 +5,7 @@ export type { DbConfig, DbExecutor };
 /** Executor pools keyed by database connection id. */
 const pools = new Map<string, DbExecutor>();
 
-export async function getExecutor(
-  id: string,
-  config: DbConfig
-): Promise<DbExecutor> {
+export async function getExecutor(id: string, config: DbConfig): Promise<DbExecutor> {
   const existing = pools.get(id);
   if (existing) return existing;
 

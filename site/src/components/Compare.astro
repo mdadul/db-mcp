@@ -1,8 +1,8 @@
 ---
-import Icon from './Icon.astro';
+import Icon from "./Icon.astro";
 
-type Win = 'chat' | 'db';
-type Kind = 'user' | 'ai' | 'cmd' | 'err' | 'ok' | 'tool';
+type Win = "chat" | "db";
+type Kind = "user" | "ai" | "cmd" | "err" | "ok" | "tool";
 interface Step {
   win: Win;
   kind: Kind;
@@ -17,140 +17,152 @@ interface Step {
   result?: string;
 }
 
-const question = 'Which customers churned last month, and what plan were they on?';
+const question = "Which customers churned last month, and what plan were they on?";
 
 const before: Step[] = [
-  { win: 'chat', kind: 'user', text: question, caption: 'You ask the AI a question about your data.', clock: '0:10' },
   {
-    win: 'chat',
-    kind: 'ai',
+    win: "chat",
+    kind: "user",
+    text: question,
+    caption: "You ask the AI a question about your data.",
+    clock: "0:10",
+  },
+  {
+    win: "chat",
+    kind: "ai",
     text: "I can't see your database. Could you paste the table definitions for customers and plans?",
-    caption: 'The AI has never seen your schema, so it asks you for it.',
-    clock: '0:20',
+    caption: "The AI has never seen your schema, so it asks you for it.",
+    clock: "0:20",
   },
   {
-    win: 'db',
-    kind: 'cmd',
-    code: '\\d customers\n\\d customer_plans',
+    win: "db",
+    kind: "cmd",
+    code: "\\d customers\n\\d customer_plans",
     result: 'Table "public.customers" … 14 columns',
-    caption: 'You open your DB client and look up the tables.',
-    clock: '1:40',
+    caption: "You open your DB client and look up the tables.",
+    clock: "1:40",
   },
   {
-    win: 'chat',
-    kind: 'user',
+    win: "chat",
+    kind: "user",
     paste: true,
-    code: 'CREATE TABLE customers (\n  id uuid, name text, churned_at timestamptz, …\n);',
-    caption: 'You copy the schema and paste it into the chat.',
-    clock: '2:10',
+    code: "CREATE TABLE customers (\n  id uuid, name text, churned_at timestamptz, …\n);",
+    caption: "You copy the schema and paste it into the chat.",
+    clock: "2:10",
   },
   {
-    win: 'chat',
-    kind: 'ai',
+    win: "chat",
+    kind: "ai",
     wrong: true,
-    code: 'SELECT c.name, p.plan_name\nFROM customers c JOIN customer_plans p ON …\nWHERE c.churned_at >= now() - interval \'1 month\'',
-    caption: 'The AI writes a query from what you pasted. It guesses a column name.',
-    clock: '2:30',
+    code: "SELECT c.name, p.plan_name\nFROM customers c JOIN customer_plans p ON …\nWHERE c.churned_at >= now() - interval '1 month'",
+    caption: "The AI writes a query from what you pasted. It guesses a column name.",
+    clock: "2:30",
   },
   {
-    win: 'db',
-    kind: 'err',
+    win: "db",
+    kind: "err",
     paste: true,
-    code: 'SELECT c.name, p.plan_name …',
-    result: 'ERROR: column p.plan_name does not exist',
-    caption: 'You paste it into the DB client and run it. It fails.',
-    clock: '3:20',
+    code: "SELECT c.name, p.plan_name …",
+    result: "ERROR: column p.plan_name does not exist",
+    caption: "You paste it into the DB client and run it. It fails.",
+    clock: "3:20",
   },
   {
-    win: 'chat',
-    kind: 'user',
+    win: "chat",
+    kind: "user",
     paste: true,
-    code: 'ERROR: column p.plan_name does not exist',
-    caption: 'You copy the error back to the AI.',
-    clock: '3:45',
+    code: "ERROR: column p.plan_name does not exist",
+    caption: "You copy the error back to the AI.",
+    clock: "3:45",
   },
   {
-    win: 'chat',
-    kind: 'ai',
+    win: "chat",
+    kind: "ai",
     code: "Sorry about that! Try:\nSELECT c.name, p.plan, c.churned_at …",
-    caption: 'The AI apologizes and tries again.',
-    clock: '4:05',
+    caption: "The AI apologizes and tries again.",
+    clock: "4:05",
   },
   {
-    win: 'db',
-    kind: 'ok',
+    win: "db",
+    kind: "ok",
     paste: true,
-    code: 'SELECT c.name, p.plan, c.churned_at …',
-    result: '14 rows · Export → Copy as CSV',
-    caption: 'Back to the DB client. Paste, run, then export the rows.',
-    clock: '5:30',
+    code: "SELECT c.name, p.plan, c.churned_at …",
+    result: "14 rows · Export → Copy as CSV",
+    caption: "Back to the DB client. Paste, run, then export the rows.",
+    clock: "5:30",
   },
   {
-    win: 'chat',
-    kind: 'user',
+    win: "chat",
+    kind: "user",
     paste: true,
-    code: 'name,plan,churned_at\nAcme Co,Starter,2026-10-03\n… 13 more rows',
-    caption: 'You paste the results into the chat.',
-    clock: '6:15',
+    code: "name,plan,churned_at\nAcme Co,Starter,2026-10-03\n… 13 more rows",
+    caption: "You paste the results into the chat.",
+    clock: "6:15",
   },
   {
-    win: 'chat',
-    kind: 'ai',
-    text: '14 customers churned in October. 9 were on Starter, 4 on Team, 1 on Business.',
-    caption: 'Finally, an answer. And the next question starts the loop again.',
-    clock: '6:40',
+    win: "chat",
+    kind: "ai",
+    text: "14 customers churned in October. 9 were on Starter, 4 on Team, 1 on Business.",
+    caption: "Finally, an answer. And the next question starts the loop again.",
+    clock: "6:40",
   },
 ];
 
 const after: Step[] = [
-  { win: 'chat', kind: 'user', text: question, caption: 'You ask the same question.', clock: '0:03' },
   {
-    win: 'chat',
-    kind: 'tool',
-    tool: 'list_databases',
-    result: 'prod_replica, analytics',
-    caption: 'The agent finds your databases on its own.',
-    clock: '0:05',
+    win: "chat",
+    kind: "user",
+    text: question,
+    caption: "You ask the same question.",
+    clock: "0:03",
   },
   {
-    win: 'chat',
-    kind: 'tool',
-    tool: 'get_database_schema',
+    win: "chat",
+    kind: "tool",
+    tool: "list_databases",
+    result: "prod_replica, analytics",
+    caption: "The agent finds your databases on its own.",
+    clock: "0:05",
+  },
+  {
+    win: "chat",
+    kind: "tool",
+    tool: "get_database_schema",
     arg: 'filter: "customer"',
-    result: 'customers, customer_plans, customer_events',
-    caption: 'It searches the schema for relevant tables.',
-    clock: '0:08',
+    result: "customers, customer_plans, customer_events",
+    caption: "It searches the schema for relevant tables.",
+    clock: "0:08",
   },
   {
-    win: 'chat',
-    kind: 'tool',
-    tool: 'get_table_schema',
-    arg: 'customer_plans',
-    result: 'id, customer_id, plan, started_at, …',
-    caption: 'It reads the real columns, so it doesn’t have to guess.',
-    clock: '0:11',
+    win: "chat",
+    kind: "tool",
+    tool: "get_table_schema",
+    arg: "customer_plans",
+    result: "id, customer_id, plan, started_at, …",
+    caption: "It reads the real columns, so it doesn’t have to guess.",
+    clock: "0:11",
   },
   {
-    win: 'chat',
-    kind: 'tool',
-    tool: 'execute_read_query',
-    code: 'SELECT c.name, p.plan, c.churned_at\nFROM customers c JOIN customer_plans p ON p.customer_id = c.id\nWHERE c.churned_at >= \'2026-10-01\'',
-    result: '✓ 14 rows · 38 ms · read-only',
-    caption: 'It runs a correct, read-only query. First try.',
-    clock: '0:15',
+    win: "chat",
+    kind: "tool",
+    tool: "execute_read_query",
+    code: "SELECT c.name, p.plan, c.churned_at\nFROM customers c JOIN customer_plans p ON p.customer_id = c.id\nWHERE c.churned_at >= '2026-10-01'",
+    result: "✓ 14 rows · 38 ms · read-only",
+    caption: "It runs a correct, read-only query. First try.",
+    clock: "0:15",
   },
   {
-    win: 'chat',
-    kind: 'ai',
-    text: '14 customers churned in October. 9 were on Starter, 4 on Team, 1 on Business. Most left within 30 days of a price change.',
-    caption: 'You get the answer, with no app switching and no copy-paste.',
-    clock: '0:21',
+    win: "chat",
+    kind: "ai",
+    text: "14 customers churned in October. 9 were on Starter, 4 on Team, 1 on Business. Most left within 30 days of a price change.",
+    caption: "You get the answer, with no app switching and no copy-paste.",
+    clock: "0:21",
   },
 ];
 
 const modes = [
-  { id: 'before', label: 'Without DB MCP', steps: before },
-  { id: 'after', label: 'With DB MCP', steps: after },
+  { id: "before", label: "Without DB MCP", steps: before },
+  { id: "after", label: "With DB MCP", steps: after },
 ] as const;
 
 // Totals for the summary cards, derived from the same script as the simulation.
@@ -163,41 +175,44 @@ const totals = (steps: Step[]) => ({
 const tb = totals(before);
 const ta = totals(after);
 const fmt = (clock: string) => {
-  const [m, sec] = clock.split(':').map(Number);
+  const [m, sec] = clock.split(":").map(Number);
   return m ? `${m}m ${sec}s` : `${sec}s`;
 };
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
-const tag = (k: Kind) => (k === 'user' ? 'You' : k === 'ai' ? 'AI' : '');
+const tag = (k: Kind) => (k === "user" ? "You" : k === "ai" ? "AI" : "");
 ---
+
 <section class="section compare" id="compare">
   <div class="container">
     <div class="section-head reveal">
       <span class="kicker">Before &amp; after</span>
-      <h2>Stop being your AI’s<br /><span class="grad-text">copy-paste middleware</span></h2>
+      <h2>
+        Stop being your AI’s
+        <br />
+        <span class="grad-text">copy-paste middleware</span>
+      </h2>
       <p>
-        Without database access, every question turns into a loop between the chat and your DB client. With DB MCP,
-        the agent does the legwork itself.
+        Without database access, every question turns into a loop between the chat and your DB
+        client. With DB MCP, the agent does the legwork itself.
       </p>
     </div>
 
     <div class="sim reveal" data-sim>
       <div class="toolbar">
         <div class="seg" role="tablist" aria-label="Workflow">
-          {
-            modes.map((m, i) => (
-              <button
-                type="button"
-                role="tab"
-                data-mode-btn={m.id}
-                aria-selected={i === 0 ? 'true' : 'false'}
-                class={m.id}
-              >
-                {m.id === 'before' ? <Icon name="ban" size={15} /> : <Icon name="zap" size={15} />}
-                {m.label}
-              </button>
-            ))
-          }
+          {modes.map((m, i) => (
+            <button
+              type="button"
+              role="tab"
+              data-mode-btn={m.id}
+              aria-selected={i === 0 ? "true" : "false"}
+              class={m.id}
+            >
+              {m.id === "before" ? <Icon name="ban" size={15} /> : <Icon name="zap" size={15} />}
+              {m.label}
+            </button>
+          ))}
         </div>
 
         <dl class="stats" aria-live="off">
@@ -220,89 +235,101 @@ const tag = (k: Kind) => (k === 'user' ? 'You' : k === 'ai' ? 'AI' : '');
         </dl>
       </div>
 
-      {
-        modes.map((m, mi) => (
-          <div class={`stage stage-${m.id}`} data-stage={m.id} hidden={mi !== 0}>
-            <div class="win chat" data-win="chat">
-              <div class="bar">
-                <span class="dots"><i /><i /><i /></span>
-                <span class="wtitle">{m.id === 'before' ? 'AI chat' : 'AI agent · db-mcp connected'}</span>
-              </div>
-              <div class="feed" data-feed>
-                {m.steps.map((s, i) =>
-                  s.win === 'chat' ? (
-                    <div class={`msg ${s.kind}${s.wrong ? ' wrong' : ''}`} data-step={i}>
-                      {s.kind === 'tool' ? (
-                        <>
-                          <div class="tool-head">
-                            <span class="tdot" />
-                            <b>db-mcp</b> · {s.tool}
-                            {s.arg && <span class="targ">{s.arg}</span>}
-                          </div>
-                          {s.code && <pre>{s.code}</pre>}
-                          <span class="tres">{s.result}</span>
-                        </>
-                      ) : (
-                        <>
-                          <span class="who">
-                            {tag(s.kind)}
-                            {s.paste && <em class="chip paste">pasted</em>}
-                            {s.wrong && <em class="chip bad">wrong column</em>}
-                          </span>
-                          {s.text && <p>{s.text}</p>}
-                          {s.code && <pre>{s.code}</pre>}
-                        </>
-                      )}
-                    </div>
-                  ) : null,
-                )}
-              </div>
+      {modes.map((m, mi) => (
+        <div class={`stage stage-${m.id}`} data-stage={m.id} hidden={mi !== 0}>
+          <div class="win chat" data-win="chat">
+            <div class="bar">
+              <span class="dots">
+                <i />
+                <i />
+                <i />
+              </span>
+              <span class="wtitle">
+                {m.id === "before" ? "AI chat" : "AI agent · db-mcp connected"}
+              </span>
             </div>
-
-            {m.id === 'before' && (
-              <>
-                <div class="loop" aria-hidden="true">
-                  <span class="arrow a1">
-                    <Icon name="arrow" size={18} />
-                  </span>
-                  <span class="loop-label">copy · paste · repeat</span>
-                  <span class="arrow a2">
-                    <Icon name="arrow" size={18} />
-                  </span>
-                </div>
-                <div class="win db" data-win="db">
-                  <div class="bar">
-                    <span class="dots"><i /><i /><i /></span>
-                    <span class="wtitle">DB client · prod_replica</span>
-                  </div>
-                  <div class="feed" data-feed>
-                    {m.steps.map((s, i) =>
-                      s.win === 'db' ? (
-                        <div class={`row ${s.kind}`} data-step={i}>
-                          <pre class="sqlin"><span class="pr">db=&gt; </span>{s.code}</pre>
-                          <span class="out">{s.result}</span>
+            <div class="feed" data-feed>
+              {m.steps.map((s, i) =>
+                s.win === "chat" ? (
+                  <div class={`msg ${s.kind}${s.wrong ? " wrong" : ""}`} data-step={i}>
+                    {s.kind === "tool" ? (
+                      <>
+                        <div class="tool-head">
+                          <span class="tdot" />
+                          <b>db-mcp</b> · {s.tool}
+                          {s.arg && <span class="targ">{s.arg}</span>}
                         </div>
-                      ) : null,
+                        {s.code && <pre>{s.code}</pre>}
+                        <span class="tres">{s.result}</span>
+                      </>
+                    ) : (
+                      <>
+                        <span class="who">
+                          {tag(s.kind)}
+                          {s.paste && <em class="chip paste">pasted</em>}
+                          {s.wrong && <em class="chip bad">wrong column</em>}
+                        </span>
+                        {s.text && <p>{s.text}</p>}
+                        {s.code && <pre>{s.code}</pre>}
+                      </>
                     )}
-                    <p class="idle">Waiting for you to paste a query…</p>
                   </div>
-                </div>
-              </>
-            )}
-
-            <div class="toast" data-toast aria-hidden="true">
-              <Icon name="copy" size={14} /> <span>Copy &amp; paste</span>
+                ) : null,
+              )}
             </div>
           </div>
-        ))
-      }
+
+          {m.id === "before" && (
+            <>
+              <div class="loop" aria-hidden="true">
+                <span class="arrow a1">
+                  <Icon name="arrow" size={18} />
+                </span>
+                <span class="loop-label">copy · paste · repeat</span>
+                <span class="arrow a2">
+                  <Icon name="arrow" size={18} />
+                </span>
+              </div>
+              <div class="win db" data-win="db">
+                <div class="bar">
+                  <span class="dots">
+                    <i />
+                    <i />
+                    <i />
+                  </span>
+                  <span class="wtitle">DB client · prod_replica</span>
+                </div>
+                <div class="feed" data-feed>
+                  {m.steps.map((s, i) =>
+                    s.win === "db" ? (
+                      <div class={`row ${s.kind}`} data-step={i}>
+                        <pre class="sqlin"><span class="pr">db=&gt; </span>{s.code}</pre>
+                        <span class="out">{s.result}</span>
+                      </div>
+                    ) : null,
+                  )}
+                  <p class="idle">Waiting for you to paste a query…</p>
+                </div>
+              </div>
+            </>
+          )}
+
+          <div class="toast" data-toast aria-hidden="true">
+            <Icon name="copy" size={14} /> <span>Copy &amp; paste</span>
+          </div>
+        </div>
+      ))}
 
       <div class="simbar">
         <div class="caption">
-          <span class="stepno mono" data-stepno>01</span>
+          <span class="stepno mono" data-stepno>
+            01
+          </span>
           <span data-caption>Press play to see the loop.</span>
         </div>
-        <div class="progress" aria-hidden="true"><i data-progress></i></div>
+        <div class="progress" aria-hidden="true">
+          <i data-progress></i>
+        </div>
         <button type="button" class="replay" data-replay>
           <Icon name="sparkles" size={15} />
           <span>Replay</span>
@@ -317,11 +344,14 @@ const tag = (k: Kind) => (k === 'user' ? 'You' : k === 'ai' ? 'AI' : '');
         <span class="vlabel">Without DB MCP</span>
         <b>{fmt(tb.clock)}</b>
         <span>
-          {plural(tb.switches, 'app switch', 'app switches')}, {plural(tb.pastes, 'copy-paste', 'copy-pastes')},{' '}
-          {plural(tb.wrong, 'wrong query', 'wrong queries')}. Every question.
+          {plural(tb.switches, "app switch", "app switches")},{" "}
+          {plural(tb.pastes, "copy-paste", "copy-pastes")},{" "}
+          {plural(tb.wrong, "wrong query", "wrong queries")}. Every question.
         </span>
       </div>
-      <span class="vs" aria-hidden="true"><Icon name="arrow" size={20} /></span>
+      <span class="vs" aria-hidden="true">
+        <Icon name="arrow" size={20} />
+      </span>
       <div class="v after">
         <span class="vlabel">With DB MCP</span>
         <b>{fmt(ta.clock)}</b>
@@ -332,23 +362,30 @@ const tag = (k: Kind) => (k === 'user' ? 'You' : k === 'ai' ? 'AI' : '');
 </section>
 
 <script>
-  type Step = { win: 'chat' | 'db'; clock: string; caption: string; paste?: boolean; wrong?: boolean };
-  type Data = Record<'before' | 'after', Step[]>;
+  type Step = {
+    win: "chat" | "db";
+    clock: string;
+    caption: string;
+    paste?: boolean;
+    wrong?: boolean;
+  };
+  type Data = Record<"before" | "after", Step[]>;
 
-  const root = document.querySelector<HTMLElement>('[data-sim]');
+  const root = document.querySelector<HTMLElement>("[data-sim]");
   if (root) init(root);
 
   function init(root: HTMLElement) {
-    const data: Data = JSON.parse(root.querySelector('[data-steps]')!.textContent ?? '{}');
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const $ = <T extends HTMLElement>(sel: string, el: ParentNode = root) => el.querySelector<T>(sel)!;
+    const data: Data = JSON.parse(root.querySelector("[data-steps]")!.textContent ?? "{}");
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const $ = <T extends HTMLElement>(sel: string, el: ParentNode = root) =>
+      el.querySelector<T>(sel)!;
     const stat = (k: string) => $(`[data-stat="${k}"]`);
-    const caption = $('[data-caption]');
-    const stepno = $('[data-stepno]');
-    const progress = $('[data-progress]');
-    const replay = $<HTMLButtonElement>('[data-replay]');
+    const caption = $("[data-caption]");
+    const stepno = $("[data-stepno]");
+    const progress = $("[data-progress]");
+    const replay = $<HTMLButtonElement>("[data-replay]");
 
-    let mode: keyof Data = 'before';
+    let mode: keyof Data = "before";
     let timer: number | undefined;
     let started = false;
 
@@ -362,10 +399,12 @@ const tag = (k: Kind) => (k === 'user' ? 'You' : k === 'ai' ? 'AI' : '');
     function setMode(next: keyof Data) {
       mode = next;
       root.dataset.mode = next;
-      root.querySelectorAll<HTMLButtonElement>('[data-mode-btn]').forEach((b) =>
-        b.setAttribute('aria-selected', String(b.dataset.modeBtn === next)),
-      );
-      root.querySelectorAll<HTMLElement>('[data-stage]').forEach((s) => (s.hidden = s.dataset.stage !== next));
+      root
+        .querySelectorAll<HTMLButtonElement>("[data-mode-btn]")
+        .forEach((b) => b.setAttribute("aria-selected", String(b.dataset.modeBtn === next)));
+      root
+        .querySelectorAll<HTMLElement>("[data-stage]")
+        .forEach((s) => (s.hidden = s.dataset.stage !== next));
     }
 
     function render(i: number) {
@@ -379,35 +418,35 @@ const tag = (k: Kind) => (k === 'user' ? 'You' : k === 'ai' ? 'AI' : '');
         if (steps[k].paste) pastes++;
         if (steps[k].wrong) wrong++;
       }
-      stage.querySelectorAll<HTMLElement>('[data-step]').forEach((el) => {
+      stage.querySelectorAll<HTMLElement>("[data-step]").forEach((el) => {
         const on = Number(el.dataset.step) <= i;
-        el.classList.toggle('shown', on);
-        el.classList.toggle('latest', Number(el.dataset.step) === i);
+        el.classList.toggle("shown", on);
+        el.classList.toggle("latest", Number(el.dataset.step) === i);
       });
-      stage.querySelectorAll<HTMLElement>('[data-win]').forEach((w) => {
-        w.classList.toggle('active', i >= 0 && steps[i].win === w.dataset.win);
+      stage.querySelectorAll<HTMLElement>("[data-win]").forEach((w) => {
+        w.classList.toggle("active", i >= 0 && steps[i].win === w.dataset.win);
       });
-      stage.querySelectorAll<HTMLElement>('[data-feed]').forEach((f) => {
-        f.scrollTo({ top: f.scrollHeight, behavior: reduce ? 'auto' : 'smooth' });
+      stage.querySelectorAll<HTMLElement>("[data-feed]").forEach((f) => {
+        f.scrollTo({ top: f.scrollHeight, behavior: reduce ? "auto" : "smooth" });
       });
 
-      const toast = $('[data-toast]', stage);
-      toast.classList.remove('pop');
+      const toast = $("[data-toast]", stage);
+      toast.classList.remove("pop");
       if (i >= 0 && steps[i].paste && !reduce) {
         toast.dataset.side = steps[i].win;
         void toast.offsetWidth;
-        toast.classList.add('pop');
+        toast.classList.add("pop");
       }
 
       const s = i >= 0 ? steps[i] : null;
-      stat('clock').textContent = s ? s.clock : '0:00';
-      stat('switches').textContent = String(switches);
-      stat('pastes').textContent = String(pastes);
-      stat('wrong').textContent = String(wrong);
-      caption.textContent = s ? s.caption : '';
-      stepno.textContent = String(Math.max(i + 1, 1)).padStart(2, '0');
+      stat("clock").textContent = s ? s.clock : "0:00";
+      stat("switches").textContent = String(switches);
+      stat("pastes").textContent = String(pastes);
+      stat("wrong").textContent = String(wrong);
+      caption.textContent = s ? s.caption : "";
+      stepno.textContent = String(Math.max(i + 1, 1)).padStart(2, "0");
       progress.style.width = `${((i + 1) / steps.length) * 100}%`;
-      root.classList.toggle('done', i === steps.length - 1);
+      root.classList.toggle("done", i === steps.length - 1);
     }
 
     function play(from = 0, chain = false) {
@@ -423,10 +462,10 @@ const tag = (k: Kind) => (k === 'user' ? 'You' : k === 'ai' ? 'AI' : '');
         if (i < steps.length - 1) {
           i++;
           timer = window.setTimeout(tick, DELAY[mode]);
-        } else if (chain && mode === 'before') {
+        } else if (chain && mode === "before") {
           // Tell the whole story: after the loop finishes, show the fix.
           timer = window.setTimeout(() => {
-            setMode('after');
+            setMode("after");
             play(0);
           }, 2600);
         }
@@ -434,19 +473,19 @@ const tag = (k: Kind) => (k === 'user' ? 'You' : k === 'ai' ? 'AI' : '');
       tick();
     }
 
-    root.querySelectorAll<HTMLButtonElement>('[data-mode-btn]').forEach((b) =>
-      b.addEventListener('click', () => {
+    root.querySelectorAll<HTMLButtonElement>("[data-mode-btn]").forEach((b) =>
+      b.addEventListener("click", () => {
         started = true;
         setMode(b.dataset.modeBtn as keyof Data);
         play(0);
       }),
     );
-    replay.addEventListener('click', () => {
+    replay.addEventListener("click", () => {
       started = true;
-      play(0, mode === 'before');
+      play(0, mode === "before");
     });
 
-    setMode('before');
+    setMode("before");
     render(-1);
 
     // Start once, the first time the simulation scrolls into view.
@@ -499,16 +538,18 @@ const tag = (k: Kind) => (k === 'user' ? 'You' : k === 'ai' ? 'AI' : '');
     color: var(--mut);
     font: 600 14px var(--sans);
     cursor: pointer;
-    transition: background 0.2s ease, color 0.2s ease;
+    transition:
+      background 0.2s ease,
+      color 0.2s ease;
   }
   .seg button:hover {
     color: var(--fg);
   }
-  .seg button.before[aria-selected='true'] {
+  .seg button.before[aria-selected="true"] {
     background: rgba(248, 113, 113, 0.14);
     color: #fca5a5;
   }
-  .seg button.after[aria-selected='true'] {
+  .seg button.after[aria-selected="true"] {
     background: rgba(34, 211, 238, 0.14);
     color: var(--cyan);
   }
@@ -535,10 +576,10 @@ const tag = (k: Kind) => (k === 'user' ? 'You' : k === 'ai' ? 'AI' : '');
     font-variant-numeric: tabular-nums;
     transition: color 0.3s ease;
   }
-  [data-mode='before'] .stats dd {
+  [data-mode="before"] .stats dd {
     color: #fca5a5;
   }
-  [data-mode='after'] .stats dd {
+  [data-mode="after"] .stats dd {
     color: var(--green);
   }
 
@@ -570,19 +611,26 @@ const tag = (k: Kind) => (k === 'user' ? 'You' : k === 'ai' ? 'AI' : '');
     border: 1px solid var(--line);
     background: #0a0e19;
     overflow: hidden;
-    transition: border-color 0.35s ease, box-shadow 0.35s ease, opacity 0.35s ease;
+    transition:
+      border-color 0.35s ease,
+      box-shadow 0.35s ease,
+      opacity 0.35s ease;
   }
   .stage-before .win:not(.active) {
     opacity: 0.55;
   }
   .win.active {
     border-color: rgba(34, 211, 238, 0.55);
-    box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.08), 0 0 50px -12px rgba(34, 211, 238, 0.45);
+    box-shadow:
+      0 0 0 3px rgba(34, 211, 238, 0.08),
+      0 0 50px -12px rgba(34, 211, 238, 0.45);
     opacity: 1;
   }
   .stage-before .win.db.active {
     border-color: rgba(251, 191, 36, 0.55);
-    box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.08), 0 0 50px -12px rgba(251, 191, 36, 0.4);
+    box-shadow:
+      0 0 0 3px rgba(251, 191, 36, 0.08),
+      0 0 50px -12px rgba(251, 191, 36, 0.4);
   }
   .bar {
     display: flex;
@@ -723,7 +771,7 @@ const tag = (k: Kind) => (k === 'user' ? 'You' : k === 'ai' ? 'AI' : '');
     color: var(--mut);
   }
   .tres::before {
-    content: '└ ';
+    content: "└ ";
     color: #3a4460;
   }
   .msg.tool pre {
@@ -797,8 +845,8 @@ const tag = (k: Kind) => (k === 'user' ? 'You' : k === 'ai' ? 'AI' : '');
   .a2 {
     transform: rotate(180deg);
   }
-  [data-mode='before'] .stage-before:has(.db.active) .a1,
-  [data-mode='before'] .stage-before:has(.chat.active) .a2 {
+  [data-mode="before"] .stage-before:has(.db.active) .a1,
+  [data-mode="before"] .stage-before:has(.chat.active) .a2 {
     color: var(--amber);
     border-color: rgba(251, 191, 36, 0.5);
     border-style: solid;
@@ -826,10 +874,10 @@ const tag = (k: Kind) => (k === 'user' ? 'You' : k === 'ai' ? 'AI' : '');
     opacity: 0;
     pointer-events: none;
   }
-  .toast[data-side='chat'] {
+  .toast[data-side="chat"] {
     left: 32px;
   }
-  .toast[data-side='db'] {
+  .toast[data-side="db"] {
     right: 32px;
   }
   .toast.pop {
@@ -890,10 +938,10 @@ const tag = (k: Kind) => (k === 'user' ? 'You' : k === 'ai' ? 'AI' : '');
     width: 0;
     transition: width 0.5s ease;
   }
-  [data-mode='before'] .progress i {
+  [data-mode="before"] .progress i {
     background: linear-gradient(90deg, #f87171, #fbbf24);
   }
-  [data-mode='after'] .progress i {
+  [data-mode="after"] .progress i {
     background: var(--grad);
   }
   .replay {
@@ -908,7 +956,10 @@ const tag = (k: Kind) => (k === 'user' ? 'You' : k === 'ai' ? 'AI' : '');
     color: var(--fg-2);
     font: 500 13px var(--sans);
     cursor: pointer;
-    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    transition:
+      background 0.2s ease,
+      color 0.2s ease,
+      border-color 0.2s ease;
   }
   .replay:hover,
   .done .replay {
@@ -1001,7 +1052,7 @@ const tag = (k: Kind) => (k === 'user' ? 'You' : k === 'ai' ? 'AI' : '');
     .a2 {
       transform: rotate(-90deg);
     }
-    .toast[data-side='db'] {
+    .toast[data-side="db"] {
       right: auto;
       left: 32px;
       top: auto;

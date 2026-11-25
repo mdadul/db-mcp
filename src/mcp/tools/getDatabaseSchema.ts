@@ -1,7 +1,9 @@
+import { eq } from "drizzle-orm";
+
 import { db } from "../../db/client.ts";
 import { databaseConnections } from "../../db/schema.ts";
-import { eq } from "drizzle-orm";
 import { getExecutor } from "../../services/connPool.ts";
+import type { DbConfig } from "../../services/dbExecutor.ts";
 
 export async function getDatabaseSchema(databaseId: string, filter?: string): Promise<string> {
   const [conn] = await db
@@ -9,10 +11,18 @@ export async function getDatabaseSchema(databaseId: string, filter?: string): Pr
     .from(databaseConnections)
     .where(eq(databaseConnections.id, databaseId));
 
-  if (!conn) return JSON.stringify({ error: `Database "${databaseId}" not found.`, hint: "Call list_databases to get valid database_id values." });
-  if (conn.status !== "enabled") return JSON.stringify({ error: `Database "${conn.name}" is disabled.`, hint: "Ask the user to enable the database in DB MCP (Connections) before querying." });
+  if (!conn)
+    return JSON.stringify({
+      error: `Database "${databaseId}" not found.`,
+      hint: "Call list_databases to get valid database_id values.",
+    });
+  if (conn.status !== "enabled")
+    return JSON.stringify({
+      error: `Database "${conn.name}" is disabled.`,
+      hint: "Ask the user to enable the database in DB MCP (Connections) before querying.",
+    });
 
-  const executor = await getExecutor(conn.id, conn as any);
+  const executor = await getExecutor(conn.id, conn as DbConfig);
 
   interface TableRow {
     table_name?: string | null;
@@ -27,14 +37,14 @@ export async function getDatabaseSchema(databaseId: string, filter?: string): Pr
     switch (conn.type) {
       case "sqlite":
         tables = await executor.query<TableRow>(
-          `SELECT name AS table_name, type AS table_type FROM sqlite_master WHERE type='table' ORDER BY name`
+          `SELECT name AS table_name, type AS table_type FROM sqlite_master WHERE type='table' ORDER BY name`,
         );
         break;
       case "redshift":
         tables = await executor.query<TableRow>(
           `SELECT schema || '.' || "table" AS table_name, 'BASE TABLE' AS table_type
            FROM SVV_TABLE_INFO
-           ORDER BY schema, "table"`
+           ORDER BY schema, "table"`,
         );
         break;
       case "mysql":
@@ -43,7 +53,7 @@ export async function getDatabaseSchema(databaseId: string, filter?: string): Pr
            FROM information_schema.tables 
            WHERE table_schema = ? 
            ORDER BY table_name`,
-          [conn.databaseName]
+          [conn.databaseName],
         );
         break;
       case "mongodb":
@@ -55,7 +65,7 @@ export async function getDatabaseSchema(databaseId: string, filter?: string): Pr
           `SELECT table_name, table_type
            FROM information_schema.tables
            WHERE table_schema = 'public'
-           ORDER BY table_name`
+           ORDER BY table_name`,
         );
     }
   } catch (err: unknown) {
@@ -79,9 +89,7 @@ export async function getDatabaseSchema(databaseId: string, filter?: string): Pr
   }[];
 
   const visibleTables = filter
-    ? normalizedTables.filter((t) =>
-        t.table_name.toLowerCase().includes(filter.toLowerCase())
-      )
+    ? normalizedTables.filter((t) => t.table_name.toLowerCase().includes(filter.toLowerCase()))
     : normalizedTables;
 
   if (visibleTables.length === 0) {

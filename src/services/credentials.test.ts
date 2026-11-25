@@ -1,5 +1,6 @@
-import { describe, test, before, after } from "node:test";
 import assert from "node:assert/strict";
+import { describe, test, after } from "node:test";
+
 import { encrypt, decrypt } from "./credentials.ts";
 
 // Must be set before any test calls encrypt/decrypt.

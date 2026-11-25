@@ -1,22 +1,56 @@
+import { eq } from "drizzle-orm";
+
 import { db } from "../../db/client.ts";
 import { databaseConnections } from "../../db/schema.ts";
-import { eq } from "drizzle-orm";
 import { getExecutor } from "../../services/connPool.ts";
+import type { DbConfig } from "../../services/dbExecutor.ts";
 import { parseRedshiftDistKey, splitQualifiedTableName } from "./redshiftMeta.ts";
 
-export async function getTableSchema(
-  databaseId: string,
-  tableName: string
-): Promise<string> {
+/** Row shapes returned by the SQLite PRAGMA queries and the MongoDB index listing. */
+interface PragmaColumn {
+  name: string;
+  type: string | null;
+  notnull: number;
+  dflt_value: string | null;
+}
+
+interface PragmaForeignKey {
+  table: string;
+  from: string;
+  to: string;
+}
+
+interface PragmaIndex {
+  name: string;
+  unique: number;
+  origin: string;
+}
+
+interface MongoIndex {
+  index_name: string;
+  column_name: string;
+  is_unique: boolean;
+  is_primary: boolean;
+}
+
+export async function getTableSchema(databaseId: string, tableName: string): Promise<string> {
   const [conn] = await db
     .select()
     .from(databaseConnections)
     .where(eq(databaseConnections.id, databaseId));
 
-  if (!conn) return JSON.stringify({ error: `Database "${databaseId}" not found.`, hint: "Call list_databases to get valid database_id values." });
-  if (conn.status !== "enabled") return JSON.stringify({ error: `Database "${conn.name}" is disabled.`, hint: "Ask the user to enable the database in DB MCP (Connections) before querying." });
+  if (!conn)
+    return JSON.stringify({
+      error: `Database "${databaseId}" not found.`,
+      hint: "Call list_databases to get valid database_id values.",
+    });
+  if (conn.status !== "enabled")
+    return JSON.stringify({
+      error: `Database "${conn.name}" is disabled.`,
+      hint: "Ask the user to enable the database in DB MCP (Connections) before querying.",
+    });
 
-  const executor = await getExecutor(conn.id, conn as any);
+  const executor = await getExecutor(conn.id, conn as DbConfig);
 
   interface ColumnRow {
     column_name: string;
@@ -47,24 +81,30 @@ export async function getTableSchema(
     switch (conn.type) {
       case "sqlite": {
         // PRAGMA table_info returns: cid, name, type, notnull, dflt_value, pk
-        const pragmaColumns = await executor.query<any>(`PRAGMA table_info(${JSON.stringify(tableName)})`);
-        const pragmaFk = await executor.query<any>(`PRAGMA foreign_key_list(${JSON.stringify(tableName)})`);
-        const pragmaIdx = await executor.query<any>(`PRAGMA index_list(${JSON.stringify(tableName)})`);
+        const pragmaColumns = await executor.query<PragmaColumn>(
+          `PRAGMA table_info(${JSON.stringify(tableName)})`,
+        );
+        const pragmaFk = await executor.query<PragmaForeignKey>(
+          `PRAGMA foreign_key_list(${JSON.stringify(tableName)})`,
+        );
+        const pragmaIdx = await executor.query<PragmaIndex>(
+          `PRAGMA index_list(${JSON.stringify(tableName)})`,
+        );
 
-        columns = pragmaColumns.map((c: any) => ({
+        columns = pragmaColumns.map((c) => ({
           column_name: c.name,
           data_type: c.type || "TEXT",
           is_nullable: c.notnull ? "NO" : "YES",
           column_default: c.dflt_value ?? null,
           character_maximum_length: null,
         }));
-        indexes = pragmaIdx.map((i: any) => ({
+        indexes = pragmaIdx.map((i) => ({
           index_name: i.name,
           column_name: "",
           is_unique: Boolean(i.unique),
           is_primary: i.origin === "pk",
         }));
-        foreignKeys = pragmaFk.map((fk: any) => ({
+        foreignKeys = pragmaFk.map((fk) => ({
           column_name: fk.from,
           foreign_table: fk.table,
           foreign_column: fk.to,
@@ -85,13 +125,13 @@ export async function getTableSchema(
              FROM information_schema.columns
              WHERE table_name = $1${schemaFilter}
              ORDER BY ordinal_position`,
-            params
+            params,
           ),
           // Sort/dist keys are extra detail; a failure here must not hide the columns.
           executor
             .query<{ sortkey1?: string | null; diststyle?: string | null }>(
               `SELECT sortkey1, diststyle FROM SVV_TABLE_INFO WHERE "table" = $1${metaSchemaFilter}`,
-              params
+              params,
             )
             .catch(() => []),
         ]);
@@ -99,11 +139,21 @@ export async function getTableSchema(
         const meta = redshiftMeta[0] ?? {};
         // Surface sort key and dist key in the indexes field
         if (meta.sortkey1) {
-          indexes.push({ index_name: `sort_key:${meta.sortkey1}`, column_name: meta.sortkey1, is_unique: false, is_primary: false });
+          indexes.push({
+            index_name: `sort_key:${meta.sortkey1}`,
+            column_name: meta.sortkey1,
+            is_unique: false,
+            is_primary: false,
+          });
         }
         const distKey = parseRedshiftDistKey(meta.diststyle);
         if (distKey) {
-          indexes.push({ index_name: `dist_key:${distKey}`, column_name: distKey, is_unique: false, is_primary: false });
+          indexes.push({
+            index_name: `dist_key:${distKey}`,
+            column_name: distKey,
+            is_unique: false,
+            is_primary: false,
+          });
         }
         break;
       }
@@ -114,31 +164,38 @@ export async function getTableSchema(
              FROM information_schema.columns
              WHERE table_schema = ? AND table_name = ?
              ORDER BY ordinal_position`,
-            [conn.databaseName, tableName]
+            [conn.databaseName, tableName],
           ),
           executor.query<IndexRow>(
             `SELECT index_name, column_name, (non_unique = 0) as is_unique, (index_name = 'PRIMARY') as is_primary
              FROM information_schema.statistics
              WHERE table_schema = ? AND table_name = ?`,
-            [conn.databaseName, tableName]
+            [conn.databaseName, tableName],
           ),
           executor.query<ForeignKeyRow>(
             `SELECT column_name, referenced_table_name as foreign_table, referenced_column_name as foreign_column
              FROM information_schema.key_column_usage
              WHERE table_schema = ? AND table_name = ? AND referenced_table_name IS NOT NULL`,
-            [conn.databaseName, tableName]
+            [conn.databaseName, tableName],
           ),
         ]);
         break;
       case "mongodb": {
         // No fixed schema — infer field names/types from a sample of recent documents
         const sample = await executor.query<Record<string, unknown>>(
-          JSON.stringify({ op: "sample", collection: tableName, limit: 50 })
+          JSON.stringify({ op: "sample", collection: tableName, limit: 50 }),
         );
         const fieldTypes = new Map<string, Set<string>>();
         for (const doc of sample) {
           for (const [key, value] of Object.entries(doc)) {
-            const bsonType = value === null ? "null" : Array.isArray(value) ? "array" : typeof value === "object" ? "object" : typeof value;
+            const bsonType =
+              value === null
+                ? "null"
+                : Array.isArray(value)
+                  ? "array"
+                  : typeof value === "object"
+                    ? "object"
+                    : typeof value;
             if (!fieldTypes.has(key)) fieldTypes.set(key, new Set());
             fieldTypes.get(key)!.add(bsonType);
           }
@@ -151,10 +208,10 @@ export async function getTableSchema(
           character_maximum_length: null,
         }));
 
-        const mongoIndexes = await executor.query<any>(
-          JSON.stringify({ op: "listIndexes", collection: tableName })
+        const mongoIndexes = await executor.query<MongoIndex>(
+          JSON.stringify({ op: "listIndexes", collection: tableName }),
         );
-        indexes = mongoIndexes.map((idx: any) => ({
+        indexes = mongoIndexes.map((idx) => ({
           index_name: idx.index_name,
           column_name: idx.column_name,
           is_unique: Boolean(idx.is_unique),
@@ -171,7 +228,7 @@ export async function getTableSchema(
              FROM information_schema.columns
              WHERE table_schema = 'public' AND table_name = $1
              ORDER BY ordinal_position`,
-            [tableName]
+            [tableName],
           ),
           executor.query<IndexRow>(
             `SELECT i.relname AS index_name, a.attname AS column_name,
@@ -182,7 +239,7 @@ export async function getTableSchema(
              JOIN pg_attribute a  ON a.attrelid = t.oid AND a.attnum = ANY(ix.indkey)
              WHERE t.relname = $1 AND t.relkind = 'r'
              ORDER BY i.relname, a.attnum`,
-            [tableName]
+            [tableName],
           ),
           executor.query<ForeignKeyRow>(
             `SELECT kcu.column_name, ccu.table_name AS foreign_table, ccu.column_name AS foreign_column
@@ -192,32 +249,40 @@ export async function getTableSchema(
              JOIN information_schema.constraint_column_usage  ccu
                ON tc.constraint_name = ccu.constraint_name
              WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_name = $1`,
-            [tableName]
+            [tableName],
           ),
         ]);
     }
   } catch (err: unknown) {
     const rawMsg = err instanceof Error ? err.message : String(err);
     const cleanMsg = rawMsg.replace(/password=['"][^'"]*['"]/gi, "password=***");
-    return JSON.stringify({ error: cleanMsg, database: conn.name, table: tableName, columns: [], indexes: [], foreignKeys: [] });
+    return JSON.stringify({
+      error: cleanMsg,
+      database: conn.name,
+      table: tableName,
+      columns: [],
+      indexes: [],
+      foreignKeys: [],
+    });
   }
 
   if (columns.length === 0 && conn.type !== "mongodb") {
-    return JSON.stringify({ error: `Table "${tableName}" not found in database "${conn.name}".`, hint: "Call get_database_schema to list available table names." });
+    return JSON.stringify({
+      error: `Table "${tableName}" not found in database "${conn.name}".`,
+      hint: "Call get_database_schema to list available table names.",
+    });
   }
 
-  return JSON.stringify(
-    {
-      database: conn.name,
-      type: conn.type,
-      table: tableName,
-      columns,
-      indexes,
-      foreignKeys,
-      hint:
-        conn.type === "mongodb" && columns.length === 0
-          ? "This collection is empty (or the field sample was too small to infer any columns). Confirm the collection name via get_database_schema."
-          : "Use execute_read_query to query this table.",
-    }
-  );
+  return JSON.stringify({
+    database: conn.name,
+    type: conn.type,
+    table: tableName,
+    columns,
+    indexes,
+    foreignKeys,
+    hint:
+      conn.type === "mongodb" && columns.length === 0
+        ? "This collection is empty (or the field sample was too small to infer any columns). Confirm the collection name via get_database_schema."
+        : "Use execute_read_query to query this table.",
+  });
 }

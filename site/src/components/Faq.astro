@@ -1,6 +1,7 @@
 ---
-import { faqs } from '../data/site';
+import { faqs } from "../data/site";
 ---
+
 <section class="section" id="faq">
   <div class="container narrow">
     <div class="section-head reveal">
@@ -8,17 +9,15 @@ import { faqs } from '../data/site';
       <h2>Questions, answered</h2>
     </div>
     <div class="list">
-      {
-        faqs.map((f, i) => (
-          <details class="reveal" open={i === 0}>
-            <summary>
-              <span>{f.q}</span>
-              <span class="plus" aria-hidden="true" />
-            </summary>
-            <p>{f.a}</p>
-          </details>
-        ))
-      }
+      {faqs.map((f, i) => (
+        <details class="reveal" open={i === 0}>
+          <summary>
+            <span>{f.q}</span>
+            <span class="plus" aria-hidden="true" />
+          </summary>
+          <p>{f.a}</p>
+        </details>
+      ))}
     </div>
   </div>
 </section>
@@ -59,7 +58,7 @@ import { faqs } from '../data/site';
   }
   .plus::before,
   .plus::after {
-    content: '';
+    content: "";
     position: absolute;
     left: 0;
     top: 6px;

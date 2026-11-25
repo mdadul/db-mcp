@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+
 import { activityQuerySchema } from "./schema.ts";
 
 test("activity query defaults pagination and coerces numeric values", () => {
@@ -16,7 +17,11 @@ test("activity query caps page size and rejects invalid filters", () => {
   assert.equal(activityQuerySchema.safeParse({ offset: "10001" }).success, false);
   assert.equal(activityQuerySchema.safeParse({ status: "unknown" }).success, false);
   assert.equal(activityQuerySchema.safeParse({ tool: " " }).success, false);
-  assert.deepEqual(activityQuerySchema.parse({ source: "app" }), { limit: 50, offset: 0, source: "app" });
+  assert.deepEqual(activityQuerySchema.parse({ source: "app" }), {
+    limit: 50,
+    offset: 0,
+    source: "app",
+  });
   assert.equal(activityQuerySchema.safeParse({ source: "agent" }).success, false);
   assert.equal(activityQuerySchema.safeParse({ source: "desktop" }).success, false);
 });
@@ -52,22 +57,54 @@ test("activity endpoint returns redacted tool arguments with safe error hints", 
   assert.ok(!sanitizedArgs?.includes("never-return-this"));
   assert.ok(!sanitizedArgs?.includes("db-password"));
   assert.ok(!sanitizedArgs?.includes("person@example.com"));
-  assert.ok(new TextEncoder().encode(sanitizeToolArgs({ value: "x".repeat(3_000) }) ?? "").byteLength <= 2 * 1024);
+  assert.ok(
+    new TextEncoder().encode(sanitizeToolArgs({ value: "x".repeat(3_000) }) ?? "").byteLength <=
+      2 * 1024,
+  );
 
-  await db.insert(databaseConnections).values({ id: connectionId, name: "Activity test", type: "sqlite", host: "", port: 0, databaseName: ":memory:", username: "", encryptedCredentials: "{}" });
-  await db.insert(queryLogs).values({ databaseConnectionId: connectionId, query: "SELECT secret", executionTimeMs: 1, rowCount: 0, status: "error", error: "syntax error", source: "mcp" });
+  await db.insert(databaseConnections).values({
+    id: connectionId,
+    name: "Activity test",
+    type: "sqlite",
+    host: "",
+    port: 0,
+    databaseName: ":memory:",
+    username: "",
+    encryptedCredentials: "{}",
+  });
+  await db.insert(queryLogs).values({
+    databaseConnectionId: connectionId,
+    query: "SELECT secret",
+    executionTimeMs: 1,
+    rowCount: 0,
+    status: "error",
+    error: "syntax error",
+    source: "mcp",
+  });
   await db.insert(toolCalls).values({
     tool: "execute_read_query",
     status: "error",
-    args: JSON.stringify({ database_id: connectionId, filter: "users", query: "SELECT * FROM users WHERE email = 'person@example.com'", password: "never-return-this", extra: "x".repeat(3_000) }),
+    args: JSON.stringify({
+      database_id: connectionId,
+      filter: "users",
+      query: "SELECT * FROM users WHERE email = 'person@example.com'",
+      password: "never-return-this",
+      extra: "x".repeat(3_000),
+    }),
   });
 
   const mcpResponse = await app.request("/api/activity?source=mcp");
-  const mcpResult = await mcpResponse.json() as { items: { kind: string; hint: string | null; args: string | null }[]; total: number };
+  const mcpResult = (await mcpResponse.json()) as {
+    items: { kind: string; hint: string | null; args: string | null }[];
+    total: number;
+  };
   assert.equal(mcpResult.total, 2);
   const queryItem = mcpResult.items.find((item) => item.kind === "query");
   const toolItem = mcpResult.items.find((item) => item.kind === "tool");
-  assert.equal(queryItem?.hint, "Check the query syntax and verify table and column names with the schema tools.");
+  assert.equal(
+    queryItem?.hint,
+    "Check the query syntax and verify table and column names with the schema tools.",
+  );
   assert.equal(queryItem?.args, null);
   assert.match(toolItem?.hint ?? "", /operation failed/);
   assert.ok(toolItem?.args?.includes('"filter":"users"'));
@@ -76,9 +113,16 @@ test("activity endpoint returns redacted tool arguments with safe error hints", 
   assert.ok(!toolItem?.args?.includes("person@example.com"));
   assert.ok(new TextEncoder().encode(toolItem?.args ?? "").byteLength <= 2 * 1024);
 
-  await db.insert(queryLogs).values({ databaseConnectionId: connectionId, query: "UPDATE users SET name = 'x'", executionTimeMs: 1, rowCount: 0, status: "blocked", source: "app" });
+  await db.insert(queryLogs).values({
+    databaseConnectionId: connectionId,
+    query: "UPDATE users SET name = 'x'",
+    executionTimeMs: 1,
+    rowCount: 0,
+    status: "blocked",
+    source: "app",
+  });
   const blockedResponse = await app.request("/api/activity?source=app");
-  const blocked = await blockedResponse.json() as { items: { hint: string | null }[] };
+  const blocked = (await blockedResponse.json()) as { items: { hint: string | null }[] };
   assert.match(blocked.items[0]?.hint ?? "", /Only read-only queries/);
   // Export uses the same filters and never includes SQL text or secrets.
   const csvExport = await app.request("/api/activity/export?source=mcp");
@@ -93,20 +137,29 @@ test("activity endpoint returns redacted tool arguments with safe error hints", 
   assert.ok(!csvText.includes("SELECT secret"));
 
   const jsonExport = await app.request("/api/activity/export?format=json&source=mcp");
-  const exported = await jsonExport.json() as { total: number; truncated: boolean; items: unknown[] };
+  const exported = (await jsonExport.json()) as {
+    total: number;
+    truncated: boolean;
+    items: unknown[];
+  };
   assert.equal(exported.total, mcpResult.total);
   assert.equal(exported.items.length, mcpResult.total);
   assert.equal(exported.truncated, false);
 
   // Date range: windows that cannot match return nothing.
   const future = await app.request("/api/activity?from=2999-01-01T00:00:00.000Z");
-  assert.equal((await future.json() as { total: number }).total, 0);
+  assert.equal(((await future.json()) as { total: number }).total, 0);
   const past = await app.request("/api/activity?to=2000-01-01T00:00:00.000Z");
-  assert.equal((await past.json() as { total: number }).total, 0);
+  assert.equal(((await past.json()) as { total: number }).total, 0);
 
   // Latest AI use is reported per connection.
-  await db.insert(toolCalls).values({ tool: "list_databases", status: "success", args: null, databaseConnectionId: connectionId });
+  await db.insert(toolCalls).values({
+    tool: "list_databases",
+    status: "success",
+    args: null,
+    databaseConnectionId: connectionId,
+  });
   const databases = await app.request("/api/databases");
-  const list = await databases.json() as { id: string; lastUsedByAiAt: string | null }[];
+  const list = (await databases.json()) as { id: string; lastUsedByAiAt: string | null }[];
   assert.ok(list.find((item) => item.id === connectionId)?.lastUsedByAiAt);
 });

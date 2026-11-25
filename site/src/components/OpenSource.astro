@@ -1,9 +1,10 @@
 ---
-import Icon from './Icon.astro';
-import { REPO, ISSUES, RELEASES } from '../data/site';
+import Icon from "./Icon.astro";
+import { REPO, ISSUES, RELEASES } from "../data/site";
 
-const stack = ['Tauri 2', 'Rust', 'TypeScript', 'Hono', 'MCP SDK', 'React', 'SQLite'];
+const stack = ["Tauri 2", "Rust", "TypeScript", "Hono", "MCP SDK", "React", "SQLite"];
 ---
+
 <section class="section oss" id="open-source">
   <div class="container">
     <div class="panel reveal">
@@ -12,11 +13,13 @@ const stack = ['Tauri 2', 'Rust', 'TypeScript', 'Hono', 'MCP SDK', 'React', 'SQL
         <span class="kicker">Open source</span>
         <h2>Read every line that touches your data</h2>
         <p>
-          A tool with database credentials should be auditable. DB MCP is developed in the open on GitHub. Inspect
-          the code, file issues, or send a pull request.
+          A tool with database credentials should be auditable. DB MCP is developed in the open on
+          GitHub. Inspect the code, file issues, or send a pull request.
         </p>
         <ul class="stack" aria-label="Built with">
-          {stack.map((s) => <li class="mono">{s}</li>)}
+          {stack.map((s) => (
+            <li class="mono">{s}</li>
+          ))}
         </ul>
         <div class="actions">
           <a class="btn btn-primary" href={REPO} target="_blank" rel="noopener">
@@ -49,9 +52,14 @@ const stack = ['Tauri 2', 'Rust', 'TypeScript', 'Hono', 'MCP SDK', 'React', 'SQL
   .bg {
     position: absolute;
     inset: 0;
-    background: radial-gradient(600px 300px at 50% 0%, rgba(34, 211, 238, 0.18), transparent 70%),
-      linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px);
-    background-size: auto, 40px 40px, 40px 40px;
+    background:
+      radial-gradient(600px 300px at 50% 0%, rgba(34, 211, 238, 0.18), transparent 70%),
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size:
+      auto,
+      40px 40px,
+      40px 40px;
     mask-image: linear-gradient(180deg, #000, transparent 90%);
     -webkit-mask-image: linear-gradient(180deg, #000, transparent 90%);
   }

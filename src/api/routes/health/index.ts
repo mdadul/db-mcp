@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+
 import pkg from "../../../../package.json" with { type: "json" };
 
 // package.json has no "version" field yet; fall back until one is added.
@@ -11,5 +12,5 @@ export const healthRoutes = new Hono().get("/health", (c) =>
     app: "db-mcp",
     version: APP_VERSION,
     pid: process.pid,
-  } as const)
+  } as const),
 );
