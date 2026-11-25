@@ -1,6 +1,12 @@
 import { z } from "zod";
 
-const isoDate = z.string().trim().min(1).max(40).refine((value) => !Number.isNaN(Date.parse(value)), "Use an ISO 8601 date").optional();
+const isoDate = z
+  .string()
+  .trim()
+  .min(1)
+  .max(40)
+  .refine((value) => !Number.isNaN(Date.parse(value)), "Use an ISO 8601 date")
+  .optional();
 
 export const activityFilterSchema = z.object({
   databaseId: z.string().min(1).max(128).optional(),

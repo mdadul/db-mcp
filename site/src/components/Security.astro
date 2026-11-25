@@ -1,14 +1,35 @@
 ---
-import Icon from './Icon.astro';
+import Icon from "./Icon.astro";
 
 const layers = [
-  { icon: 'key', t: 'Credentials encrypted at rest', d: 'AES-256-GCM. The key lives in the macOS Keychain, Windows Credential Manager or Secret Service, with a 0600 file fallback.' },
-  { icon: 'globe', t: 'Loopback only, rebinding-proof', d: 'Binds to 127.0.0.1 and rejects any Host header that is not localhost, which blocks DNS rebinding attacks.' },
-  { icon: 'ban', t: 'Browsers are shut out', d: 'Requests to /mcp carrying a browser Origin are refused. The app’s own API needs a per-launch session token.' },
-  { icon: 'shield', t: 'Writes never reach the database', d: 'Write keywords and multi-statement queries are rejected. MongoDB operators like $where, $out and $merge are blocked too.' },
-  { icon: 'zap', t: 'Bounded queries', d: 'Results are capped at 100 rows by default and 1000 max, with a 10 second timeout so a runaway query can’t hang your agent.' },
+  {
+    icon: "key",
+    t: "Credentials encrypted at rest",
+    d: "AES-256-GCM. The key lives in the macOS Keychain, Windows Credential Manager or Secret Service, with a 0600 file fallback.",
+  },
+  {
+    icon: "globe",
+    t: "Loopback only, rebinding-proof",
+    d: "Binds to 127.0.0.1 and rejects any Host header that is not localhost, which blocks DNS rebinding attacks.",
+  },
+  {
+    icon: "ban",
+    t: "Browsers are shut out",
+    d: "Requests to /mcp carrying a browser Origin are refused. The app’s own API needs a per-launch session token.",
+  },
+  {
+    icon: "shield",
+    t: "Writes never reach the database",
+    d: "Write keywords and multi-statement queries are rejected. MongoDB operators like $where, $out and $merge are blocked too.",
+  },
+  {
+    icon: "zap",
+    t: "Bounded queries",
+    d: "Results are capped at 100 rows by default and 1000 max, with a 10 second timeout so a runaway query can’t hang your agent.",
+  },
 ];
 ---
+
 <section class="section security" id="security">
   <div class="glow" aria-hidden="true"></div>
   <div class="container split">
@@ -16,32 +37,30 @@ const layers = [
       <span class="kicker">Security</span>
       <h2>Defense in depth, by default</h2>
       <p>
-        Giving an AI access to production data should feel boring. DB MCP stacks independent safeguards so a single
-        mistake is never enough.
+        Giving an AI access to production data should feel boring. DB MCP stacks independent
+        safeguards so a single mistake is never enough.
       </p>
       <div class="callout">
         <Icon name="lock" size={18} />
         <p>
-          <b>Your part:</b> connect with a database user that has read-only grants. It is the one safeguard enforced
-          by the database itself.
+          <b>Your part:</b> connect with a database user that has read-only grants. It is the one
+          safeguard enforced by the database itself.
         </p>
       </div>
     </div>
 
     <ul class="layers">
-      {
-        layers.map((l) => (
-          <li class="reveal">
-            <span class="li-ico">
-              <Icon name={l.icon} size={18} />
-            </span>
-            <div>
-              <h3>{l.t}</h3>
-              <p>{l.d}</p>
-            </div>
-          </li>
-        ))
-      }
+      {layers.map((l) => (
+        <li class="reveal">
+          <span class="li-ico">
+            <Icon name={l.icon} size={18} />
+          </span>
+          <div>
+            <h3>{l.t}</h3>
+            <p>{l.d}</p>
+          </div>
+        </li>
+      ))}
     </ul>
   </div>
 </section>
@@ -117,7 +136,9 @@ const layers = [
     border-radius: var(--radius);
     border: 1px solid var(--line);
     background: var(--card);
-    transition: border-color 0.2s ease, background 0.2s ease;
+    transition:
+      border-color 0.2s ease,
+      background 0.2s ease;
   }
   .layers li:hover {
     border-color: var(--line-strong);

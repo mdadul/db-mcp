@@ -164,14 +164,35 @@ export const BrowseRowsQuerySchema = z.object({
   orderBy: z.string().min(1).max(255).optional(),
   direction: z.enum(["asc", "desc"]).default("asc"),
 });
-export const TestConnectionSchema = z.union(CreateDatabaseSchema.options.map((schema) => schema
-  .extend({ id: z.string().min(1).optional() })
-  .extend({ password: z.string().optional().default("") }))).superRefine((input, context) => {
-  if (input.type === "sqlite") return;
-  if (!input.host.trim()) context.addIssue({ code: "custom", path: ["host"], message: "Host is required for this database engine" });
-  if (!input.username.trim()) context.addIssue({ code: "custom", path: ["username"], message: "Username is required for this database engine" });
-  if (!input.id && !input.password) context.addIssue({ code: "custom", path: ["password"], message: "Password is required for a new connection test" });
-});
+export const TestConnectionSchema = z
+  .union(
+    CreateDatabaseSchema.options.map((schema) =>
+      schema
+        .extend({ id: z.string().min(1).optional() })
+        .extend({ password: z.string().optional().default("") }),
+    ),
+  )
+  .superRefine((input, context) => {
+    if (input.type === "sqlite") return;
+    if (!input.host.trim())
+      context.addIssue({
+        code: "custom",
+        path: ["host"],
+        message: "Host is required for this database engine",
+      });
+    if (!input.username.trim())
+      context.addIssue({
+        code: "custom",
+        path: ["username"],
+        message: "Username is required for this database engine",
+      });
+    if (!input.id && !input.password)
+      context.addIssue({
+        code: "custom",
+        path: ["password"],
+        message: "Password is required for a new connection test",
+      });
+  });
 export const DuplicateDatabaseSchema = z.object({ name: z.string().min(1).max(255).optional() });
 
 export type ExecuteQueryInput = z.infer<typeof ExecuteQuerySchema>;
@@ -191,16 +212,32 @@ export interface StructuredQueryResult {
 
 export interface SchemaTree {
   engine: DbEngineType;
-  schemas: { name: string; tables: { name: string; type: "table" | "view" | "collection"; rowEstimate: number | null }[] }[];
+  schemas: {
+    name: string;
+    tables: { name: string; type: "table" | "view" | "collection"; rowEstimate: number | null }[];
+  }[];
 }
 
 export interface TableStructure {
   schema: string;
   name: string;
   type: "table" | "view" | "collection";
-  columns: { name: string; dataType: string; nullable: boolean; default: string | null; isPrimaryKey: boolean; comment: string | null }[];
+  columns: {
+    name: string;
+    dataType: string;
+    nullable: boolean;
+    default: string | null;
+    isPrimaryKey: boolean;
+    comment: string | null;
+  }[];
   indexes: { name: string; columns: string[]; unique: boolean; primary: boolean }[];
-  foreignKeys: { name: string; columns: string[]; refSchema: string | null; refTable: string; refColumns: string[] }[];
+  foreignKeys: {
+    name: string;
+    columns: string[];
+    refSchema: string | null;
+    refTable: string;
+    refColumns: string[];
+  }[];
   rowEstimate: number | null;
 }
 

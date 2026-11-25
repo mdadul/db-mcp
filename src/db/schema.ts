@@ -1,14 +1,12 @@
-import {
-  integer,
-  sqliteTable,
-  text,
-} from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
+import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 const nowMs = sql`(unixepoch() * 1000)`;
 
 export const databaseConnections = sqliteTable("database_connections", {
-  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
   name: text("name").notNull(),
   type: text("type").notNull(), // 'postgresql'
   host: text("host").notNull(),
@@ -30,27 +28,25 @@ export const databaseConnections = sqliteTable("database_connections", {
   lastTestMessage: text("last_test_message"),
   lastTestLatencyMs: integer("last_test_latency_ms"),
   serverVersion: text("server_version"),
-  createdAt: integer("created_at", { mode: "timestamp_ms" })
-    .notNull()
-    .default(nowMs),
-  updatedAt: integer("updated_at", { mode: "timestamp_ms" })
-    .notNull()
-    .default(nowMs),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().default(nowMs),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull().default(nowMs),
 });
 
 export const toolCalls = sqliteTable("tool_calls", {
-  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
   tool: text("tool").notNull(), // 'list_databases' | 'get_database_schema' | 'get_table_schema' | 'execute_read_query'
   args: text("args"), // JSON-serialised, credential-redacted tool arguments
   databaseConnectionId: text("database_connection_id"),
   status: text("status").notNull().default("success"), // 'success' | 'error'
-  createdAt: integer("created_at", { mode: "timestamp_ms" })
-    .notNull()
-    .default(nowMs),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().default(nowMs),
 });
 
 export const queryLogs = sqliteTable("query_logs", {
-  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
   databaseConnectionId: text("database_connection_id")
     .notNull()
     .references(() => databaseConnections.id, { onDelete: "cascade" }),
@@ -62,7 +58,5 @@ export const queryLogs = sqliteTable("query_logs", {
   status: text("status").notNull(), // 'success' | 'error' | 'timeout' | 'blocked'
   error: text("error"),
   source: text("source").notNull().default("mcp"), // 'mcp' | 'app' | 'agent'
-  createdAt: integer("created_at", { mode: "timestamp_ms" })
-    .notNull()
-    .default(nowMs),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().default(nowMs),
 });

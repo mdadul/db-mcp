@@ -1,0 +1,36 @@
+{
+  "printWidth": 100,
+  "tabWidth": 2,
+  "semi": true,
+  "singleQuote": false,
+  "trailingComma": "all",
+  "arrowParens": "always",
+  "bracketSpacing": true,
+  "endOfLine": "lf",
+  "insertFinalNewline": true,
+  "sortImports": true,
+  "astro": true,
+  "ignorePatterns": [
+    "node_modules",
+    "dist",
+    "client/dist",
+    "site/dist",
+    "site/.astro",
+    ".astro",
+    "desktop/src-tauri/target",
+    "desktop/src-tauri/resources",
+    "desktop/src-tauri/gen",
+    "drizzle",
+    "src/db/migrations"
+  ],
+  "overrides": [
+    {
+      "files": [
+        "site/**/*.astro"
+      ],
+      "options": {
+        "sortImports": false
+      }
+    }
+  ]
+}

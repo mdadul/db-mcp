@@ -1,39 +1,42 @@
 ---
-import Icon from './Icon.astro';
-import { REPO, ISSUES, RELEASES } from '../data/site';
+import Icon from "./Icon.astro";
+import { REPO, ISSUES, RELEASES } from "../data/site";
 
 const cols = [
   {
-    title: 'Product',
+    title: "Product",
     links: [
-      { href: '#features', label: 'Features' },
-      { href: '#how', label: 'How it works' },
-      { href: '#tools', label: 'MCP tools' },
-      { href: '#security', label: 'Security' },
+      { href: "#features", label: "Features" },
+      { href: "#how", label: "How it works" },
+      { href: "#tools", label: "MCP tools" },
+      { href: "#security", label: "Security" },
     ],
   },
   {
-    title: 'Get started',
+    title: "Get started",
     links: [
-      { href: RELEASES, label: 'Download' },
-      { href: '#setup', label: 'Connect a client' },
-      { href: `${REPO}#readme`, label: 'Documentation' },
-      { href: '#faq', label: 'FAQ' },
+      { href: RELEASES, label: "Download" },
+      { href: "#setup", label: "Connect a client" },
+      { href: `${REPO}#readme`, label: "Documentation" },
+      { href: "#faq", label: "FAQ" },
     ],
   },
   {
-    title: 'Community',
+    title: "Community",
     links: [
-      { href: REPO, label: 'GitHub' },
-      { href: ISSUES, label: 'Issues' },
-      { href: `${REPO}/pulls`, label: 'Pull requests' },
+      { href: REPO, label: "GitHub" },
+      { href: ISSUES, label: "Issues" },
+      { href: `${REPO}/pulls`, label: "Pull requests" },
     ],
   },
 ];
 ---
+
 <section class="final">
   <div class="container">
-    <h2 class="reveal">Let your agent understand your data <span class="grad-text">today</span>.</h2>
+    <h2 class="reveal">
+      Let your agent understand your data <span class="grad-text">today</span>.
+    </h2>
     <p class="reveal">Free, open source and running on your machine in minutes.</p>
     <div class="cta reveal">
       <a class="btn btn-primary" href={RELEASES} data-download>
@@ -45,7 +48,9 @@ const cols = [
         <span>Star on GitHub</span>
       </a>
     </div>
-    <p class="platforms">macOS (Apple silicon &amp; Intel) · Windows · Linux (AppImage, deb, rpm)</p>
+    <p class="platforms">
+      macOS (Apple silicon &amp; Intel) · Windows · Linux (AppImage, deb, rpm)
+    </p>
   </div>
 </section>
 
@@ -58,24 +63,24 @@ const cols = [
       </a>
       <p>Local, encrypted, read-only database access for AI coding agents.</p>
     </div>
-    {
-      cols.map((c) => (
-        <nav aria-label={c.title}>
-          <h4>{c.title}</h4>
-          <ul>
-            {c.links.map((l) => (
-              <li>
-                <a href={l.href}>{l.label}</a>
-              </li>
-            ))}
-          </ul>
-        </nav>
-      ))
-    }
+    {cols.map((c) => (
+      <nav aria-label={c.title}>
+        <h4>{c.title}</h4>
+        <ul>
+          {c.links.map((l) => (
+            <li>
+              <a href={l.href}>{l.label}</a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+    ))}
   </div>
   <div class="container bottom">
     <span>© {new Date().getFullYear()} DB MCP contributors</span>
-    <a href={REPO} target="_blank" rel="noopener" aria-label="DB MCP on GitHub"><Icon name="github" size={18} /></a>
+    <a href={REPO} target="_blank" rel="noopener" aria-label="DB MCP on GitHub">
+      <Icon name="github" size={18} />
+    </a>
   </div>
 </footer>
 
@@ -87,14 +92,19 @@ const cols = [
     overflow: hidden;
   }
   .final::before {
-    content: '';
+    content: "";
     position: absolute;
     left: 50%;
     bottom: -300px;
     width: 1000px;
     height: 600px;
     transform: translateX(-50%);
-    background: radial-gradient(closest-side, rgba(34, 211, 238, 0.18), rgba(37, 99, 235, 0.08) 60%, transparent);
+    background: radial-gradient(
+      closest-side,
+      rgba(34, 211, 238, 0.18),
+      rgba(37, 99, 235, 0.08) 60%,
+      transparent
+    );
     pointer-events: none;
   }
   .final .container {

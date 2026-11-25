@@ -16,7 +16,13 @@
   "rules": {
     "eslint/no-unused-vars": "error",
     "eslint/no-constant-binary-expression": "error",
-    "eslint/eqeqeq": "error",
+    "eslint/eqeqeq": [
+      "error",
+      "always",
+      {
+        "null": "ignore"
+      }
+    ],
     "eslint/no-debugger": "error",
     "eslint/no-eval": "error",
     "eslint/no-var": "error",
@@ -48,6 +54,7 @@
   },
   "env": {
     "builtin": true,
-    "browser": true
+    "browser": true,
+    "node": true
   }
 }

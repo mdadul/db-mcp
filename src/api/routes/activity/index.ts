@@ -1,6 +1,7 @@
 import { zValidator } from "@hono/zod-validator";
 import { and, count, desc, eq, gte, lte, sql } from "drizzle-orm";
 import { Hono } from "hono";
+
 import { db } from "../../../db/client.ts";
 import { sanitizeToolArgs } from "../../../db/logToolCall.ts";
 import { databaseConnections, queryLogs, toolCalls } from "../../../db/schema.ts";
@@ -9,7 +10,19 @@ import { activityExportSchema, activityQuerySchema, type ActivityFilters } from 
 
 /** Largest export. Larger histories are truncated and flagged in the response. */
 export const ACTIVITY_EXPORT_LIMIT = 10_000;
-const EXPORT_COLUMNS = ["createdAt", "source", "kind", "tool", "databaseName", "status", "durationMs", "rows", "error", "hint", "args"] as const;
+const EXPORT_COLUMNS = [
+  "createdAt",
+  "source",
+  "kind",
+  "tool",
+  "databaseName",
+  "status",
+  "durationMs",
+  "rows",
+  "error",
+  "hint",
+  "args",
+] as const;
 
 function errorHint(error: string | null, status: string): string | null {
   if (!error && status !== "error" && status !== "timeout" && status !== "blocked") return null;
@@ -35,10 +48,15 @@ function errorHint(error: string | null, status: string): string | null {
   if (status === "blocked" || message.includes("only select")) {
     return "Only read-only queries are allowed. Use a SELECT query and retry.";
   }
-  return error ? "Review the error and query details, then verify the database schema before retrying." : null;
+  return error
+    ? "Review the error and query details, then verify the database schema before retrying."
+    : null;
 }
 
-function dateBounds(column: typeof queryLogs.createdAt | typeof toolCalls.createdAt, filters: ActivityFilters) {
+function dateBounds(
+  column: typeof queryLogs.createdAt | typeof toolCalls.createdAt,
+  filters: ActivityFilters,
+) {
   return [
     ...(filters.from ? [gte(column, new Date(filters.from))] : []),
     ...(filters.to ? [lte(column, new Date(filters.to))] : []),
@@ -57,7 +75,11 @@ function activityConditions(filters: ActivityFilters) {
   ];
   const toolConditions = [
     ...(databaseId ? [eq(toolCalls.databaseConnectionId, databaseId)] : []),
-    ...(status === "success" || status === "error" ? [eq(toolCalls.status, status)] : status ? [sql`0 = 1`] : []),
+    ...(status === "success" || status === "error"
+      ? [eq(toolCalls.status, status)]
+      : status
+        ? [sql`0 = 1`]
+        : []),
     ...(tool ? [eq(toolCalls.tool, tool)] : []),
     ...(source === "app" ? [sql`0 = 1`] : []),
     ...dateBounds(toolCalls.createdAt, filters),
@@ -111,8 +133,14 @@ async function loadActivity(filters: ActivityFilters, limit: number, offset: num
   const [queryRows, toolRows, queryCount, toolCount] = await Promise.all([
     queryItems.orderBy(desc(queryLogs.createdAt)).limit(fetchLimit),
     toolItems.orderBy(desc(toolCalls.createdAt)).limit(fetchLimit),
-    db.select({ total: count() }).from(queryLogs).where(queryConditions.length ? and(...queryConditions) : undefined),
-    db.select({ total: count() }).from(toolCalls).where(toolConditions.length ? and(...toolConditions) : undefined),
+    db
+      .select({ total: count() })
+      .from(queryLogs)
+      .where(queryConditions.length ? and(...queryConditions) : undefined),
+    db
+      .select({ total: count() })
+      .from(toolCalls)
+      .where(toolConditions.length ? and(...toolConditions) : undefined),
   ]);
 
   const items = [...queryRows, ...toolRows]
@@ -140,7 +168,14 @@ export const activityRoutes = new Hono()
     const stamp = new Date().toISOString().slice(0, 10);
     if (format === "json") {
       c.header("Content-Disposition", `attachment; filename="db-mcp-activity-${stamp}.json"`);
-      return c.json({ exportedAt: new Date().toISOString(), filters, total, truncated, limit: ACTIVITY_EXPORT_LIMIT, items });
+      return c.json({
+        exportedAt: new Date().toISOString(),
+        filters,
+        total,
+        truncated,
+        limit: ACTIVITY_EXPORT_LIMIT,
+        items,
+      });
     }
     c.header("Content-Type", "text/csv; charset=utf-8");
     c.header("Content-Disposition", `attachment; filename="db-mcp-activity-${stamp}.csv"`);

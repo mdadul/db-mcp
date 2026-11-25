@@ -8,8 +8,7 @@ import type { DbEngineType } from "../api/routes/databases/types.ts";
 const WRITE_PATTERN =
   /\b(INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|TRUNCATE|REPLACE|MERGE|CALL|EXEC|GRANT|REVOKE|LOCK|UNLOCK|SET|LOAD|INTO|COPY|VACUUM|REINDEX)\b/i;
 
-const READ_PATTERN =
-  /^\s*(SELECT|SHOW|DESCRIBE|DESC|EXPLAIN|WITH)\b/i;
+const READ_PATTERN = /^\s*(SELECT|SHOW|DESCRIBE|DESC|EXPLAIN|WITH)\b/i;
 
 export const QUERY_TIMEOUT_MS = 10_000;
 export const MAX_ROWS = 100;
@@ -27,16 +26,15 @@ export function assertReadOnly(query: string, dbType: DbType = "postgresql"): vo
   }
 
   // Block multi-statement queries — a leading SELECT cannot excuse a trailing DROP
-  const statements = query.split(";").map((s) => s.trim()).filter(Boolean);
+  const statements = query
+    .split(";")
+    .map((s) => s.trim())
+    .filter(Boolean);
   if (statements.length > 1) {
-    throw new Error(
-      "Multi-statement queries are not allowed. Send one statement at a time."
-    );
+    throw new Error("Multi-statement queries are not allowed. Send one statement at a time.");
   }
   if (!READ_PATTERN.test(query) || WRITE_PATTERN.test(query)) {
-    throw new Error(
-      "Only read-only queries are allowed (SELECT, SHOW, DESCRIBE, EXPLAIN)."
-    );
+    throw new Error("Only read-only queries are allowed (SELECT, SHOW, DESCRIBE, EXPLAIN).");
   }
 }
 
@@ -51,7 +49,7 @@ function assertMongoReadOnly(query: string): void {
     parsed = JSON.parse(query);
   } catch {
     throw new Error(
-      'MongoDB queries must be a JSON object, e.g. {"collection":"orders","filter":{}}. Shell/JS syntax is not supported.'
+      'MongoDB queries must be a JSON object, e.g. {"collection":"orders","filter":{}}. Shell/JS syntax is not supported.',
     );
   }
 
@@ -67,15 +65,19 @@ function assertMongoReadOnly(query: string): void {
   for (const key of Object.keys(dsl)) {
     if (!MONGO_ALLOWED_KEYS.has(key)) {
       throw new Error(
-        `Unsupported field "${key}" in MongoDB query. Allowed fields: ${[...MONGO_ALLOWED_KEYS].join(", ")}.`
+        `Unsupported field "${key}" in MongoDB query. Allowed fields: ${[...MONGO_ALLOWED_KEYS].join(", ")}.`,
       );
     }
   }
 
-  const serialized = JSON.stringify({ filter: dsl.filter, projection: dsl.projection, sort: dsl.sort });
+  const serialized = JSON.stringify({
+    filter: dsl.filter,
+    projection: dsl.projection,
+    sort: dsl.sort,
+  });
   if (MONGO_UNSAFE_OPERATORS.test(serialized)) {
     throw new Error(
-      "Operators that execute code or write/export data ($where, $function, $accumulator, $out, $merge) are not allowed."
+      "Operators that execute code or write/export data ($where, $function, $accumulator, $out, $merge) are not allowed.",
     );
   }
 }
@@ -85,7 +87,11 @@ function assertMongoReadOnly(query: string): void {
  * Leaves EXPLAIN / SHOW / DESCRIBE unchanged. For MongoDB, fills in a
  * default "limit" field in the JSON DSL if the caller didn't set one.
  */
-export function injectLimit(query: string, limit: number = MAX_ROWS, dbType: DbType = "postgresql"): string {
+export function injectLimit(
+  query: string,
+  limit: number = MAX_ROWS,
+  dbType: DbType = "postgresql",
+): string {
   if (dbType === "mongodb") {
     const dsl = JSON.parse(query) as Record<string, unknown>;
     if (typeof dsl.limit !== "number") dsl.limit = limit;

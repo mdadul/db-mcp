@@ -3,7 +3,7 @@ import { executeReadQuery as execQuery } from "../../api/routes/databases/servic
 export async function executeReadQuery(
   databaseId: string,
   query: string,
-  limit?: number
+  limit?: number,
 ): Promise<string> {
   return execQuery(databaseId, query, limit);
 }

@@ -1,7 +1,8 @@
 ---
-import Icon from './Icon.astro';
-import { REPO, RELEASES } from '../data/site';
+import Icon from "./Icon.astro";
+import { REPO, RELEASES } from "../data/site";
 ---
+
 <section class="hero" id="top">
   <div class="bg-grid" aria-hidden="true"></div>
   <div class="bg-glow" aria-hidden="true"></div>
@@ -14,14 +15,15 @@ import { REPO, RELEASES } from '../data/site';
     </a>
 
     <h1>
-      Give your AI agent<br />
+      Give your AI agent
+      <br />
       <span class="grad-text">read-only</span> access to your databases
     </h1>
 
     <p class="lead">
-      DB MCP keeps your connections encrypted on your machine and serves them to Claude, Cursor, VS Code and any
-      MCP client over <span class="mono">localhost</span>. Your agent sees the schema and runs safe queries. It
-      can't write a thing.
+      DB MCP keeps your connections encrypted on your machine and serves them to Claude, Cursor, VS
+      Code and any MCP client over <span class="mono">localhost</span>. Your agent sees the schema
+      and runs safe queries. It can't write a thing.
     </p>
 
     <div class="cta">
@@ -35,35 +37,57 @@ import { REPO, RELEASES } from '../data/site';
       </a>
     </div>
     <p class="meta">
-      <span><Icon name="check" size={15} /> No account</span>
-      <span><Icon name="check" size={15} /> No cloud</span>
-      <span><Icon name="check" size={15} /> No telemetry</span>
+      <span>
+        <Icon name="check" size={15} /> No account
+      </span>
+      <span>
+        <Icon name="check" size={15} /> No cloud
+      </span>
+      <span>
+        <Icon name="check" size={15} /> No telemetry
+      </span>
     </p>
 
     <!-- Product mockup: an agent session using DB MCP tools -->
     <div class="stage">
-      <div class="window" role="img" aria-label="An AI agent answering a question by calling DB MCP tools">
+      <div
+        class="window"
+        role="img"
+        aria-label="An AI agent answering a question by calling DB MCP tools"
+      >
         <div class="titlebar">
-          <span class="dots"><i></i><i></i><i></i></span>
+          <span class="dots">
+            <i></i>
+            <i></i>
+            <i></i>
+          </span>
           <span class="wtitle">Claude Code — ~/acme-api</span>
-          <span class="status"><span class="live"></span>db-mcp connected</span>
+          <span class="status">
+            <span class="live"></span>db-mcp connected
+          </span>
         </div>
         <div class="session">
-          <p class="line l1 user"><span class="prompt">&gt;</span> Which customers churned last month, and what plan were they on?</p>
+          <p class="line l1 user">
+            <span class="prompt">&gt;</span> Which customers churned last month, and what plan were
+            they on?
+          </p>
 
           <div class="line l2 call">
-            <span class="dot ok"></span><b>db-mcp</b> · list_databases
+            <span class="dot ok"></span>
+            <b>db-mcp</b> · list_databases
             <span class="res">2 databases: prod_replica, analytics</span>
           </div>
 
           <div class="line l3 call">
-            <span class="dot ok"></span><b>db-mcp</b> · get_database_schema
+            <span class="dot ok"></span>
+            <b>db-mcp</b> · get_database_schema
             <span class="arg">filter: "customer"</span>
             <span class="res">customers, customer_plans, customer_events</span>
           </div>
 
           <div class="line l4 call">
-            <span class="dot ok"></span><b>db-mcp</b> · execute_read_query
+            <span class="dot ok"></span>
+            <b>db-mcp</b> · execute_read_query
             <pre class="sql"><span class="k">SELECT</span> c.name, p.plan, c.churned_at
 <span class="k">FROM</span> customers c <span class="k">JOIN</span> customer_plans p <span class="k">ON</span> p.customer_id = c.id
 <span class="k">WHERE</span> c.churned_at &gt;= <span class="s">'2026-10-01'</span> <span class="k">LIMIT</span> <span class="n">100</span></pre>
@@ -71,21 +95,25 @@ import { REPO, RELEASES } from '../data/site';
           </div>
 
           <p class="line l5 answer">
-            14 customers churned in October. 9 were on <b>Starter</b>, 4 on <b>Team</b>, 1 on <b>Business</b>. Most
-            left within 30 days of a price change…
+            14 customers churned in October. 9 were on <b>Starter</b>, 4 on <b>Team</b>, 1 on{" "}
+            <b>Business</b>. Most left within 30 days of a price change…
           </p>
         </div>
       </div>
 
       <div class="float blocked" aria-hidden="true">
-        <span class="fi"><Icon name="ban" size={16} /></span>
+        <span class="fi">
+          <Icon name="ban" size={16} />
+        </span>
         <div>
           <b>Write blocked</b>
           <span class="mono">DELETE FROM users …</span>
         </div>
       </div>
       <div class="float local" aria-hidden="true">
-        <span class="fi"><Icon name="lock" size={16} /></span>
+        <span class="fi">
+          <Icon name="lock" size={16} />
+        </span>
         <div>
           <b>127.0.0.1:4080</b>
           <span>Never leaves your machine</span>
@@ -106,7 +134,8 @@ import { REPO, RELEASES } from '../data/site';
   .bg-grid {
     position: absolute;
     inset: 0;
-    background-image: linear-gradient(var(--line) 1px, transparent 1px),
+    background-image:
+      linear-gradient(var(--line) 1px, transparent 1px),
       linear-gradient(90deg, var(--line) 1px, transparent 1px);
     background-size: 56px 56px;
     mask-image: radial-gradient(ellipse 70% 55% at 50% 20%, #000 30%, transparent 75%);
@@ -120,7 +149,12 @@ import { REPO, RELEASES } from '../data/site';
     width: 1100px;
     height: 700px;
     transform: translateX(-50%);
-    background: radial-gradient(closest-side, rgba(34, 211, 238, 0.22), rgba(37, 99, 235, 0.12) 55%, transparent);
+    background: radial-gradient(
+      closest-side,
+      rgba(34, 211, 238, 0.22),
+      rgba(37, 99, 235, 0.12) 55%,
+      transparent
+    );
     filter: blur(20px);
     pointer-events: none;
   }
@@ -138,7 +172,9 @@ import { REPO, RELEASES } from '../data/site';
     background: rgba(255, 255, 255, 0.03);
     font-size: 13px;
     color: var(--fg-2);
-    transition: border-color 0.15s ease, color 0.15s ease;
+    transition:
+      border-color 0.15s ease,
+      color 0.15s ease;
   }
   .pill:hover {
     border-color: rgba(34, 211, 238, 0.5);
@@ -201,13 +237,20 @@ import { REPO, RELEASES } from '../data/site';
     margin: 72px auto 0;
   }
   .stage::before {
-    content: '';
+    content: "";
     position: absolute;
     inset: -1px;
     border-radius: 17px;
     padding: 1px;
-    background: linear-gradient(180deg, rgba(103, 232, 249, 0.5), rgba(37, 99, 235, 0.15) 40%, transparent 85%);
-    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    background: linear-gradient(
+      180deg,
+      rgba(103, 232, 249, 0.5),
+      rgba(37, 99, 235, 0.15) 40%,
+      transparent 85%
+    );
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
     -webkit-mask-composite: xor;
     mask-composite: exclude;
     pointer-events: none;
@@ -219,7 +262,9 @@ import { REPO, RELEASES } from '../data/site';
     border-radius: 16px;
     background: linear-gradient(180deg, #0e1424, #0a0e19);
     border: 1px solid var(--line);
-    box-shadow: 0 40px 120px -30px rgba(34, 211, 238, 0.25), 0 30px 60px -30px rgba(0, 0, 0, 0.8);
+    box-shadow:
+      0 40px 120px -30px rgba(34, 211, 238, 0.25),
+      0 30px 60px -30px rgba(0, 0, 0, 0.8);
     overflow: hidden;
   }
   .titlebar {
@@ -296,11 +341,21 @@ import { REPO, RELEASES } from '../data/site';
     transform: translateY(6px);
     animation: appear 0.5s ease forwards;
   }
-  .l1 { animation-delay: 0.3s; }
-  .l2 { animation-delay: 0.9s; }
-  .l3 { animation-delay: 1.5s; }
-  .l4 { animation-delay: 2.1s; }
-  .l5 { animation-delay: 2.9s; }
+  .l1 {
+    animation-delay: 0.3s;
+  }
+  .l2 {
+    animation-delay: 0.9s;
+  }
+  .l3 {
+    animation-delay: 1.5s;
+  }
+  .l4 {
+    animation-delay: 2.1s;
+  }
+  .l5 {
+    animation-delay: 2.9s;
+  }
   @keyframes appear {
     to {
       opacity: 1;
@@ -342,7 +397,7 @@ import { REPO, RELEASES } from '../data/site';
     color: var(--mut);
   }
   .res::before {
-    content: '└ ';
+    content: "└ ";
     color: #3a4460;
   }
   .ok-text {
@@ -360,9 +415,15 @@ import { REPO, RELEASES } from '../data/site';
     white-space: pre;
     overflow-x: auto;
   }
-  .sql .k { color: #7dd3fc; }
-  .sql .s { color: #fcd34d; }
-  .sql .n { color: #c4b5fd; }
+  .sql .k {
+    color: #7dd3fc;
+  }
+  .sql .s {
+    color: #fcd34d;
+  }
+  .sql .n {
+    color: #c4b5fd;
+  }
   .answer {
     font-family: var(--sans);
     font-size: 15px;

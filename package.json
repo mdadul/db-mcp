@@ -5,6 +5,7 @@
   "type": "module",
   "private": true,
   "devDependencies": {
+    "@astrojs/compiler-rs": "0.5.3",
     "@tauri-apps/cli": "^2",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^26.1.1",
@@ -33,6 +34,9 @@
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "type-check": "tsc --noEmit",
+    "lint": "oxlint src scripts client/src",
+    "format": "oxfmt --write src scripts client/src site/src",
+    "format:check": "oxfmt --check src scripts client/src site/src",
     "test": "node --test \"src/**/*.test.ts\"",
     "build:client": "cd client && bun install && bun run build",
     "ui:preview": "node scripts/ui-preview.mjs"

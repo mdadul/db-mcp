@@ -1,12 +1,9 @@
-import { test, describe } from "node:test";
 import assert from "node:assert/strict";
+import { test, describe } from "node:test";
+
 import { Hono } from "hono";
-import {
-  apiGuard,
-  hostGuard,
-  mcpOriginGuard,
-  parseAllowedOrigins,
-} from "./localGuard.ts";
+
+import { apiGuard, hostGuard, mcpOriginGuard, parseAllowedOrigins } from "./localGuard.ts";
 
 const PORT = 4080;
 const LOCAL_HOST = `127.0.0.1:${PORT}`;
@@ -16,7 +13,7 @@ function buildApp(options: { sessionToken?: string; allowedOrigins?: string[] } 
   root.use("*", hostGuard(PORT));
   root.use(
     "/api/*",
-    apiGuard({ sessionToken: options.sessionToken, allowedOrigins: options.allowedOrigins })
+    apiGuard({ sessionToken: options.sessionToken, allowedOrigins: options.allowedOrigins }),
   );
   root.all("/mcp", mcpOriginGuard, (c) => c.text("mcp-ok"));
   root.get("/api/health", (c) => c.json({ status: "ok" }));

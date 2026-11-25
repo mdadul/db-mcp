@@ -1,5 +1,6 @@
-import { test, describe } from "node:test";
 import assert from "node:assert/strict";
+import { test, describe } from "node:test";
+
 import { CreateDatabaseSchema } from "../api/routes/databases/types.ts";
 import { assertReadOnly, injectLimit } from "../query/safety.ts";
 

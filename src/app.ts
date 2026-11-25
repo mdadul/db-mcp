@@ -1,8 +1,9 @@
 import { Hono, type ErrorHandler } from "hono";
-import { healthRoutes } from "./api/routes/health/index.ts";
-import { databaseRoutes } from "./api/routes/databases/index.ts";
-import { statsRoutes } from "./api/routes/stats/index.ts";
+
 import { activityRoutes } from "./api/routes/activity/index.ts";
+import { databaseRoutes } from "./api/routes/databases/index.ts";
+import { healthRoutes } from "./api/routes/health/index.ts";
+import { statsRoutes } from "./api/routes/stats/index.ts";
 import { AppError } from "./errors.ts";
 
 /** Maps AppError to its status code and everything else to a generic 500. */

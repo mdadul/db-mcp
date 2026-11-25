@@ -1,5 +1,6 @@
-import { describe, test } from "node:test";
 import assert from "node:assert/strict";
+import { describe, test } from "node:test";
+
 import { parseRedshiftDistKey, splitQualifiedTableName } from "./redshiftMeta.ts";
 
 describe("parseRedshiftDistKey", () => {
@@ -20,7 +21,10 @@ describe("parseRedshiftDistKey", () => {
 
 describe("splitQualifiedTableName", () => {
   test("splits schema.table", () => {
-    assert.deepEqual(splitQualifiedTableName("analytics.orders"), { schema: "analytics", table: "orders" });
+    assert.deepEqual(splitQualifiedTableName("analytics.orders"), {
+      schema: "analytics",
+      table: "orders",
+    });
   });
 
   test("keeps a bare table name", () => {

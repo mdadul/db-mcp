@@ -1,27 +1,28 @@
 ---
-import { databases, clients } from '../data/site';
+import { databases, clients } from "../data/site";
 ---
+
 <section class="logos" aria-label="Supported databases and AI clients">
   <div class="container">
     <p class="label">Connect the databases you already run</p>
     <ul class="dbs">
-      {
-        databases.map((d) => (
-          <li class="reveal">
-            <span class="logo">
-              <img src={d.img} alt="" width="36" height="36" loading="lazy" />
-            </span>
-            <span class="txt">
-              <b>{d.name}</b>
-              <small>{d.note}</small>
-            </span>
-          </li>
-        ))
-      }
+      {databases.map((d) => (
+        <li class="reveal">
+          <span class="logo">
+            <img src={d.img} alt="" width="36" height="36" loading="lazy" />
+          </span>
+          <span class="txt">
+            <b>{d.name}</b>
+            <small>{d.note}</small>
+          </span>
+        </li>
+      ))}
     </ul>
     <p class="label clients-label">…to the AI tools you already use</p>
     <ul class="clients">
-      {clients.map((c) => <li>{c}</li>)}
+      {clients.map((c) => (
+        <li>{c}</li>
+      ))}
       <li class="any">+ any MCP client</li>
     </ul>
   </div>
@@ -53,7 +54,9 @@ import { databases, clients } from '../data/site';
     border-radius: 12px;
     border: 1px solid var(--line);
     background: var(--card);
-    transition: border-color 0.2s ease, background 0.2s ease;
+    transition:
+      border-color 0.2s ease,
+      background 0.2s ease;
   }
   .dbs li:hover {
     border-color: var(--line-strong);
