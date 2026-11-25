@@ -12,7 +12,15 @@ export {
   DialogTitle,
   DialogDescription,
 } from "./Dialog";
-export { Table, TableHeader, TableBody, TableFooter, TableHead, TableRow, TableCell } from "./Table";
+export {
+  Table,
+  TableHeader,
+  TableBody,
+  TableFooter,
+  TableHead,
+  TableRow,
+  TableCell,
+} from "./Table";
 export { Select } from "./Select";
 export { Checkbox } from "./Checkbox";
 export { Label } from "./Label";

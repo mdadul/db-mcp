@@ -17,7 +17,7 @@ function parseColor(value: string): Rgb | undefined {
   if (rgb) return [Number(rgb[1]) / 255, Number(rgb[2]) / 255, Number(rgb[3]) / 255];
   const hsl = value.match(/^hsla?\(\s*([\d.]+)[,\s]+([\d.]+)%[,\s]+([\d.]+)%/i);
   if (hsl) {
-    const hue = ((Number(hsl[1]) % 360) + 360) % 360 / 360;
+    const hue = (((Number(hsl[1]) % 360) + 360) % 360) / 360;
     const saturation = Number(hsl[2]) / 100;
     const lightness = Number(hsl[3]) / 100;
     const channel = (offset: number) => {
@@ -31,21 +31,31 @@ function parseColor(value: string): Rgb | undefined {
   if (oklch) {
     const l = Number(oklch[1]) / (oklch[2] ? 100 : 1);
     const c = Number(oklch[3]);
-    const angle = Number(oklch[4]) * Math.PI / 180;
+    const angle = (Number(oklch[4]) * Math.PI) / 180;
     const a = c * Math.cos(angle);
     const b = c * Math.sin(angle);
     const ll = (l + 0.3963377774 * a + 0.2158037573 * b) ** 3;
     const mm = (l - 0.1055613458 * a - 0.0638541728 * b) ** 3;
     const ss = (l - 0.0894841775 * a - 1.291485548 * b) ** 3;
-    const linear: Rgb = [4.0767416621 * ll - 3.3077115913 * mm + 0.2309699292 * ss, -1.2684380046 * ll + 2.6097574011 * mm - 0.3413193965 * ss, -0.0041960863 * ll - 0.7034186147 * mm + 1.707614701 * ss];
-    const convert = (channel: number) => Math.max(0, Math.min(1, channel <= 0.0031308 ? channel * 12.92 : 1.055 * channel ** (1 / 2.4) - 0.055));
+    const linear: Rgb = [
+      4.0767416621 * ll - 3.3077115913 * mm + 0.2309699292 * ss,
+      -1.2684380046 * ll + 2.6097574011 * mm - 0.3413193965 * ss,
+      -0.0041960863 * ll - 0.7034186147 * mm + 1.707614701 * ss,
+    ];
+    const convert = (channel: number) =>
+      Math.max(
+        0,
+        Math.min(1, channel <= 0.0031308 ? channel * 12.92 : 1.055 * channel ** (1 / 2.4) - 0.055),
+      );
     return [convert(linear[0]), convert(linear[1]), convert(linear[2])];
   }
   return undefined;
 }
 
 function luminance(color: Rgb): number {
-  const channels = color.map((channel) => channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4);
+  const channels = color.map((channel) =>
+    channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4,
+  );
   return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
 }
 
@@ -68,11 +78,11 @@ export type AccentForeground = (typeof ACCENT_FOREGROUND_CANDIDATES)[number];
  * the better of the two.
  */
 export function pickAccentForeground(accent: string, accentHover: string): AccentForeground {
-  const score = (candidate: AccentForeground) => Math.min(
-    contrastRatio(candidate, accent) ?? 0,
-    contrastRatio(candidate, accentHover) ?? 0,
+  const score = (candidate: AccentForeground) =>
+    Math.min(contrastRatio(candidate, accent) ?? 0, contrastRatio(candidate, accentHover) ?? 0);
+  return ACCENT_FOREGROUND_CANDIDATES.reduce((best, candidate) =>
+    score(candidate) > score(best) ? candidate : best,
   );
-  return ACCENT_FOREGROUND_CANDIDATES.reduce((best, candidate) => score(candidate) > score(best) ? candidate : best);
 }
 
 export interface ContrastFinding {
@@ -89,13 +99,23 @@ export function checkThemeContrast(theme: ThemeDefinition): ContrastFinding[] {
   });
 }
 
-function checkVariantContrast(variant: ThemeVariant, variantName: "light" | "dark"): ContrastFinding[] {
+function checkVariantContrast(
+  variant: ThemeVariant,
+  variantName: "light" | "dark",
+): ContrastFinding[] {
   const backgrounds = ["background", "surface", "surface-raised", "sidebar"] as const;
   const foregrounds = ["text", "text-muted"] as const;
-  return backgrounds.flatMap((background) => foregrounds.map((foreground) => {
-    const ratio = contrastRatio(variant.tokens[foreground], variant.tokens[background]);
-    return { variant: variantName, pair: `${foreground}/${background}`, ratio, passesAA: ratio !== undefined && ratio >= 4.5 };
-  }));
+  return backgrounds.flatMap((background) =>
+    foregrounds.map((foreground) => {
+      const ratio = contrastRatio(variant.tokens[foreground], variant.tokens[background]);
+      return {
+        variant: variantName,
+        pair: `${foreground}/${background}`,
+        ratio,
+        passesAA: ratio !== undefined && ratio >= 4.5,
+      };
+    }),
+  );
 }
 
 export function missingSemanticTokens(tokens: Record<string, unknown>): string[] {
@@ -107,9 +127,15 @@ export function invalidCssColors(theme: ThemeDefinition): string[] {
     const variant = theme.variants[variantName];
     if (!variant) return [];
     return [
-      ...Object.entries(variant.tokens).map(([name, value]) => [`${variantName}.${name}`, value] as const),
+      ...Object.entries(variant.tokens).map(
+        ([name, value]) => [`${variantName}.${name}`, value] as const,
+      ),
       ...variant.chart.map((value, index) => [`${variantName}.chart[${index}]`, value] as const),
-      ...Object.entries(variant.syntax).map(([name, value]) => [`${variantName}.syntax.${name}`, value] as const),
-    ].filter(([, value]) => !cssColorSchema.safeParse(value).success).map(([name]) => name);
+      ...Object.entries(variant.syntax).map(
+        ([name, value]) => [`${variantName}.syntax.${name}`, value] as const,
+      ),
+    ]
+      .filter(([, value]) => !cssColorSchema.safeParse(value).success)
+      .map(([name]) => name);
   });
 }

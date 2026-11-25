@@ -29,23 +29,49 @@ export function ConnectionStringParser({ onParse, className = "" }: ConnectionSt
     try {
       let cleanUri = rawUri.trim();
       const protocol = cleanUri.slice(0, cleanUri.indexOf(":")).toLowerCase();
-      const type: DbEngineType = protocol === "mysql" ? "mysql" : protocol === "mongodb" || protocol === "mongodb+srv" ? "mongodb" : protocol === "redshift" ? "redshift" : protocol === "sqlite" ? "sqlite" : "postgresql";
+      const type: DbEngineType =
+        protocol === "mysql"
+          ? "mysql"
+          : protocol === "mongodb" || protocol === "mongodb+srv"
+            ? "mongodb"
+            : protocol === "redshift"
+              ? "redshift"
+              : protocol === "sqlite"
+                ? "sqlite"
+                : "postgresql";
       if (type === "sqlite") {
         const path = cleanUri.slice(cleanUri.indexOf(":") + 1).replace(/^\/\//, "");
         return { type, databaseName: decodeURIComponent(path) };
       }
-      if (!["postgres", "postgresql", "mysql", "mongodb", "mongodb+srv", "redshift"].includes(protocol)) return null;
-      if (protocol === "postgres") cleanUri = `postgresql://${cleanUri.slice(cleanUri.indexOf(":") + 1).replace(/^\/\//, "")}`;
+      if (
+        !["postgres", "postgresql", "mysql", "mongodb", "mongodb+srv", "redshift"].includes(
+          protocol,
+        )
+      )
+        return null;
+      if (protocol === "postgres")
+        cleanUri = `postgresql://${cleanUri.slice(cleanUri.indexOf(":") + 1).replace(/^\/\//, "")}`;
 
       const parsed = new URL(cleanUri);
-      const defaults: Record<DbEngineType, number> = { postgresql: 5432, mysql: 3306, sqlite: 0, redshift: 5439, mongodb: 27017 };
+      const defaults: Record<DbEngineType, number> = {
+        postgresql: 5432,
+        mysql: 3306,
+        sqlite: 0,
+        redshift: 5439,
+        mongodb: 27017,
+      };
       const host = parsed.hostname || "localhost";
       const port = parsed.port ? parseInt(parsed.port, 10) : defaults[type];
-      const databaseName = parsed.pathname ? decodeURIComponent(parsed.pathname.replace(/^\//, "")) : "";
+      const databaseName = parsed.pathname
+        ? decodeURIComponent(parsed.pathname.replace(/^\//, ""))
+        : "";
       const username = decodeURIComponent(parsed.username || "");
       const password = decodeURIComponent(parsed.password || "");
 
-      const sslParam = parsed.searchParams.get("ssl") || parsed.searchParams.get("sslmode") || parsed.searchParams.get("tls");
+      const sslParam =
+        parsed.searchParams.get("ssl") ||
+        parsed.searchParams.get("sslmode") ||
+        parsed.searchParams.get("tls");
       const ssl =
         sslParam === "require" ||
         sslParam === "verify-full" ||
@@ -107,7 +133,9 @@ export function ConnectionStringParser({ onParse, className = "" }: ConnectionSt
   };
 
   return (
-    <div className={`rounded-xl border border-primary/20 bg-linear-to-br from-primary/5 via-background to-accent/30 p-4 sm:p-5 shadow-xs ${className}`}>
+    <div
+      className={`rounded-xl border border-primary/20 bg-linear-to-br from-primary/5 via-background to-accent/30 p-4 sm:p-5 shadow-xs ${className}`}
+    >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 shadow-xs">
@@ -172,7 +200,10 @@ export function ConnectionStringParser({ onParse, className = "" }: ConnectionSt
         {detectedFields && (
           <div className="flex flex-wrap items-center gap-1.5 pt-1 animate-in fade-in slide-in-from-top-1">
             <span className="text-ui-xs font-medium text-muted-foreground mr-1">Detected:</span>
-            <Badge variant="secondary" className="text-ui-xs uppercase font-bold bg-primary/10 text-primary border-primary/20">
+            <Badge
+              variant="secondary"
+              className="text-ui-xs uppercase font-bold bg-primary/10 text-primary border-primary/20"
+            >
               {detectedFields.type}
             </Badge>
             {detectedFields.host && (
@@ -196,7 +227,10 @@ export function ConnectionStringParser({ onParse, className = "" }: ConnectionSt
               </Badge>
             )}
             {detectedFields.ssl && (
-              <Badge variant="outline" className="text-ui-xs font-mono bg-success-subtle text-success border-success/30">
+              <Badge
+                variant="outline"
+                className="text-ui-xs font-mono bg-success-subtle text-success border-success/30"
+              >
                 SSL Required
               </Badge>
             )}
