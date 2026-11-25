@@ -124,7 +124,7 @@ export function ConnectionForm({ onSaved, stayOnSave = false }: ConnectionFormPr
         folder: result.data.folder ?? "",
         description: result.data.description ?? "",
       };
-      if (id) return databaseApi.update(id, input);
+      if (id) return databaseApi.update(id, { ...input, password: input.password || undefined });
       return databaseApi.create({ ...input, password: values.password });
     },
     onSuccess: async (connection) => {
