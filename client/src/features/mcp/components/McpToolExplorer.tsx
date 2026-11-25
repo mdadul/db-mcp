@@ -67,7 +67,8 @@ const MCP_TOOLS: ToolInfo[] = [
   },
   {
     name: "execute_read_query",
-    description: "Executes read-only SQL (SELECT, EXPLAIN, SHOW, DESCRIBE). LIMIT is auto-injected for SELECT if omitted.",
+    description:
+      "Executes read-only SQL (SELECT, EXPLAIN, SHOW, DESCRIBE). LIMIT is auto-injected for SELECT if omitted.",
     parameters: `{
   "database_id": "91aa54fd-c9d2-45d9-9bbd-9f3c67f8f9fc",
   "query": "SELECT id, event_type FROM payment_events ORDER BY created_at DESC",
@@ -108,7 +109,7 @@ export function McpToolExplorer() {
         {/* Tool selector buttons */}
         <div className="flex items-center gap-1 bg-muted p-1 rounded-xl border border-border overflow-x-auto">
           {MCP_TOOLS.map((t, idx) => (
-      <button
+            <button
               key={t.name}
               onClick={() => setActiveIdx(idx)}
               aria-pressed={activeIdx === idx}
@@ -129,9 +130,7 @@ export function McpToolExplorer() {
         {/* Description & Parameters */}
         <div className="space-y-4">
           <div className="p-4 rounded-2xl bg-primary/10 border border-primary/30">
-            <h3 className="text-scale-base font-mono font-bold text-primary">
-              {activeTool.name}
-            </h3>
+            <h3 className="text-scale-base font-mono font-bold text-primary">{activeTool.name}</h3>
             <p className="text-scale-xs sm:text-scale-sm text-primary mt-1 leading-relaxed">
               {activeTool.description}
             </p>

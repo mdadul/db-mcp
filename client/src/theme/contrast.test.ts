@@ -57,11 +57,20 @@ for (const theme of builtInThemes) {
 
         const base = contrastRatio(foreground, primary);
         assert.ok(base !== undefined, `primary colors are parseable (${primary} on ${foreground})`);
-        assert.ok(base >= 4.5, `primary contrast ${base.toFixed(2)}:1 is below 4.5:1 (${foreground} on ${primary})`);
+        assert.ok(
+          base >= 4.5,
+          `primary contrast ${base.toFixed(2)}:1 is below 4.5:1 (${foreground} on ${primary})`,
+        );
 
         const hover = contrastRatio(foreground, accentHover);
-        assert.ok(hover !== undefined, `accent-hover colors are parseable (${accentHover} on ${foreground})`);
-        assert.ok(hover >= 4.5, `accent-hover contrast ${hover.toFixed(2)}:1 is below 4.5:1 (${foreground} on ${accentHover})`);
+        assert.ok(
+          hover !== undefined,
+          `accent-hover colors are parseable (${accentHover} on ${foreground})`,
+        );
+        assert.ok(
+          hover >= 4.5,
+          `accent-hover contrast ${hover.toFixed(2)}:1 is below 4.5:1 (${foreground} on ${accentHover})`,
+        );
       });
     }
   }

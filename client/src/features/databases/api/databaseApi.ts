@@ -87,23 +87,45 @@ export const databaseApi = {
     return unwrap<TableStructure>(res);
   },
 
-  async browseRows(id: string, table: string, options: { schema?: string; limit: number; offset: number; orderBy?: string; direction?: "asc" | "desc"; signal?: AbortSignal }): Promise<BrowseRowsResult> {
+  async browseRows(
+    id: string,
+    table: string,
+    options: {
+      schema?: string;
+      limit: number;
+      offset: number;
+      orderBy?: string;
+      direction?: "asc" | "desc";
+      signal?: AbortSignal;
+    },
+  ): Promise<BrowseRowsResult> {
     const client = await getApiClient();
-    const res = await client.api.databases[":id"].tables[":tableName"].rows.$get({
-      param: { id, tableName: table },
-      query: {
-        ...(options.schema ? { schema: options.schema } : {}),
-        limit: String(options.limit),
-        offset: String(options.offset),
-        ...(options.orderBy ? { orderBy: options.orderBy, direction: options.direction ?? "asc" } : {}),
+    const res = await client.api.databases[":id"].tables[":tableName"].rows.$get(
+      {
+        param: { id, tableName: table },
+        query: {
+          ...(options.schema ? { schema: options.schema } : {}),
+          limit: String(options.limit),
+          offset: String(options.offset),
+          ...(options.orderBy
+            ? { orderBy: options.orderBy, direction: options.direction ?? "asc" }
+            : {}),
+        },
       },
-    }, options.signal ? { init: { signal: options.signal } } : undefined);
+      options.signal ? { init: { signal: options.signal } } : undefined,
+    );
     return unwrap<BrowseRowsResult>(res);
   },
 
-  async testDraft(input: CreateDatabaseInput & { id?: string }, signal?: AbortSignal): Promise<TestResult> {
+  async testDraft(
+    input: CreateDatabaseInput & { id?: string },
+    signal?: AbortSignal,
+  ): Promise<TestResult> {
     const client = await getApiClient();
-    const res = await client.api.databases.test.$post({ json: input }, signal ? { init: { signal } } : undefined);
+    const res = await client.api.databases.test.$post(
+      { json: input },
+      signal ? { init: { signal } } : undefined,
+    );
     return unwrap<TestResult>(res);
   },
 

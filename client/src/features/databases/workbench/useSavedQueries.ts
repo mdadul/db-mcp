@@ -2,7 +2,11 @@ import { useCallback, useState } from "react";
 
 export const SAVED_QUERIES_KEY = "dbmcp.savedQueries.v1";
 
-export interface SavedQuery { id: string; name: string; sql: string; }
+export interface SavedQuery {
+  id: string;
+  name: string;
+  sql: string;
+}
 
 function readSaved(): Record<string, SavedQuery[]> {
   try {
@@ -24,14 +28,24 @@ export function useSavedQueries(connectionId: string) {
     localStorage.setItem(SAVED_QUERIES_KEY, JSON.stringify(next));
   }, []);
 
-  const save = useCallback((name: string, sql: string) => {
-    const entry: SavedQuery = { id: `saved-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, name, sql };
-    persist({ ...byConnection, [connectionId]: [entry, ...items] });
-  }, [byConnection, connectionId, items, persist]);
+  const save = useCallback(
+    (name: string, sql: string) => {
+      const entry: SavedQuery = {
+        id: `saved-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        name,
+        sql,
+      };
+      persist({ ...byConnection, [connectionId]: [entry, ...items] });
+    },
+    [byConnection, connectionId, items, persist],
+  );
 
-  const remove = useCallback((id: string) => {
-    persist({ ...byConnection, [connectionId]: items.filter((item) => item.id !== id) });
-  }, [byConnection, connectionId, items, persist]);
+  const remove = useCallback(
+    (id: string) => {
+      persist({ ...byConnection, [connectionId]: items.filter((item) => item.id !== id) });
+    },
+    [byConnection, connectionId, items, persist],
+  );
 
   return { items, save, remove };
 }

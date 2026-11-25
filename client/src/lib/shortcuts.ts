@@ -31,7 +31,12 @@ export const shortcuts: readonly ShortcutDefinition[] = [
   { id: "commandPalette", keys: "Mod+K", label: "Command palette", group: "General" },
   { id: "shortcutSheet", keys: "Mod+/", label: "Keyboard shortcuts", group: "General" },
   { id: "settings", keys: "Mod+,", label: "Open settings", group: "General" },
-  { id: "toggleNavigation", keys: "Mod+\\", label: "Show or hide navigation labels", group: "Navigation" },
+  {
+    id: "toggleNavigation",
+    keys: "Mod+\\",
+    label: "Show or hide navigation labels",
+    group: "Navigation",
+  },
   { id: "gotoConnections", keys: "Mod+1", label: "Go to Connections", group: "Navigation" },
   { id: "gotoAiClients", keys: "Mod+2", label: "Go to AI Clients", group: "Navigation" },
   { id: "gotoActivity", keys: "Mod+3", label: "Go to Activity", group: "Navigation" },
@@ -76,7 +81,9 @@ export function detectShortcutOs(): ShortcutOs {
   return /mac|iphone|ipad|ipod/i.test(navigator.userAgent) ? "macos" : "other";
 }
 
-export function shortcutOsForPlatform(platform: "macos" | "windows" | "linux" | undefined): ShortcutOs {
+export function shortcutOsForPlatform(
+  platform: "macos" | "windows" | "linux" | undefined,
+): ShortcutOs {
   if (platform === undefined) return detectShortcutOs();
   return platform === "macos" ? "macos" : "other";
 }

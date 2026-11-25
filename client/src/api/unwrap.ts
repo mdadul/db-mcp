@@ -23,10 +23,7 @@ function isErrorResponse(value: unknown): value is ErrorResponse {
  * Reads response body once, throws a meaningful error on non-2xx status,
  * and optionally validates the response structure using a Zod schema for 100% type safety.
  */
-export async function unwrap<T>(
-  res: HonoResponse,
-  schema?: z.ZodType<T>
-): Promise<T> {
+export async function unwrap<T>(res: HonoResponse, schema?: z.ZodType<T>): Promise<T> {
   let data: unknown;
 
   try {
@@ -35,10 +32,11 @@ export async function unwrap<T>(
     // Network error, server down, or invalid JSON response
     if (!res.ok) {
       throw new Error(
-        `Server error (${res.status}): Unable to parse response. Server may be unreachable.`
+        `Server error (${res.status}): Unable to parse response. Server may be unreachable.`,
+        { cause: err },
       );
     }
-    throw new Error("Invalid JSON response from server");
+    throw new Error("Invalid JSON response from server", { cause: err });
   }
 
   if (!res.ok) {

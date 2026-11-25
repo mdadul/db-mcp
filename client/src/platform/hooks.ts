@@ -13,10 +13,12 @@ export function useServerInfo() {
   useEffect(() => {
     let unsubscribe: (() => void) | undefined;
     let active = true;
-    void platform.onServerState((info) => queryClient.setQueryData(serverInfoQueryKey, info)).then((cleanup) => {
-      if (active) unsubscribe = cleanup;
-      else cleanup();
-    });
+    void platform
+      .onServerState((info) => queryClient.setQueryData(serverInfoQueryKey, info))
+      .then((cleanup) => {
+        if (active) unsubscribe = cleanup;
+        else cleanup();
+      });
     return () => {
       active = false;
       unsubscribe?.();
@@ -29,7 +31,9 @@ export function useServerInfo() {
 export function useSettings() {
   const query = useQuery({ queryKey: settingsQueryKey, queryFn: platform.getSettings });
   useEffect(() => {
-    const listener = () => { void query.refetch(); };
+    const listener = () => {
+      void query.refetch();
+    };
     window.addEventListener("dbmcp:settings-updated", listener);
     return () => window.removeEventListener("dbmcp:settings-updated", listener);
   }, [query.refetch]);

@@ -22,12 +22,8 @@ export function Header({ title, subtitle, backTo, action }: HeaderProps) {
           </Link>
         )}
         <div>
-          <h1 className="text-scale-2xl font-bold text-foreground tracking-tight">
-            {title}
-          </h1>
-          {subtitle && (
-            <p className="text-scale-sm text-muted-foreground mt-1">{subtitle}</p>
-          )}
+          <h1 className="text-scale-2xl font-bold text-foreground tracking-tight">{title}</h1>
+          {subtitle && <p className="text-scale-sm text-muted-foreground mt-1">{subtitle}</p>}
         </div>
       </div>
       {action && <div className="shrink-0">{action}</div>}

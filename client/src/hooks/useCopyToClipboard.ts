@@ -13,7 +13,7 @@ export function useCopyToClipboard(resetMs = 2000) {
         // clipboard unavailable — silently ignore
       }
     },
-    [resetMs]
+    [resetMs],
   );
 
   return { copied, copy };
