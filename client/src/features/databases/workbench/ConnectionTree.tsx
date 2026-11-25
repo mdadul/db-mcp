@@ -1,3 +1,5 @@
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { ChevronRight, FolderTree, RefreshCw, Search, Star, Table2 } from "lucide-react";
 import {
   useEffect,
   useMemo,
@@ -6,11 +8,11 @@ import {
   type MouseEvent,
   type ReactNode,
 } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronRight, FolderTree, RefreshCw, Search, Star, Table2 } from "lucide-react";
+
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/Skeleton";
+
 import { databaseApi } from "../api/databaseApi";
 import type { DatabaseConnection, SchemaTree } from "../types";
 import { tableKey, type TableRef } from "./model";

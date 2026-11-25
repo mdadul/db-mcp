@@ -1,3 +1,5 @@
+import type { UseQueryResult } from "@tanstack/react-query";
+import { ChevronRight, Download, ListFilter, MoreHorizontal, Plus, Search, X } from "lucide-react";
 import {
   useEffect,
   useMemo,
@@ -7,24 +9,24 @@ import {
   type ReactNode,
   type RefObject,
 } from "react";
-import type { UseQueryResult } from "@tanstack/react-query";
-import { ChevronRight, Download, ListFilter, MoreHorizontal, Plus, Search, X } from "lucide-react";
+
+import { DbEngineIcon } from "@/components/brand/DbEngineIcon";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/Skeleton";
-import { EmptyState } from "@/components/ui/EmptyState";
-import { StatusDot } from "@/components/ui/StatusDot";
-import { Tooltip } from "@/components/ui/Tooltip";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { DbEngineIcon } from "@/components/brand/DbEngineIcon";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { StatusDot } from "@/components/ui/StatusDot";
+import { Tooltip } from "@/components/ui/Tooltip";
+
 import type { DatabaseConnection } from "../types";
-import { EnvironmentTag } from "./EnvironmentTag";
 import { moveTreeFocus } from "./ConnectionTree";
+import { EnvironmentTag } from "./EnvironmentTag";
 import {
   connectionMeta,
   connectionStatus,

@@ -1,5 +1,5 @@
-import type { ReactElement } from "react";
 import { Tooltip as TooltipPrimitive } from "@base-ui/react/tooltip";
+import type { ReactElement } from "react";
 
 /** Accessible Base UI tooltip for short, supplementary labels. */
 export function Tooltip({

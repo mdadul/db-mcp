@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ChevronDown,
@@ -10,11 +9,15 @@ import {
   MoreHorizontal,
   Trash2,
 } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/Button";
+
+import { AiClientIcon } from "@/components/brand/AiClientIcon";
+import { ConfirmModal } from "@/components/brand/ConfirmModal";
 import { Badge } from "@/components/ui/Badge";
-import { Skeleton } from "@/components/ui/Skeleton";
-import { EmptyState } from "@/components/ui/EmptyState";
+import { Button } from "@/components/ui/Button";
+import { CodeBlock } from "@/components/ui/CodeBlock";
+import { CopyButton } from "@/components/ui/CopyButton";
 import {
   Dialog,
   DialogContent,
@@ -23,8 +26,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/Dialog";
-import { ConfirmModal } from "@/components/brand/ConfirmModal";
-import { AiClientIcon } from "@/components/brand/AiClientIcon";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,8 +33,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { CopyButton } from "@/components/ui/CopyButton";
-import { CodeBlock } from "@/components/ui/CodeBlock";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { platform } from "@/platform";
 import type { AiClient, AiClientId, InstallPreview, InstallResult } from "@/platform/types";
 

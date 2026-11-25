@@ -1,14 +1,16 @@
-import { lazy, Suspense, useEffect, useState } from "react";
 import { EditorView } from "@codemirror/view";
 import { ChevronDown, Code2, Save, Trash2, WandSparkles } from "lucide-react";
+import { lazy, Suspense, useEffect, useState } from "react";
+
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/Skeleton";
+
 import { VirtualDataGrid } from "../components/VirtualDataGrid";
 import type { DatabaseConnection } from "../types";
+import { formatSql, writeKeywordIn } from "./sqlText";
 import type { QueryEditor, QueryRun } from "./useQueryEditor";
 import type { useSavedQueries } from "./useSavedQueries";
-import { formatSql, writeKeywordIn } from "./sqlText";
 
 const SqlEditor = lazy(() =>
   import("@uiw/react-codemirror").then((module) => ({ default: module.default })),

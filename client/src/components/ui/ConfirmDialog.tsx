@@ -1,7 +1,7 @@
-import { useState } from "react";
 import { AlertTriangle } from "lucide-react";
+import { useState } from "react";
+
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/Dialog";
+import { Input } from "@/components/ui/input";
 
 /** Confirmation dialog with an optional exact phrase gate for destructive actions. */
 export function ConfirmDialog({

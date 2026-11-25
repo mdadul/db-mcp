@@ -1,3 +1,6 @@
+import { platform } from "@/platform";
+import { INTERFACE_FONT_SIZES } from "@/platform/types";
+
 import { pickAccentForeground } from "./contrast";
 import {
   themeSettingsSchema,
@@ -6,8 +9,6 @@ import {
   type ThemeSettings,
 } from "./schema";
 import { builtInThemes, getBuiltInTheme } from "./themes";
-import { platform } from "@/platform";
-import { INTERFACE_FONT_SIZES } from "@/platform/types";
 
 const CACHE_KEY = "dbmcp.themeSnapshot";
 let registeredCustomThemes: readonly ThemeDefinition[] = [];

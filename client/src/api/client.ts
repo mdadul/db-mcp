@@ -1,7 +1,8 @@
-import { hc } from "hono/client";
 import type { AppType } from "@server/app.ts";
-import type { ServerInfo } from "@/platform/types";
+import { hc } from "hono/client";
+
 import { platform } from "@/platform";
+import type { ServerInfo } from "@/platform/types";
 
 export function createApiClient(serverInfo: ServerInfo) {
   return hc<AppType>(serverInfo.baseUrl, {

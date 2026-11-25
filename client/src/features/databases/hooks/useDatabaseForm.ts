@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
+
 import { databaseApi } from "../api/databaseApi";
+import type { ParsedConnectionFields } from "../components/ConnectionStringParser";
 import {
   createDatabaseFormSchema,
   updateDatabaseFormSchema,
@@ -10,7 +12,6 @@ import {
 } from "../schemas/databaseSchemas";
 import { DB_ENGINES } from "../types";
 import type { DatabaseConnection, DbEngineType, TestResult, UpdateDatabaseInput } from "../types";
-import type { ParsedConnectionFields } from "../components/ConnectionStringParser";
 
 export type DatabaseFormState = BaseDatabaseFormData & { password?: string };
 
