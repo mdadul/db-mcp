@@ -393,6 +393,9 @@ export function ConnectionForm({ onSaved, stayOnSave = false }: ConnectionFormPr
               >
                 <Input
                   value={values.name}
+                  autoCapitalize="off"
+                  autoCorrect="off"
+                  spellCheck={false}
                   onChange={(event) => update("name", event.target.value)}
                   onBlur={() => validateField("name")}
                   autoFocus={searchParams.has("duplicate")}
@@ -414,6 +417,9 @@ export function ConnectionForm({ onSaved, stayOnSave = false }: ConnectionFormPr
                       value={values.host}
                       placeholder="db.example.com"
                       autoComplete="url"
+                      autoCapitalize="off"
+                      autoCorrect="off"
+                      spellCheck={false}
                       onChange={(event) => update("host", event.target.value)}
                       onBlur={() => validateField("host")}
                     />
@@ -445,6 +451,9 @@ export function ConnectionForm({ onSaved, stayOnSave = false }: ConnectionFormPr
                   >
                     <Input
                       value={values.databaseName}
+                      autoCapitalize="off"
+                      autoCorrect="off"
+                      spellCheck={false}
                       onChange={(event) => update("databaseName", event.target.value)}
                       onBlur={() => validateField("databaseName")}
                     />
@@ -462,6 +471,9 @@ export function ConnectionForm({ onSaved, stayOnSave = false }: ConnectionFormPr
                       value={values.databaseName}
                       placeholder="/path/to/database.sqlite"
                       className="font-mono"
+                      autoCapitalize="off"
+                      autoCorrect="off"
+                      spellCheck={false}
                       onChange={(event) => update("databaseName", event.target.value)}
                       onBlur={() => validateField("databaseName")}
                     />
@@ -511,6 +523,9 @@ export function ConnectionForm({ onSaved, stayOnSave = false }: ConnectionFormPr
                 <Field label="Username" required error={errors.username}>
                   <Input
                     autoComplete="username"
+                    autoCapitalize="off"
+                    autoCorrect="off"
+                    spellCheck={false}
                     value={values.username}
                     onChange={(event) => update("username", event.target.value)}
                     onBlur={() => validateField("username")}
@@ -524,6 +539,9 @@ export function ConnectionForm({ onSaved, stayOnSave = false }: ConnectionFormPr
                 >
                   <PasswordInput
                     autoComplete={isEdit ? "new-password" : "current-password"}
+                    autoCapitalize="off"
+                    autoCorrect="off"
+                    spellCheck={false}
                     placeholder={
                       isEdit
                         ? "Unchanged — leave empty to keep the saved password"
@@ -608,6 +626,9 @@ export function ConnectionForm({ onSaved, stayOnSave = false }: ConnectionFormPr
                     <Input
                       value={values.environment}
                       placeholder="staging"
+                      autoCapitalize="off"
+                      autoCorrect="off"
+                      spellCheck={false}
                       onChange={(event) => update("environment", event.target.value)}
                     />
                   </Field>
@@ -619,6 +640,9 @@ export function ConnectionForm({ onSaved, stayOnSave = false }: ConnectionFormPr
                     <Input
                       value={values.serviceName}
                       placeholder="orders-api"
+                      autoCapitalize="off"
+                      autoCorrect="off"
+                      spellCheck={false}
                       onChange={(event) => update("serviceName", event.target.value)}
                     />
                   </Field>
@@ -626,6 +650,9 @@ export function ConnectionForm({ onSaved, stayOnSave = false }: ConnectionFormPr
                     <Input
                       value={values.folder}
                       placeholder="Analytics"
+                      autoCapitalize="off"
+                      autoCorrect="off"
+                      spellCheck={false}
                       onChange={(event) => update("folder", event.target.value)}
                     />
                   </Field>
@@ -637,6 +664,9 @@ export function ConnectionForm({ onSaved, stayOnSave = false }: ConnectionFormPr
                     <Input
                       value={values.description}
                       placeholder="Orders and payments, read replica"
+                      autoCapitalize="off"
+                      autoCorrect="off"
+                      spellCheck={false}
                       onChange={(event) => update("description", event.target.value)}
                     />
                   </Field>
